@@ -2,8 +2,6 @@
 
 A modern, full-stack MERN application designed to digitize and streamline the academic management of primary and secondary schools. This system replaces traditional paper-based methods with an efficient, secure, and user-friendly digital platform.
 
-![Screenshot of the dashboard] (./path/to/your/screenshot.png) 
-_A screenshot of the main admin dashboard._
 
 ---
 
