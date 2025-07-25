@@ -24,3 +24,8 @@ _A screenshot of the main admin dashboard._
 *   **Backend:** Node.js, Express.js
 *   **Database:** MongoDB with Mongoose
 *   **Authentication:** JWT (JSON Web Tokens)
+
+## 👤 Author
+
+**Gebrekidan Mequanint**
++251973150187
