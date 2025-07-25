@@ -1,0 +1,123 @@
+/* --- Page and Sheet Styling --- */
+@page {
+    size: A4 landscape;
+    margin: 15mm;
+}
+
+/* We style the body of the new print window or the print media */
+body {
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+    -webkit-print-color-adjust: exact !important; /* Forces Chrome to print background colors */
+    color-adjust: exact !important; /* Standard property for printing background colors */
+}
+
+.sheet {
+    background-color: #fcfaf3; /* A very light, elegant cream/parchment color */
+    margin: 0 auto 20px auto;
+    padding: 15mm;
+    width: 297mm;
+    min-height: 210mm;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+    position: relative; /* This is crucial for positioning the watermark */
+    overflow: hidden; /* Prevents watermark from spilling out */
+}
+
+/* ======================================= */
+/* =========== WATERMARK STYLE =========== */
+/* ======================================= */
+.sheet::before {
+    content: "FREEDOM PRIMARY SCHOOL"; /* The text of the watermark */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-35deg); /* Center and rotate */
+    font-size: 80pt; /* Large font size */
+    font-weight: bold;
+    color: #000000; /* Black color */
+    opacity: 0.05; /* VERY transparent, making it subtle */
+    z-index: 0; /* Place it behind the content */
+    white-space: nowrap; /* Prevents the text from wrapping */
+}
+
+
+/* --- General Content Styling --- */
+/* We need to make sure our content sits on TOP of the watermark */
+.card-header, .front-page-grid, .main-grid, .card-footer {
+    position: relative;
+    z-index: 1;
+}
+
+/* --- Back Page Specific Layout --- */
+.back-page-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two equal columns */
+    gap: 0.5in;
+    align-items: start; /* Aligns content to the top of each column */
+}
+
+
+.back-left-col {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.academic-results {
+    flex-grow: 1; /* This makes the table take up most of the space */
+}
+
+.director-signature {
+    margin-top: 30px;
+    padding-top: 15px;
+    font-size: 9pt;
+}
+
+.sheet:last-child {
+    page-break-after: auto;
+}
+
+/* --- All your other layout styles remain the same --- */
+/* (front-page-grid, main-grid, tables, etc.) */
+
+.card-header { text-align: center; }
+.front-page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5in; margin-top: 20px; }
+.front-left-col h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 5px; }
+.front-info-item { display: flex; margin-bottom: 10px; }
+.front-info-item span { font-weight: bold; width: 120px; }
+.front-info-item p { margin: 0; border-bottom: 1px dotted #888; flex-grow: 1; padding-left: 5px; }
+.front-comment-box {
+    border: 1px solid #333;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px; /* Adjusted margin */
+}
+
+.front-comment-box.large-comment {
+    height: 100px; /* Give parents more space */
+}
+
+.front-comment-box.small-comment {
+    height: 70px; /* Make teacher boxes smaller */
+}
+.front-comment-box h4 { margin: 0 0 5px 0; text-align: center; }
+.comment-space { flex-grow: 1; }
+.comment-space p { border-bottom: none; }
+.front-comment-box p { margin: 0; font-size: 9pt; }
+.message-to-parents { margin-top: 20px; border: 1px solid #333; padding: 15px; font-size: 9pt; }
+.message-to-parents h4 { margin: 0 0 5px 0; font-weight: bold; }
+.bilingual-divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+.main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.academic-results h4, .personality-skills h4 { text-align: center; font-weight: bold; margin: 0 0 5px 0; }
+table { width: 100%; border-collapse: collapse; }
+td, th { border: 1px solid black; padding: 4px 6px; }
+.grading-key { margin-top: 20px; }
+.card-footer { margin-top: 25px; padding-top: 15px; border-top: 1px solid #333; }
+.footer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+/* The no-print styles are no longer needed here but are good to keep in the main app */
+.no-print {
+    display: initial; /* Or whatever its default is */
+}
