@@ -1,8 +1,7 @@
-// src/services/api.js
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5001/api',
+    baseURL: 'https://academic-result-management.onrender.com/api',
     headers: {
         'Content-Type': 'application/json',
     },
