@@ -9,7 +9,7 @@ import userService from '../services/userService';
 
 const GradeSheetPage = () => {
     const navigate = useNavigate();
-    
+     const [academicYear, setAcademicYear] = useState('2017 E.C'); 
     // --- State for Selections ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [subjects, setSubjects] = useState([]);
@@ -92,7 +92,7 @@ const GradeSheetPage = () => {
                 assessmentTypeId: selectedAssessment,
                 subjectId: selectedSubject,
                 semester: sheetData.assessmentType.semester,
-                academicYear: sheetData.assessmentType.academicYear, // Assuming this is available, if not use a state
+                academicYear: academicYear, // Use the state variable
                 scores: scoresPayload
             });
             alert('Grades saved successfully!');
@@ -122,6 +122,15 @@ const GradeSheetPage = () => {
                         <option value="">Select Assessment</option>
                         {assessmentTypes.map(at => <option key={at._id} value={at._id}>{at.month} - {at.name}</option>)}
                     </select>
+                </div>
+                <div>
+                    <label className="font-bold block mb-1 text-sm">Academic Year</label>
+                    <input 
+                        type="text" 
+                        value={academicYear} 
+                        onChange={(e) => setAcademicYear(e.target.value)} 
+                        className="w-full p-2 border rounded-md"
+                    />
                 </div>
                 <button onClick={handleLoadSheet} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md" disabled={!selectedAssessment || loading}>
                     {loading && sheetData === null ? 'Loading...' : 'Load Grade Sheet'}
