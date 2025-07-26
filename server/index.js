@@ -45,7 +45,7 @@ const seedAdminUser = async () => {
         await User.create({
             fullName: 'Default Admin',
             username: process.env.ADMIN_USERNAME || 'admin',
-            password: process.env.ADMIN_PASSWORD || 'admin123', // This will be hashed
+            password: process.env.ADMIN_PASSWORD || 'admin@123',
             role: 'admin'
         });
 
