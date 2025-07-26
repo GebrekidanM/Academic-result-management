@@ -189,3 +189,113 @@ exports.updateGrade = async (req, res) => {
         res.status(500).json({ message: "Server error while updating grade." });
     }
 };
+
+
+
+// @desc    Get a list of students and their scores for a specific assessment
+// @route   GET /api/grades/sheet?assessmentTypeId=...
+exports.getGradeSheet = async (req, res) => {
+    const { assessmentTypeId } = req.query;
+    if (!assessmentTypeId) return res.status(400).json({ message: 'Assessment Type ID is required.' });
+
+    try {
+        const assessmentType = await AssessmentType.findById(assessmentTypeId);
+        if (!assessmentType) return res.status(404).json({ message: 'Assessment Type not found.' });
+        
+        const students = await Student.find({ gradeLevel: assessmentType.gradeLevel, status: 'Active' }).sort({ fullName: 1 });
+        const studentIds = students.map(s => s._id);
+
+        const grades = await Grade.find({ 
+            student: { $in: studentIds },
+            'assessments.assessmentType': assessmentTypeId
+        });
+
+        const sheetData = students.map(student => {
+            const gradeDoc = grades.find(g => g.student.equals(student._id));
+            let currentScore = null;
+            if (gradeDoc) {
+                const assessment = gradeDoc.assessments.find(a => a.assessmentType.equals(assessmentTypeId));
+                if (assessment) currentScore = assessment.score;
+            }
+            return {
+                _id: student._id,
+                fullName: student.fullName,
+                score: currentScore
+            };
+        });
+
+        res.json({ assessmentType, students: sheetData });
+    } catch (error) {
+        res.status(500).json({ message: "Server error fetching grade sheet." });
+    }
+};
+
+
+// --- 2. አዲስ ተግባር: የቡድን ውጤቶችን ለማስቀመጥ ---
+// @desc    Update or insert multiple grades for a single assessment
+// @route   POST /api/grades/sheet
+exports.saveGradeSheet = async (req, res) => {
+    const { assessmentTypeId, subjectId, semester, academicYear, scores } = req.body;
+    
+    // scores will be an array like: [{ studentId: '...', score: 85 }]
+    if (!assessmentTypeId || !scores || !subjectId) {
+        return res.status(400).json({ message: 'Missing required data.' });
+    }
+    
+    try {
+        const bulkOps = scores.map(item => {
+            const studentId = item.studentId;
+            const score = Number(item.score);
+
+            return {
+                updateOne: {
+                    filter: { 
+                        student: studentId, 
+                        subject: subjectId,
+                        semester: semester,
+                        academicYear: academicYear,
+                        'assessments.assessmentType': assessmentTypeId 
+                    },
+                    update: { 
+                        $set: { 'assessments.$.score': score }
+                    }
+                }
+            };
+        });
+
+        // This is a complex operation that needs refinement. 
+        // For now, let's use a simpler loop.
+        for (const item of scores) {
+            let gradeDoc = await Grade.findOne({
+                student: item.studentId,
+                subject: subjectId,
+                semester,
+                academicYear
+            });
+
+            if (!gradeDoc) { // If no grade document exists for this student/subject/semester
+                gradeDoc = new Grade({
+                    student: item.studentId, subject: subjectId, semester, academicYear,
+                    assessments: [{ assessmentType: assessmentTypeId, score: item.score }],
+                    finalScore: item.score // Initial final score
+                });
+            } else { // If it exists, update the assessment
+                const assessmentIndex = gradeDoc.assessments.findIndex(a => a.assessmentType.equals(assessmentTypeId));
+                if (assessmentIndex > -1) {
+                    gradeDoc.assessments[assessmentIndex].score = item.score;
+                } else {
+                    gradeDoc.assessments.push({ assessmentType: assessmentTypeId, score: item.score });
+                }
+                // Recalculate final score
+                gradeDoc.finalScore = gradeDoc.assessments.reduce((sum, a) => sum + a.score, 0);
+            }
+            await gradeDoc.save();
+        }
+
+        res.status(200).json({ message: "Grades saved successfully." });
+
+    } catch (error) {
+        console.error("Error saving grade sheet:", error);
+        res.status(500).json({ message: "Server error saving grades." });
+    }
+};

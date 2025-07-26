@@ -1,7 +1,7 @@
 // backend/routes/gradeRoutes.js
 const express = require('express');
 const router = express.Router();
-const { addGrade, getGradesByStudent, getGradeById, updateGrade, deleteGrade } = require('../controllers/gradeController');
+const { addGrade, getGradesByStudent, getGradeById, updateGrade, deleteGrade, getGradeSheet } = require('../controllers/gradeController');
 const { protect, isTeacherForSubject, canViewStudentData} = require('../middleware/authMiddleware');
 
 // Route to create a new grade. Protected by teacher assignment.
@@ -11,7 +11,8 @@ router.route('/')
 // THIS IS THE CRITICAL ROUTE. Make sure the path is correct.
 // Route to get all grades for a specific student. Any logged-in user can view this.
 router.route('/student/:studentId').get(canViewStudentData, getGradesByStudent);
-
+router.get('/sheet', protect, getGradeSheet);
+router.post('/sheet', protect, saveGradeSheet);
 // Routes to interact with a single grade record by its own ID
 router.route('/:id')
     .get(protect, getGradeById)

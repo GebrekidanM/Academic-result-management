@@ -28,6 +28,15 @@ const updateGrade = (gradeId, gradeData) => {
     return api.put(`${API_URL}/${gradeId}`, gradeData); 
 };
 
+const getGradeSheet = (assessmentTypeId) => {
+    return api.get('/grades/sheet', { params: { assessmentTypeId } });
+};
+
+const saveGradeSheet = (data) => {
+    // data will be { assessmentTypeId, subjectId, semester, academicYear, scores }
+    return api.post('/grades/sheet', data);
+};
+
 export default {
     getGradesByStudent,
     createGrade,

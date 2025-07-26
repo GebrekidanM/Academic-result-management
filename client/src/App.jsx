@@ -33,6 +33,8 @@ import AddGradePage from './pages/AddGradePage';
 import AddReportPage from './pages/AddReportPage';
 import EditGradePage from './pages/EditGradePage';
 import EditReportPage from './pages/EditReportPage'; 
+import GradeSheetPage from './pages/GradeSheetPage';
+
 
 // 5. Admin-Only Pages
 import UserManagementPage from './pages/UserManagementPage';
@@ -78,7 +80,7 @@ function App() {
             <Route path="/subject-roster" element={<SubjectRosterPage />} />
             <Route path="/manage-assessments" element={<AssessmentTypesPage />} />
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
-            
+            <Route path="/grade-sheet" element={<GradeSheetPage />} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
                 <Route path="/subjects" element={<SubjectListPage />} />
