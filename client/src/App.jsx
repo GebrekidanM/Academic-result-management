@@ -81,6 +81,7 @@ function App() {
             <Route path="/manage-assessments" element={<AssessmentTypesPage />} />
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
             <Route path="/grade-sheet" element={<GradeSheetPage />} />
+            
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
                 <Route path="/subjects" element={<SubjectListPage />} />

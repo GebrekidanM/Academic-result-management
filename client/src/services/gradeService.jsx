@@ -42,5 +42,7 @@ export default {
     createGrade,
     deleteGrade,
     getGradeById,
-    updateGrade    
+    updateGrade,
+    getGradeSheet,
+    saveGradeSheet  
 };

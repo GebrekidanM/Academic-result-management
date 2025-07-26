@@ -1,7 +1,7 @@
 // backend/routes/gradeRoutes.js
 const express = require('express');
 const router = express.Router();
-const { addGrade, getGradesByStudent, getGradeById, updateGrade, deleteGrade, getGradeSheet } = require('../controllers/gradeController');
+const { addGrade, getGradesByStudent, getGradeById, updateGrade, deleteGrade, getGradeSheet, saveGradeSheet } = require('../controllers/gradeController');
 const { protect, isTeacherForSubject, canViewStudentData} = require('../middleware/authMiddleware');
 
 // Route to create a new grade. Protected by teacher assignment.

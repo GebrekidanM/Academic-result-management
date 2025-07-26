@@ -62,6 +62,7 @@ const Navbar = () => {
                                 )}
                                 <NavLink to="/subject-roster" className={navLink}>Subject Roster</NavLink>
                                 <NavLink to="/analytics" className={navLink}>Analytics</NavLink>
+                                <NavLink to="/grade-sheet" className={navLink}>Grade Sheet</NavLink>
                                 <NavLink to="/manage-assessments" className={navLink}>Assessments</NavLink>
                                 {currentUser.role === 'admin' && (
                                     <>
