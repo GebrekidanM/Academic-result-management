@@ -1,34 +1,34 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 
-// @desc    Register a new user (Signup)
-// @route   POST /api/auth/register
-
+// This is the definitive and simplified register function.
+// It is only ever called by a logged-in admin.
 exports.register = async (req, res) => {
+    // The 'authorize('admin')' middleware has already confirmed the user is an admin.
     const { fullName, username, password, role } = req.body;
-    
-    // Check if we are on the public route
-    const isPublicRoute = req.path.includes('/public');
-    const userCount = await User.countDocuments({});
-
-    if (isPublicRoute && userCount > 0) {
-        return res.status(403).json({ message: 'Public registration is closed.' });
-    }
-
-    const userExists = await User.findOne({ username });
-    if (userExists) {
-        return res.status(400).json({ message: 'Username already exists.' });
-    }
-    
-    let userRole = (userCount === 0) ? 'admin' : (role || 'teacher');
 
     try {
-        const user = await User.create({ fullName, username, password, role: userRole });
+        const userExists = await User.findOne({ username });
+        if (userExists) {
+            return res.status(400).json({ message: 'A user with this username already exists.' });
+        }
+        
+        // The role is determined by what the admin chose in the form. Default to 'teacher'.
+        const userRole = role === 'admin' ? 'admin' : 'teacher';
+
+        const user = await User.create({
+            fullName,
+            username,
+            password,
+            role: userRole
+        });
+
         const responseUser = user.toObject();
         delete responseUser.password;
         res.status(201).json(responseUser);
+
     } catch (error) {
-        res.status(400).json({ message: 'Invalid data', details: error.message });
+        res.status(400).json({ message: 'Invalid user data', details: error.message });
     }
 };
 

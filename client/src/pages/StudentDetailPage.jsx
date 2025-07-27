@@ -110,7 +110,6 @@ const StudentDetailPage = () => {
             <div className={sectionWrapper}>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className={sectionTitle}>Academic Grades</h3>
-                    <Link to={`/grades/add/${student._id}`} className={blueButton}>Add New Grade</Link>
                 </div>
                 {grades.length > 0 ? (
                     <div className="overflow-x-auto">

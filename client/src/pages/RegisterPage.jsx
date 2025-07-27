@@ -29,12 +29,10 @@ const RegisterPage = () => {
         setError(null);
         try {
             if (isAdminMode) {
-                // Admins use the secure, authenticated register function
                 await authService.adminRegister(formData);
                 alert('New user created!');
                 navigate('/admin/users');
             } else {
-                // Public visitors use the public register function
                 await authService.publicRegister(formData);
                 alert('Admin account created! Please log in.');
                 navigate('/login');

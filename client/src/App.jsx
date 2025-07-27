@@ -13,7 +13,6 @@ import UniversalRoute from './components/UniversalRoute'; // Make sure this comp
 // 1. Public Pages (Visible to everyone)
 import LoginPage from './pages/LoginPage';
 import ParentLoginPage from './pages/ParentLoginPage';
-import RegisterPage from './pages/RegisterPage';
 
 // 2. Parent-Only Pages
 import ParentDashboardPage from './pages/ParentDashboardPage';
@@ -29,7 +28,6 @@ import StudentDetailPage from './pages/StudentDetailPage';
 import RosterPage from './pages/RosterPage';
 import SubjectRosterPage from './pages/SubjectRosterPage';
 import AssessmentTypesPage from './pages/AssessmentTypesPage';
-import AddGradePage from './pages/AddGradePage';
 import AddReportPage from './pages/AddReportPage';
 import EditGradePage from './pages/EditGradePage';
 import EditReportPage from './pages/EditReportPage'; 
@@ -47,6 +45,7 @@ import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
 import EditStudentPage from './pages/EditStudentPage';
+import RegisterPage from './pages/RegisterPage';
 
 import AnalyticsPage from './pages/AnalyticsPage';
 
@@ -62,7 +61,6 @@ function App() {
           {/* ================================= */}
            <Route path="/login" element={<LoginPage />} />
            <Route path="/parent-login" element={<ParentLoginPage />} />
-           <Route path="/register" element={<RegisterPage />} />
 
           {/* ================================= */}
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
@@ -71,7 +69,6 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/students" element={<StudentListPage />} />
             <Route path="/students/:id" element={<StudentDetailPage />} />
-            <Route path="/grades/add/:studentId" element={<AddGradePage />} />
             <Route path="/grades/edit/:gradeId" element={<EditGradePage />} />
             <Route path="/reports/add/:studentId" element={<AddReportPage />} />
             <Route path="/reports/edit/:reportId" element={<EditReportPage />} />
@@ -88,6 +85,7 @@ function App() {
                 <Route path="/subjects/add" element={<AddSubjectPage />} />
                 <Route path="/subjects/edit/:id" element={<EditSubjectPage />} />
                 <Route path="/subjects/import" element={<ImportSubjectsPage />} />
+                <Route path="/register" element={<RegisterPage />} />
 
                 <Route path="/students/add" element={<AddStudentPage />} />
                 <Route path="/students/import" element={<ImportStudentsPage />} />

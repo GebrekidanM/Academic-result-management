@@ -47,7 +47,7 @@ const UserManagementPage = () => {
         <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
             <h2 className={title}>User Management</h2>
             <div className="flex gap-4">
-                <Link to="/admin/users/create" className={buttonPink}>+ Create Single User</Link>
+                <Link to="/register" className={buttonPink}>+ Create Single User</Link>
                 <Link to="/admin/users/import" className={buttonGreen}>↑ Import Users</Link>
             </div>
         </div>

@@ -113,8 +113,6 @@ exports.updateUser = async (req, res) => {
 
 // @desc    Create multiple users from an uploaded Excel file (Admin only)
 // @route   POST /api/users/upload
-// in backend/controllers/userController.js
-
 exports.bulkCreateUsers = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded.' });
@@ -154,9 +152,9 @@ exports.bulkCreateUsers = async (req, res) => {
                 fullName: userData.fullName,
                 username: userData.username,
                 role: userData.role,
-                password: userData.password // Give the plain password to the model
+                password: userData.password 
             });
-            await user.save(); // The .pre('save') hook will now run and hash the password.
+            await user.save();
             
             // Prepare the data for the final response
             createdUsersForResponse.push({
