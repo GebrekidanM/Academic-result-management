@@ -2,7 +2,7 @@
 import axios from 'axios';
 import api from './api';
 
-const API_URL ='https://academic-result-management.onrender.com/api/student-auth';
+const API_URL = 'http://localhost:5001/api/student-auth';//'https://academic-result-management.onrender.com/api/student-auth';
 
 // Helper to get the student/parent token config
 const getStudentAuthConfig = () => {

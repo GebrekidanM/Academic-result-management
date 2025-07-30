@@ -1,4 +1,3 @@
-// backend/utils/generateToken.js
 const jwt = require('jsonwebtoken');
 
 // The type parameter is essential.

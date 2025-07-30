@@ -1,34 +1,34 @@
 // backend/routes/studentRoutes.js
 const express = require('express');
-const multer = require('multer'); 
 const router = express.Router();
 const { 
-    createStudent, 
-    getStudents,
-    getStudentById,
-    updateStudent,
-    deleteStudent,
-    bulkCreateStudents 
+    createStudent, getStudents, getStudentById,
+    updateStudent, deleteStudent, bulkCreateStudents, 
+    uploadProfilePhoto
 } = require('../controllers/studentController');
 
-const upload = multer({ dest: 'uploads/' });
 
-// Import your definitive middleware
-const { protect, authorize, canViewStudentData  } = require('../middleware/authMiddleware');
+const { protect, authorize, canViewStudentData } = require('../middleware/authMiddleware');
 
-// --- SECURE ROUTE DEFINITIONS ---
+// Import the main multer instance we just created
+const upload = require('../middleware/upload');
 
-router.post('/upload', protect, authorize('admin'), upload.single('studentsFile'), bulkCreateStudents);
-// Routes for creating a student and getting the full list
+// Standard JSON routes
 router.route('/')
-    // Rule: Any logged-in user (teacher or admin) can get the list of students.
-    .get(protect, getStudents)
-    // Rule: ONLY an admin can create a new student.
-    .post(protect, authorize('admin'), createStudent);
+    .post(protect, authorize('admin'), createStudent)
+    .get(protect, getStudents);
 
-// Routes for interacting with a single student by their ID
-router.route('/:id').get(canViewStudentData, getStudentById)
+router.route('/:id')
+    .get(canViewStudentData, getStudentById)
     .put(protect, authorize('admin'), updateStudent)
     .delete(protect, authorize('admin'), deleteStudent);
+
+// --- THE DEFINITIVE PHOTO UPLOAD ROUTE ---
+// We call upload.single() right here. This is the clearest and most direct way.
+router.post('/photo/:id', protect, authorize('admin'), upload.single('profilePhoto'), uploadProfilePhoto);
+
+// --- The Excel upload route (we'll keep it simple for now) ---
+const localUpload = require('multer')({ dest: 'uploads/' });
+router.post('/upload', protect, authorize('admin'), localUpload.single('studentsFile'), bulkCreateStudents);
 
 module.exports = router;

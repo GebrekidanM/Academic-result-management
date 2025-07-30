@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const capitalizeName = require('../utils/capitalizeName');
 const generateToken = require('../utils/generateToken');
 
 // This is the definitive and simplified register function.
@@ -6,7 +7,7 @@ const generateToken = require('../utils/generateToken');
 exports.register = async (req, res) => {
     // The 'authorize('admin')' middleware has already confirmed the user is an admin.
     const { fullName, username, password, role } = req.body;
-
+    
     try {
         const userExists = await User.findOne({ username });
         if (userExists) {
@@ -17,7 +18,7 @@ exports.register = async (req, res) => {
         const userRole = role === 'admin' ? 'admin' : 'teacher';
 
         const user = await User.create({
-            fullName,
+            fullName:capitalizeName(fullName),
             username,
             password,
             role: userRole

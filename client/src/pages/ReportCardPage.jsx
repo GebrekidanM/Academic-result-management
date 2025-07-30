@@ -162,30 +162,10 @@ const ReportCardPage = () => {
 
     return (
         <div className="report-card-container">
-            <div className="controls-container no-print bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-center justify-between gap-4 border-t-4 border-pink-500">
-                <Link 
-                    to={`/students/${id}`} 
-                    className="text-gray-600 hover:text-black font-semibold transition-colors duration-200 flex items-center text-sm"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    Back to Details
-                </Link>
-
-                <div className="flex-grow text-center">
-                    <h3 className="text-lg font-bold text-gray-800">Report Card Controls</h3>
-                </div>
-
-                <button 
-                    onClick={handlePrint} 
-                    className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-lg transform hover:-translate-y-0.5"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clipRule="evenodd" />
-                    </svg>
-                    Print
-                </button>
+            <div className="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-center justify-between gap-4 border-t-4 border-pink-500">
+                <Link to={`/students/${id}`} className="text-gray-600 hover:text-black font-semibold transition-colors duration-200 flex items-center text-sm"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>Back to Details</Link>
+                <h3 className="text-lg font-bold text-gray-800 hidden md:block">Report Card Controls</h3>
+                <button onClick={handlePrint} className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-lg transform hover:-translate-y-0.5"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clipRule="evenodd" /></svg>Print</button>
             </div>
             
             <div id="printableArea">
@@ -207,6 +187,25 @@ const ReportCardPage = () => {
                         </div>
                         <div className="front-left-col">
                             <header className="card-header"><h2>FREEDOM KG & PRIMARY SCHOOL</h2></header>
+                            <div className='flex w-100% justify-center mb-4'>
+                                {student?.imageUrl && (
+                                 
+                                    <img 
+                                    src={student.imageUrl} 
+                                    alt={`${student.fullName}'s profile`} 
+                                    className="student-profile-photo "
+                                    style={{
+                                        width: '150px',
+                                        height: '200px',
+                                        objectFit: 'cover',
+                                        borderRadius: '8px',
+                                        border: '2px solid #ccc',
+                                        marginBottom: '1rem'
+                                    }}
+                                />
+                            )}
+                            </div>
+                            
                             <div className="front-info-item"><span>Student's Name:</span><p>{student?.fullName}</p></div>
                             <div className="front-info-item"><span>Academic Year:</span><p>{firstSemesterReport?.academicYear || 'N/A'}</p></div>
                             <div className="front-info-item"><span>Grade:</span><p>{student?.gradeLevel}</p></div>

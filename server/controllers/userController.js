@@ -1,6 +1,7 @@
 const xlsx = require('xlsx');
 const fs = require('fs');
 const User = require('../models/User');
+const capitalizeName = require('../utils/capitalizeName');
 
 // @desc    Get all users (for Admin)
 // @route   GET /api/users
@@ -89,7 +90,7 @@ exports.updateUser = async (req, res) => {
         }
         
         // --- If all validations pass, proceed with the update ---
-        userToUpdate.fullName = fullName || userToUpdate.fullName;
+        userToUpdate.fullName = capitalizeName(fullName || userToUpdate.fullName);
         userToUpdate.role = role || userToUpdate.role;
         
         if (subjectsTaught !== undefined) {
@@ -149,7 +150,7 @@ exports.bulkCreateUsers = async (req, res) => {
         const createdUsersForResponse = [];
         for (const userData of usersToProcess) {
             const user = new User({
-                fullName: userData.fullName,
+                fullName: capitalizeName(userData.fullName),
                 username: userData.username,
                 role: userData.role,
                 password: userData.password 

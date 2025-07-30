@@ -1,46 +1,60 @@
 import api from './api';
+
 const API_URL = '/students';
 
-const uploadStudents = (file) => {
-    const formData = new FormData();
-    formData.append('studentsFile', file);
-
-    return api.post('/students/upload', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
-};
+// --- Functions for Managing Student Data (CRUD) ---
 
 const getAllStudents = () => {
     return api.get(API_URL);
+};
+
+const getStudentById = (id) => {
+    return api.get(`${API_URL}/${id}`);
 };
 
 const createStudent = (studentData) => {
     return api.post(API_URL, studentData);
 };
 
-// Get a single student by their ID
-const getStudentById = (id) => {
-    return api.get(`${API_URL}/${id}`);
-};
-
-// Update a student's data
 const updateStudent = (id, studentData) => {
-    return api.put(`${API_URL}/${id}`, studentData);
+    return api.put(`${API_URL}/${id}`, studentData, {
+        headers: { 'Content-Type': 'application/json' }
+    });
 };
 
-// Delete a student
 const deleteStudent = (id) => {
     return api.delete(`${API_URL}/${id}`);
 };
 
-// Update the export list
+// --- Functions for File Uploads ---
+
+// For bulk import of students from an Excel file
+const uploadStudents = (file) => {
+    const formData = new FormData();
+    formData.append('studentsFile', file);
+    return api.post(`${API_URL}/upload`, formData);
+};
+
+// --- THIS IS THE NEW, CORRECT FUNCTION FOR PROFILE PHOTOS ---
+// For uploading a single student profile photo
+const uploadPhoto = (studentId, file) => {
+    const formData = new FormData();
+    formData.append('profilePhoto', file);
+
+    return api.post(`${API_URL}/photo/${studentId}`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+};
+
+// --- The final, complete export block ---
 export default {
     getAllStudents,
-    createStudent,
     getStudentById,
+    createStudent,
     updateStudent,
     deleteStudent,
-    uploadStudents
+    uploadStudents,
+    uploadPhoto
 };

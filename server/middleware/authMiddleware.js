@@ -3,7 +3,6 @@ const User = require('../models/User');
 const Student = require('../models/Student');
 const AssessmentType = require('../models/AssessmentType');
 
-
 exports.protect = async (req, res, next) => {
     let token;
 
@@ -43,7 +42,6 @@ exports.authorize = (...roles) => {
         next();
     };
 };
-
 
 // It checks if a user is an admin OR a teacher assigned to the requested subject.
 exports.isTeacherForSubject = (req, res, next) => {

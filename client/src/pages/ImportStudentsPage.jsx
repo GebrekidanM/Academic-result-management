@@ -53,21 +53,28 @@ const ImportStudentsPage = () => {
             {/* --- Instructions --- */}
             <div className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg text-sm text-blue-800">
                 <p><strong>Instructions:</strong></p>
-                <ul className="list-disc list-inside mt-2">
-                    <li>Ensure your file is in .xlsx or .csv format.</li>
-                    <li>The first row must be the header.</li>
-                    {/* --- የተሻሻለው መመሪያ --- */}
-                    <li>Required columns are: <strong>Full Name</strong>, <strong>Gender</strong>, <strong>Date of Birth</strong>, <strong>Grade Level</strong>.</li>
-                    <li>The system will automatically generate a unique Student ID for each student.</li>
-                    <li>"The system will automatically generate an initial password for each student in the format: MiddleName@Year (e.g., Haylu@2017)."</li>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Your file must be in .xlsx or .csv format. The first row must be the header.</li>
+                    <li>
+                        <strong>Required columns:</strong> 
+                        <code className="bg-blue-100 p-1 rounded">Full Name</code>, 
+                        <code className="bg-blue-100 p-1 rounded">Gender</code>, 
+                        <code className="bg-blue-100 p-1 rounded">Date of Birth</code>, 
+                        <code className="bg-blue-100 p-1 rounded">Grade Level</code>.
+                    </li>
+                    <li>
+                        <strong>Optional columns:</strong> 
+                        <code className="bg-blue-100 p-1 rounded">Parent Name</code>, 
+                        <code className="bg-blue-100 p-1 rounded">Parent Phone</code>, 
+                        <code className="bg-blue-100 p-1 rounded">Health Status</code>.
+                    </li>
+                    <li>The system will automatically generate a unique Student ID and an initial password for each student.</li>
+                    <li>
+                        <a href="/student-template.xlsx" download className="font-bold text-blue-600 hover:underline">
+                            Download the Correct Template File
+                        </a>
+                    </li>
                 </ul>
-                <a 
-                    href="/template.xlsx" 
-                    download 
-                    className="text-blue-600 hover:underline font-bold"
-                >
-                    Download Student Data Template (Student ID will be auto-generated)
-                </a>
             </div>
 
             <form onSubmit={handleSubmit}>
