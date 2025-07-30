@@ -7,7 +7,7 @@ const api = axios.create({
     },
 });
 
-exports.smallApi = axios.create({
+const smallApi = axios.create({
     baseURL:'https://academic-result-management.onrender.com/' ,
     headers: {
         'Content-Type': 'application/json',
@@ -44,3 +44,4 @@ api.interceptors.request.use(
 );
 
 export default api;
+export { smallApi };

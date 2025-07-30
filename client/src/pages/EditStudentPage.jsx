@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import studentService from '../services/studentService';
-import { smallApi } from '../services/api';
+import  smallApi  from '../services/api';
 
 const EditStudentPage = () => {
     const { id: studentId } = useParams();
