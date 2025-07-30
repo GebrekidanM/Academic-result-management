@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import studentService from '../services/studentService';
+import { smallApi } from '../services/api';
 
 const EditStudentPage = () => {
     const { id: studentId } = useParams();
@@ -97,7 +98,7 @@ const EditStudentPage = () => {
                 {/* --- Photo Upload Section --- */}
                 <div className="flex flex-col items-center mb-6">
                     <img 
-                        src={`${studentData.imageUrl}` ? `${studentData.imageUrl}` : `http://localhost:5001${studentData.imageUrl}?key=${Date.now()}`} // Added cache-busting key
+                        src={`${studentData.imageUrl}` ? `${studentData.imageUrl}` : `${smallApi}/${studentData.imageUrl}?key=${Date.now()}`} // Added cache-busting key
                         alt={`${studentData.fullName}'s profile`} 
                         className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 mb-4" 
                     />

@@ -7,6 +7,13 @@ const api = axios.create({
     },
 });
 
+exports.smallApi = axios.create({
+    baseURL:'https://academic-result-management.onrender.com/' ,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+})
+
 api.interceptors.request.use(
     (config) => {
         const user = JSON.parse(localStorage.getItem('user')); // Teacher/Admin

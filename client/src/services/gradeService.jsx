@@ -33,7 +33,6 @@ const getGradeSheet = (assessmentTypeId) => {
 };
 
 const saveGradeSheet = (data) => {
-    // data will be { assessmentTypeId, subjectId, semester, academicYear, scores }
     return api.post('/grades/sheet', data);
 };
 
