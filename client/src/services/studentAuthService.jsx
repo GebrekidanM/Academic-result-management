@@ -2,8 +2,6 @@
 import axios from 'axios';
 import api from './api';
 
-const API_URL = 'http://localhost:5001/api/student-auth';//'https://academic-result-management.onrender.com/api/student-auth';
-
 // Helper to get the student/parent token config
 const getStudentAuthConfig = () => {
     const studentUser = JSON.parse(localStorage.getItem('student-user'));
@@ -14,7 +12,7 @@ const getStudentAuthConfig = () => {
 };
 
 // Public
-const login = (studentId, password) => axios.post(`${API_URL}/login`, { studentId, password });
+const login = (studentId, password) => axios.post(`/student-auth/login`, { studentId, password });
 
 // Protected
 const changePassword = (newPassword) => {

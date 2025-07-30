@@ -1,8 +1,6 @@
 // src/services/authService.js
 import axios from 'axios';
 import api from './api';
-//
-const API_URL = 'http://localhost:5001/api/auth';//'https://academic-result-management.onrender.com/api/auth';
 
 // Helper to get the teacher/admin token config
 const getAuthConfig = () => {
@@ -14,8 +12,8 @@ const getAuthConfig = () => {
 };
 
 // Public
-const login = (userData) => axios.post(`${API_URL}/login`, userData);
-const publicRegister = (userData) => axios.post(`${API_URL}/register/public`, userData);
+const login = (userData) => axios.post(`/auth/login`, userData);
+const publicRegister = (userData) => axios.post(`/auth/register/public`, userData);
 
 // Protected (Admin-only)
 const adminRegister = (userData) => {
