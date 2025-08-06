@@ -31,7 +31,8 @@ const ParentLoginPage = () => {
                 window.location.reload();
             }
         } catch (err) {
-            setError(err.message || 'Login failed. Please check the Student ID and password.');
+            console.log("Login Error:", err);
+            setError(err.response?.data?.message || 'Login failed. Please check the Student ID and password.');
             setLoading(false);
         }
     };

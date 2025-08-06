@@ -292,7 +292,7 @@ exports.saveGradeSheet = async (req, res) => {
                 gradeDoc = new Grade({
                     student: item.studentId, subject: subjectId, semester, academicYear,
                     assessments: [{ assessmentType: assessmentTypeId, score: scoreValue }],
-                    finalScore: scoreValue // The final score is just this one score.
+                    finalScore: scoreValue 
                 });
             } else {
                 const assessmentIndex = gradeDoc.assessments.findIndex(a => a.assessmentType.equals(assessmentTypeId));

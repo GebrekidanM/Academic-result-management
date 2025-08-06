@@ -35,7 +35,6 @@ exports.loginStudent = async (req, res) => {
         });
         
     } catch (error) {
-        console.error("Parent/Student Login Error:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -61,7 +60,6 @@ exports.changePassword = async (req, res) => {
             res.status(404).json({ message: 'Student not found.' });
         }
     } catch (error) {
-        console.error("Change Password Error:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
