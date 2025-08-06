@@ -1,14 +1,16 @@
 import axios from 'axios';
+const apiUrl = import.meta.env.VITE_API_URL;
+const Url = import.meta.env.VITE_URL;
 
 const api = axios.create({
-    baseURL: 'https://academic-result-management.onrender.com/api',//'http://localhost:5001/api',
+    baseURL: apiUrl,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
 const smallApi = axios.create({
-    baseURL:'https://academic-result-management.onrender.com/' ,//'http://localhost:5001/',
+    baseURL: Url,
     headers: {
         'Content-Type': 'application/json',
     },

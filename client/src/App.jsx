@@ -51,6 +51,7 @@ import EditStudentPage from './pages/EditStudentPage';
 import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
+const frontUrl = import.meta.env.VITE_FRONT_URL;
 
 function App() {
   const { addNotification } = useNotifications();
@@ -59,7 +60,7 @@ function App() {
   useEffect(() => {
     let socket;
     if (currentUser && currentUser._id) {
-      socket = io("https://academic-result-management.onrender.com");
+      socket = io(frontUrl);
       socket.emit("addNewUser", currentUser._id);
       socket.on("getNotification", (data) => {
         if (data && data.message) {
@@ -77,15 +78,11 @@ function App() {
       <Navbar /> 
       <main className="container mx-auto p-4">
         <Routes>
-          {/* ================================= */}
           {/* ======= 1. PUBLIC ROUTES ======== */}
-          {/* ================================= */}
            <Route path="/login" element={<LoginPage />} />
            <Route path="/parent-login" element={<ParentLoginPage />} />
 
-          {/* ================================= */}
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
-          {/* ================================= */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/students" element={<StudentListPage />} />
@@ -107,28 +104,22 @@ function App() {
                 <Route path="/subjects/edit/:id" element={<EditSubjectPage />} />
                 <Route path="/subjects/import" element={<ImportSubjectsPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                
                 <Route path="/students/add" element={<AddStudentPage />} />
-                <Route path="/students/edit/:id" element={<EditStudentPage />} /> {/* <-- Removed the duplicate */}
+                <Route path="/students/edit/:id" element={<EditStudentPage />} />
                 <Route path="/students/import" element={<ImportStudentsPage />} />
-                
                 <Route path="/admin/users" element={<UserManagementPage />} />
                 <Route path="/admin/users/:id" element={<UserEditPage />} />
                 <Route path="/admin/users/import" element={<ImportUsersPage />} />
             </Route>
           </Route>
           
-          {/* ================================= */}
           {/* ====== 3. PARENT ROUTES ========= */}
-          {/* ================================= */}
             <Route element={<ParentRoute />}>
                 <Route path="/parent/dashboard" element={<ParentDashboardPage />} />
                 <Route path="/parent/change-password" element={<ForceChangePasswordPage />} />
             </Route>
 
-          {/* ================================= */}
           {/* === 4. UNIVERSAL LOGGED-IN ROUTES === */}
-          {/* ================================= */}
             <Route element={<UniversalRoute />}>
                 <Route path="/students/:id/report" element={<ReportCardPage />} />
             </Route>
