@@ -1,5 +1,6 @@
 // backend/routes/studentRoutes.js
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const { 
     createStudent, getStudents, getStudentById,
@@ -28,7 +29,7 @@ router.route('/:id')
 router.post('/photo/:id', protect, authorize('admin'), upload.single('profilePhoto'), uploadProfilePhoto);
 
 // --- The Excel upload route (we'll keep it simple for now) ---
-const localUpload = require('multer')({ dest: 'uploads/' });
+const localUpload = multer({ dest: 'uploads/' });
 router.post('/upload', protect, authorize('admin'), localUpload.single('studentsFile'), bulkCreateStudents);
 
 module.exports = router;

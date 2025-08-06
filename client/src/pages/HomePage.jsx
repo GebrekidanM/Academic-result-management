@@ -32,11 +32,12 @@ const HomePage = () => {
     // --- State Management ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [profileData, setProfileData] = useState(null);
-    const [currentStudent, setCurrentStudent] = useState(studentAuthService.getCurrentStudent());
+    const [currentStudent] = useState(studentAuthService.getCurrentStudent());
     const [studentData, setStudentData] = useState(null);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    console.log("Current User:", currentStudent);
     // --- Data Fetching ---
      useEffect(() => {
         const loadDashboardData = async () => {

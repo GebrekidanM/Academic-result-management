@@ -227,11 +227,11 @@ const ReportCardPage = () => {
                             <div className="academic-results">
                                 <h4>ACADEMIC RESULTS</h4>
                                 <table>
-                                    <thead><tr><th>SUBJECT</th><th>1ST SEM</th><th>2ND SEM</th><th>AVG.</th></tr></thead>
+                                    <thead className='bg-rose-600 text-cyan-100'><tr><th>SUBJECT</th><th>1ST SEM</th><th>2ND SEM</th><th>AVG.</th></tr></thead>
                                     <tbody>
                                         {processedResults.map((r, i) => 
                                             (<tr key={i}>
-                                                <td>{r.subjectName}</td>
+                                                <td className='bg-rose-600 text-cyan-100'>{r.subjectName}</td>
                                                 <td>{r.firstSemester ?? '-'}</td>
                                                 <td>{r.secondSemester ?? '-'}</td>
                                                 <td>{r.average?.toFixed(2) ?? '-'}</td></tr>)
@@ -241,26 +241,26 @@ const ReportCardPage = () => {
                                 
                                     <tfoot>
                                         <tr>
-                                            <td><strong>Total</strong></td>
+                                            <td className='bg-rose-600 text-cyan-100'><strong>Total</strong></td>
                                             <td><strong>{finalSummary?.total1st.toFixed(2)}</strong></td>
                                             <td><strong>{finalSummary?.total2nd.toFixed(2)}</strong></td>
                                             <td><strong>{finalSummary?.overallTotal.toFixed(2)}</strong></td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Average</strong></td>
+                                            <td className='bg-rose-600 text-cyan-100'><strong>Average</strong></td>
                                             <td><strong>{finalSummary?.average1st.toFixed(2)}</strong></td>
                                             <td><strong>{finalSummary?.average2nd.toFixed(2)}</strong></td>
                                             <td><strong>{finalSummary?.overallAverage.toFixed(2)}</strong></td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Rank</strong></td>
+                                            <td className='bg-rose-600 text-cyan-100'><strong>Rank</strong></td>
                                             <td><strong>{rank1stSem}</strong></td>
                                             <td><strong>{rank2ndSem}</strong></td>
                                             <td><strong>{overallRank}</strong></td>
                                         </tr>
 
                                         <tr>
-                                            <td><strong>Conduct</strong></td>
+                                            <td className='bg-rose-600 text-cyan-100'><strong>Conduct</strong></td>
                                             <td>{firstSemesterReport?.conduct ?? '-'}</td>
                                             <td>{secondSemesterReport?.conduct ?? '-'}</td>
                                             <td>-</td>
@@ -274,8 +274,16 @@ const ReportCardPage = () => {
                             <div className="personality-skills">
                                 <h4>PERSONALITY TRAITS & SKILLS</h4>
                                 <table className="traits-table">
-                                    <thead><tr><th>TRAITS</th><th>1ST SEM</th><th>2ND SEM</th></tr></thead>
-                                    <tbody>{EVALUATION_AREAS.map(area => (<tr key={area}><td>{area}</td><td>{firstSemesterReport?.evaluations.find(e => e.area === area)?.result ?? '-'}</td><td>{secondSemesterReport?.evaluations.find(e => e.area === area)?.result ?? '-'}</td></tr>))}</tbody>
+                                    <thead  className='bg-rose-600 text-cyan-100'><tr><th>TRAITS</th><th>1ST SEM</th><th>2ND SEM</th></tr></thead>
+                                    <tbody>
+                                        {EVALUATION_AREAS
+                                            .map(area => (
+                                                <tr key={area}>
+                                                    <td  className='bg-rose-600 text-cyan-100'>{area}</td>
+                                                    <td>{firstSemesterReport?.evaluations.find(e => e.area === area)?.result ?? '-'}</td>
+                                                    <td>{secondSemesterReport?.evaluations.find(e => e.area === area)?.result ?? '-'}</td>
+                                                </tr>))}
+                                    </tbody>
                                 </table>
                                 <div className="grading-key"><h4>GRADING KEY</h4><table><tbody><tr><td>E</td><td>Excellent</td></tr><tr><td>VG</td><td>Very Good</td></tr><tr><td>G</td><td>Good</td></tr><tr><td>NI</td><td>Needs Improvement</td></tr></tbody></table></div>
                             </div>

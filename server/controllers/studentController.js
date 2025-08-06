@@ -179,35 +179,38 @@ exports.bulkCreateStudents = async (req, res) => {
         const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) }).sort({ studentId: -1 });
         let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
         
-        const studentsToCreateWithPasswords = studentsJson.map((student, index) => {
-            const newSequence = lastSequence + 1 + index;
-            const newStudentId = `FKS-${currentYear}-${String(newSequence).padStart(3, '0')}`;
-            const fullName = student['Full Name'] || student['fullName'];
-            const middleName = getMiddleName(fullName);
-            const initialPassword = `${middleName}@${currentYear}`;
+        const studentsToProcess = studentsJson.map((student, index) => {
+        const newSequence = lastSequence + 1 + index;
+        const newStudentId = `FKS-${currentYear}-${String(newSequence).padStart(3, '0')}`;
+        const fullName = student['Full Name'] || student['fullName'];
+        const middleName = getMiddleName(fullName);
+        const initialPassword = `${middleName}@${currentYear}`;
             return {
                 studentId: newStudentId,
                 fullName: capitalizeName(fullName),
                 gender: student['Gender'] || student['gender'],
                 dateOfBirth: new Date(student['Date of Birth'] || student['dateOfBirth']),
                 gradeLevel: student['Grade Level'] || student['gradeLevel'],
-                password: initialPassword,
-                initialPassword: initialPassword,
+                password: initialPassword, // This will be sent to the database for hashing
                 parentContact: { parentName: student['Parent Name'], phone: student['Parent Phone'] },
                 healthStatus: student['Health Status']
             };
         });
         
         const createdStudentsForResponse = [];
-        for (const studentData of studentsToCreateWithPasswords) {
+        for (const studentData of studentsToProcess) {
+            // Create a new Mongoose document with the data
             const student = new Student(studentData);
+            // Calling .save() triggers the password hashing middleware
             await student.save();
+
+            // Prepare the clean response object
             const responseData = student.toObject();
-            responseData.initialPassword = studentData.initialPassword;
-            delete responseData.password;
+            // Add the plain-text password back for the admin to see
+            responseData.initialPassword = studentData.password;
+            delete responseData.password; // Remove the hash from the response
             createdStudentsForResponse.push(responseData);
         }
-
         fs.unlinkSync(filePath);
 
         res.status(201).json({ 

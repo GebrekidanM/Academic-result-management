@@ -28,10 +28,10 @@ const ParentLoginPage = () => {
                 } else {
                     navigate('/parent/dashboard');
                 }
-                window.location.reload(); // Reload to update app state
+                window.location.reload();
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed. Please check the Student ID and password.');
+            setError(err.message || 'Login failed. Please check the Student ID and password.');
             setLoading(false);
         }
     };

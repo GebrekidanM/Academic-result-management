@@ -13,6 +13,7 @@ const ImportStudentsPage = () => {
     const handleFileChange = (e) => {
         setSelectedFile(e.target.files[0]);
     };
+    console.log("Selected file:", selectedFile);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -26,7 +27,6 @@ const ImportStudentsPage = () => {
         try {
             const response = await studentService.uploadStudents(selectedFile);
             setSuccess(response.data.message);
-            // ከተሳካ ከ 3 ሰከንድ በኋላ ወደ ተማሪዎች ዝርዝር ገጽ ይመልሰዋል
             setTimeout(() => {
                 navigate('/students');
             }, 3000);

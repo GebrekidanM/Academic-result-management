@@ -1,5 +1,3 @@
-// src/services/studentAuthService.js
-import axios from 'axios';
 import api from './api';
 
 // Helper to get the student/parent token config
@@ -12,7 +10,7 @@ const getStudentAuthConfig = () => {
 };
 
 // Public
-const login = (studentId, password) => axios.post(`/student-auth/login`, { studentId, password });
+const login = (studentId, password) => api.post(`/student-auth/login`, { studentId, password });
 
 // Protected
 const changePassword = (newPassword) => {

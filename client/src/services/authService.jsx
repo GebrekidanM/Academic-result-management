@@ -1,5 +1,4 @@
 // src/services/authService.js
-import axios from 'axios';
 import api from './api';
 
 // Helper to get the teacher/admin token config
@@ -12,8 +11,8 @@ const getAuthConfig = () => {
 };
 
 // Public
-const login = (userData) => axios.post(`/auth/login`, userData);
-const publicRegister = (userData) => axios.post(`/auth/register/public`, userData);
+const login = (userData) => api.post(`/auth/login`, userData);
+const publicRegister = (userData) => api.post(`/auth/register/public`, userData);
 
 // Protected (Admin-only)
 const adminRegister = (userData) => {

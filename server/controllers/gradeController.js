@@ -1,60 +1,102 @@
-// controllers/gradeController.js
 const Grade = require('../models/Grade');
 const Student = require('../models/Student');
 const Subject = require('../models/Subject');
 const AssessmentType = require('../models/AssessmentType');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
+const Subscription = require('../models/Subscription');
+const webpush = require('web-push');
 
-// @desc    Add a new grade entry
+// @desc    Add a new grade entry and send notifications
 // @route   POST /api/grades
 exports.addGrade = async (req, res) => {
+    // This is run after 'protect' and 'isTeacherForSubject' middleware
     const { studentId, subjectId, academicYear, semester, assessments } = req.body;
 
-    if (req.user.role === 'admin') {
-            return res.status(403).json({ message: "Forbidden: Admins can view data but cannot modify grade records." });
-        }
-
     try {
-        const student = await Student.findById(studentId);
-        if (!student) return res.status(404).json({ message: 'Student not found' });
+        // Fetch the subject and assessment types for validation
         const subject = await Subject.findById(subjectId);
-        if (!subject) return res.status(404).json({ message: 'Subject not found' });
+        if (!subject) return res.status(404).json({ message: 'Subject not found.' });
 
+        // Fetch all assessment type definitions to calculate final score and validate input
+        const assessmentTypeIds = assessments.map(a => a.assessmentType);
+        const assessmentTypeDefs = await AssessmentType.find({ '_id': { $in: assessmentTypeIds } });
+        
         let finalScore = 0;
-        if (assessments && assessments.length > 0) {
-            const assessmentTypeIds = assessments.map(a => a.assessmentType);
-            const assessmentTypeDefs = await AssessmentType.find({ '_id': { $in: assessmentTypeIds } });
-            
-            for (const assessment of assessments) {
-                const def = assessmentTypeDefs.find(d => d._id.equals(assessment.assessmentType));
-                if (!def) {
-                    return res.status(400).json({ message: `Invalid assessmentType ID: ${assessment.assessmentType}` });
-                }
-                // Validate that the score is not higher than the total marks
-                if (Number(assessment.score) > def.totalMarks) {
-                    return res.status(400).json({ message: `Score for ${def.name} cannot be higher than ${def.totalMarks}.` });
-                }
-                finalScore += Number(assessment.score);
+        
+        for (const assessment of assessments) {
+            const def = assessmentTypeDefs.find(d => d._id.equals(assessment.assessmentType));
+            if (!def) {
+                return res.status(400).json({ message: `Invalid assessment type ID: ${assessment.assessmentType}` });
             }
+            // Validation: score cannot be higher than total marks
+            if (Number(assessment.score) > def.totalMarks) {
+                return res.status(400).json({ message: `Score for ${def.name} cannot be higher than ${def.totalMarks}.` });
+            }
+            finalScore += Number(assessment.score);
         }
 
-        // --- THIS IS THE CORRECTED CREATE CALL ---
         const grade = await Grade.create({
             student: studentId,
             subject: subjectId,
             academicYear,
             semester,
             assessments,
-            finalScore: finalScore // We now correctly pass the calculated finalScore
+            finalScore
         });
 
-        res.status(201).json({ success: true, data: grade });
-    } catch (error) {
-        if (error.code === 11000) {
-            return res.status(400).json({ success: false, message: 'A grade for this student in this subject and semester already exists. Please edit the existing grade.' });
+        // =======================================================
+        // --- NOTIFICATION LOGIC ---
+        // (This code depends on the Socket.IO setup in server.js)
+        try {
+            const student = await Student.findById(studentId);
+            const message = `New grade entered for ${student.fullName} in ${subject.name} (${semester}).`;
+            const link = `/students/${student._id}`;
+
+            // 1. Identify ALL Recipients (Admins and Homeroom Teachers)
+            const recipients = new Map();
+
+            const admins = await User.find({ role: 'admin' });
+            admins.forEach(admin => recipients.set(admin._id.toString(), admin));
+
+            const homeroomTeacher = await User.findOne({ homeroomGrade: student.gradeLevel });
+            if (homeroomTeacher) {
+                recipients.set(homeroomTeacher._id.toString(), homeroomTeacher);
+            }
+
+            // 2. Get Socket.IO and send notifications
+            const io = req.app.get('socketio');
+            const onlineUsers = req.app.get('onlineUsers');
+
+            for (const recipient of recipients.values()) {
+                await Notification.create({ recipient: recipient._id, message, link });
+
+                const socketId = onlineUsers.get(recipient._id.toString());
+                if (socketId) {
+                    // Send In-App notification
+                    io.to(socketId).emit("getNotification", { message, link });
+                }
+
+                // Send Push Notification
+                const subscriptions = await Subscription.find({ user: recipient._id });
+                subscriptions.forEach(sub => {
+                    const payload = JSON.stringify({ title: "Freedom School Update", body: message });
+                    webpush.sendNotification(sub.subscriptionObject, payload).catch(err => console.error("Push Notification Error:", err));
+                });
+            }
+        } catch (notificationError) {
+            console.error("Failed to process and send notifications:", notificationError);
         }
+        // =======================================================
+
+        res.status(201).json({ success: true, data: grade });
+
+    } catch (error) {
+        // Handle validation errors from Mongoose
         res.status(400).json({ success: false, message: error.message });
     }
 };
+
 
 // @desc    Get a single grade by its ID
 // @route   GET /api/grades/:id
@@ -94,20 +136,16 @@ exports.getGradesByStudent = async (req, res) => {
         
         // Find all grades for the student
         let gradesQuery = Grade.find({ student: studentId })
-            .populate('subject', 'name gradeLevel') // Always populate the subject details
-            .populate('assessments.assessmentType'); // Also populate assessment details
+            .populate('subject', 'name gradeLevel')
+            .populate('assessments.assessmentType');
 
         const allGrades = await gradesQuery;
 
-        // --- THE CRITICAL PERMISSION FILTER ---
-        // If the user is an admin, they can see all grades.
-        if (req.user.role === 'admin') {
+        if (req.user?.role === 'admin') {
             return res.status(200).json({ success: true, count: allGrades.length, data: allGrades });
         }
 
-        // If the user is a teacher, filter the grades to show only those for subjects they teach.
-        if (req.user.role === 'teacher') {
-            // Get a list of the subject IDs the teacher is assigned to.
+        if (req.user?.role === 'teacher') {
             const teacherSubjectIds = new Set(
                 req.user.subjectsTaught.map(assignment => assignment.subject._id.toString())
             );
@@ -120,10 +158,6 @@ exports.getGradesByStudent = async (req, res) => {
             return res.status(200).json({ success: true, count: filteredGrades.length, data: filteredGrades });
         }
         
-        // If the user is not an admin or a teacher (e.g., a parent), they should not use this route.
-        // Or, we could add logic for parents here if needed. For now, we assume this is a staff route.
-        // The canViewStudentData middleware already protects this.
-
         res.status(200).json({ success: true, count: allGrades.length, data: allGrades });
         
     } catch (error) {
@@ -231,7 +265,6 @@ exports.getGradeSheet = async (req, res) => {
 };
 
 
-// --- 2. አዲስ ተግባር: የቡድን ውጤቶችን ለማስቀመጥ ---
 // @desc    Update or insert multiple grades for a single assessment
 // @route   POST /api/grades/sheet
 exports.saveGradeSheet = async (req, res) => {
@@ -243,29 +276,9 @@ exports.saveGradeSheet = async (req, res) => {
     }
     
     try {
-        const bulkOps = scores.map(item => {
-            const studentId = item.studentId;
-            const score = Number(item.score);
-
-            return {
-                updateOne: {
-                    filter: { 
-                        student: studentId, 
-                        subject: subjectId,
-                        semester: semester,
-                        academicYear: academicYear,
-                        'assessments.assessmentType': assessmentTypeId 
-                    },
-                    update: { 
-                        $set: { 'assessments.$.score': score }
-                    }
-                }
-            };
-        });
-
-        // This is a complex operation that needs refinement. 
-        // For now, let's use a simpler loop.
         for (const item of scores) {
+            if (item.score === null || item.score === undefined || item.score === '') continue;
+
             let gradeDoc = await Grade.findOne({
                 student: item.studentId,
                 subject: subjectId,
@@ -273,29 +286,61 @@ exports.saveGradeSheet = async (req, res) => {
                 academicYear
             });
 
-            if (!gradeDoc) { // If no grade document exists for this student/subject/semester
+            const scoreValue = Number(item.score);
+
+            if (!gradeDoc) {
                 gradeDoc = new Grade({
                     student: item.studentId, subject: subjectId, semester, academicYear,
-                    assessments: [{ assessmentType: assessmentTypeId, score: item.score }],
-                    finalScore: item.score // Initial final score
+                    assessments: [{ assessmentType: assessmentTypeId, score: scoreValue }],
+                    finalScore: scoreValue // The final score is just this one score.
                 });
-            } else { // If it exists, update the assessment
+            } else {
                 const assessmentIndex = gradeDoc.assessments.findIndex(a => a.assessmentType.equals(assessmentTypeId));
+                
                 if (assessmentIndex > -1) {
-                    gradeDoc.assessments[assessmentIndex].score = item.score;
+                    gradeDoc.assessments[assessmentIndex].score = scoreValue;
                 } else {
-                    gradeDoc.assessments.push({ assessmentType: assessmentTypeId, score: item.score });
+                    gradeDoc.assessments.push({ assessmentType: assessmentTypeId, score: scoreValue });
                 }
-                // Recalculate final score
                 gradeDoc.finalScore = gradeDoc.assessments.reduce((sum, a) => sum + a.score, 0);
             }
             await gradeDoc.save();
         }
 
-        res.status(200).json({ message: "Grades saved successfully." });
 
+        // --- Notification Logic ---
+        try {
+            const subject = await Subject.findById(subjectId);
+            const assessmentType = await AssessmentType.findById(assessmentTypeId);
+            const gradeLevel = subject.gradeLevel;
+            const message = `Grades for "${assessmentType.name}" in ${subject.name} (${semester}) have been updated.`;
+            const link = `/subject-roster`;
+            
+            const recipients = new Map();
+            const admins = await User.find({ role: 'admin' });
+            admins.forEach(admin => recipients.set(admin._id.toString(), admin));
+            const homeroomTeacher = await User.findOne({ homeroomGrade: gradeLevel });
+            if (homeroomTeacher) recipients.set(homeroomTeacher._id.toString(), homeroomTeacher);
+
+            const io = req.app.get('socketio');
+            const onlineUsers = req.app.get('onlineUsers');
+            for (const recipient of recipients.values()) {
+                await Notification.create({ recipient: recipient._id, message, link });
+                const socketId = onlineUsers.get(recipient._id.toString());
+                if (socketId) io.to(socketId).emit("getNotification", { message, link });
+
+                const subscriptions = await Subscription.find({ user: recipient._id });
+                subscriptions.forEach(sub => {
+                    const payload = JSON.stringify({ title: "Freedom School: Grade Update", body: message });
+                    webpush.sendNotification(sub.subscriptionObject, payload).catch(err => console.error("Push Error:", err));
+                });
+            }
+        } catch (notificationError) {
+            console.error("Notification Error from grade sheet save:", notificationError);
+        }
+
+        res.status(200).json({ message: "Grades saved successfully." });
     } catch (error) {
-        console.error("Error saving grade sheet:", error);
         res.status(500).json({ message: "Server error saving grades." });
     }
 };

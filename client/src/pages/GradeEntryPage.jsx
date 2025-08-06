@@ -1,8 +1,6 @@
-// client/src/pages/GradeEntryPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import studentService from '../api/studentService';
-import GradeEntrySheet from '../components/grades/GradeEntrySheet'; // Import the new component
+import studentService from '../services/studentService';
 
 const GradeEntryPage = () => {
   const { classId } = useParams();

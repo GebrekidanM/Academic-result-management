@@ -1,14 +1,14 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL:'https://academic-result-management.onrender.com/api' ,//'http://localhost:5001/api',
+    baseURL: 'http://localhost:5001/api',//'https://academic-result-management.onrender.com/api',
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
 const smallApi = axios.create({
-    baseURL:'https://academic-result-management.onrender.com/' ,
+    baseURL:'http://localhost:5001/',//'https://academic-result-management.onrender.com/' ,
     headers: {
         'Content-Type': 'application/json',
     },

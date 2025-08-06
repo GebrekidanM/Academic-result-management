@@ -38,7 +38,7 @@ const AddStudentPage = () => {
         setSuccess(null);
         try {
             const response = await studentService.createStudent(studentData);
-            setSuccess(response.data.data); // Store the created student with their new password
+            setSuccess(response.data.data);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create student.');
             setLoading(false);

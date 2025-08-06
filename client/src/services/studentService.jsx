@@ -30,12 +30,16 @@ const deleteStudent = (id) => {
 
 // For bulk import of students from an Excel file
 const uploadStudents = (file) => {
+    console.log("Uploading students file:", file);
     const formData = new FormData();
     formData.append('studentsFile', file);
-    return api.post(`${API_URL}/upload`, formData);
+    return api.post(`${API_URL}/upload`, formData,{
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
 };
 
-// --- THIS IS THE NEW, CORRECT FUNCTION FOR PROFILE PHOTOS ---
 // For uploading a single student profile photo
 const uploadPhoto = (studentId, file) => {
     const formData = new FormData();

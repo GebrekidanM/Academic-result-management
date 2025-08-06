@@ -20,6 +20,7 @@ const RosterPage = () => {
         finally { setLoading(false); }
     };
 
+    console.log(rosterData)
     // The 'New Window' print handler is the best method and is already perfect.
     const handlePrint = () => {
         const tableToPrint = document.getElementById('rosterTable');
@@ -76,14 +77,14 @@ const RosterPage = () => {
                     <h3 className="text-xl font-bold text-gray-800 mb-4">Roster for {gradeLevel} - {academicYear}</h3>
                     <table id="rosterTable" className="min-w-full text-sm">
                         <thead>
-                            <tr>
+                            <tr className='bg-rose-600 text-cyan-100'>
                                 <th className={thStyle}>Student ID</th>
                                 <th className={thStyle}>Full Name</th>
                                 <th className={thStyle}>Semester</th>
                                 {rosterData.subjects.map(subjectName => (<th key={subjectName} className={thStyle}>{subjectName}</th>))}
-                                <th className={`${thStyle} bg-gray-200`}>Total</th>
-                                <th className={`${thStyle} bg-gray-200`}>Average</th>
-                                <th className={`${thStyle} bg-gray-300`}>Rank</th>
+                                <th className={`${thStyle}`}>Total</th>
+                                <th className={`${thStyle}`}>Average</th>
+                                <th className={`${thStyle}`}>Rank</th>
                             </tr>
                         </thead>
                         <tbody>
