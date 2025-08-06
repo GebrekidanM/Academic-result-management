@@ -23,6 +23,30 @@ exports.addReport = async (req, res) => {
             conduct
         });
 
+        try {
+            const student = await Student.findById(studentId);
+            const message = `A new behavioral report for the ${semester} has been added for ${student.fullName}.`;
+            const link = `/parent/dashboard`; // Link to their dashboard
+
+            // In the future, we would find the parent's User account. For now,
+            // we will simulate this by creating a notification for the student's own ID,
+            // as our Parent Portal login is tied to the student.
+            const recipientId = student._id; // This is the key
+
+            // Send In-App Notification (this requires a Parent/Student socket connection)
+            // We will add this to server.js next.
+            const io = req.app.get('socketio');
+            const onlineUsers = req.app.get('onlineUsers');
+            const socketId = onlineUsers.get(recipientId.toString());
+            if (socketId) {
+                io.to(socketId).emit("getNotification", { message, link });
+            }
+
+            // In the future, you could also send a Push Notification or Email here.
+
+        } catch (notificationError) {
+            console.error("Failed to send parent notification:", notificationError);
+        }
         res.status(201).json({ success: true, data: report });
     } catch (error) {
         // Handle the unique index error gracefully

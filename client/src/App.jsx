@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import { io } from "socket.io-client";
 import { useNotifications } from './context/NotificationContext';
 import authService from './services/authService';
+import studentAuthService from './services/studentAuthService';
 
 // --- Component Imports ---
 import Navbar from './components/Navbar';
@@ -33,7 +34,6 @@ import StudentDetailPage from './pages/StudentDetailPage';
 import RosterPage from './pages/RosterPage';
 import SubjectRosterPage from './pages/SubjectRosterPage';
 import AssessmentTypesPage from './pages/AssessmentTypesPage';
-import GradeEntryPage from './pages/GradeEntryPage';
 import AddReportPage from './pages/AddReportPage';
 import EditGradePage from './pages/EditGradePage';
 import EditReportPage from './pages/EditReportPage'; 
@@ -51,27 +51,33 @@ import EditStudentPage from './pages/EditStudentPage';
 import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
+import AddGradePage from './pages/AddGradePage';
 const frontUrl = import.meta.env.VITE_FRONT_URL;
 
 function App() {
   const { addNotification } = useNotifications();
   const currentUser = authService.getCurrentUser();
-  
+  const currentStudent = studentAuthService.getCurrentStudent();
+
   useEffect(() => {
     let socket;
-    if (currentUser && currentUser._id) {
-      socket = io(frontUrl);
-      socket.emit("addNewUser", currentUser._id);
-      socket.on("getNotification", (data) => {
-        if (data && data.message) {
-            addNotification({ message: data.message, createdAt: new Date() });
+        if (currentUser?._id) {
+            socket = io(frontUrl);
+            socket.emit("addNewUser", currentUser._id);
+        } else if (currentStudent?._id) {
+            socket = io(frontUrl);
+            socket.emit("addParentUser", currentStudent._id);
         }
-      });
-    }
-    return () => {
-      if (socket) socket.disconnect();
-    };
-  }, [currentUser, addNotification]);
+
+        if (socket) {
+            socket.on("getNotification", (data) => {
+                if (data && data.message) {
+                    addNotification({ message: data.message, link: data.link, createdAt: new Date() });
+                }
+            });
+        }
+        return () => { if (socket) socket.disconnect(); };
+    }, [currentUser, currentStudent, addNotification]);
 
   return (
     <div className="bg-gray-100 min-h-screen">
@@ -87,7 +93,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/students" element={<StudentListPage />} />
             <Route path="/students/:id" element={<StudentDetailPage />} />
-            <Route path="/grades/add/:studentId" element={<GradeEntryPage />} />
+            <Route path="/grades/add/:studentId" element={<AddGradePage />} />
             <Route path="/grades/edit/:gradeId" element={<EditGradePage />} />
             <Route path="/reports/add/:studentId" element={<AddReportPage />} />
             <Route path="/reports/edit/:reportId" element={<EditReportPage />} />

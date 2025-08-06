@@ -42,6 +42,11 @@ io.on("connection", (socket) => {
     socket.on('addNewUser', (userId) => {
         onlineUsers.set(userId, socket.id);
     });
+    
+    socket.on('addParentUser', (studentId) => {
+        onlineUsers.set(studentId, socket.id);
+    });
+
     socket.on("disconnect", () => {
         onlineUsers.forEach((socketId, userId) => {
             if (socketId === socket.id) onlineUsers.delete(userId);

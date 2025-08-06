@@ -120,9 +120,36 @@ const Navbar = () => {
                                 <button onClick={handleLogout} className="w-full md:w-auto bg-transparent text-pink-400 font-bold py-2 px-4 border border-pink-400 rounded-md hover:bg-pink-400 hover:text-white transition-colors duration-200">Logout</button>
                             </>
                         ) : currentStudent ? (
-                            <>
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <button onClick={() => setShowNotifications(prev => !prev)} className="relative text-gray-300 ...">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341A6.002 6.002 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                                        {unreadCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">{unreadCount}</span>
+                                        )}
+                                    </button>
+                                    
+                                    {showNotifications && (
+                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50 border">
+                                            <div className="p-2 flex justify-between items-center border-b"><h3 className="font-bold text-gray-800">Notifications</h3></div>
+                                            <ul className="max-h-96 overflow-y-auto">
+                                                {notifications.length > 0 ? (
+                                                    notifications.map((n, index) => (
+                                                        <li key={index} className="border-b last:border-b-0">
+                                                            <Link to={n.link || '/'} onClick={() => { setShowNotifications(false); closeMobileMenu(); }} className="block p-3 hover:bg-gray-50">
+                                                                <p className="text-sm text-gray-700">{n.message}</p>
+                                                                <p className="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                                                            </Link>
+                                                        </li>
+                                                    ))
+                                                ) : <li className="p-4 text-center text-sm text-gray-500">No new notifications.</li>}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                                
                                 <button onClick={handleLogout} className="w-full md:w-auto bg-transparent text-pink-400 font-bold py-2 px-4 border border-pink-400 rounded-md hover:bg-pink-400 hover:text-white transition-colors duration-200">Logout</button>
-                            </>
+                            </div>
                         ) : (
                             <>
                                 <NavLink to="/login" className={navLink} onClick={closeMobileMenu}>Teacher/Admin Login</NavLink>
