@@ -29,7 +29,6 @@ const ActionCard = ({ to, title, description, state }) => (
 );
 
 const HomePage = () => {
-    // --- State Management ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [profileData, setProfileData] = useState(null);
     const [currentStudent] = useState(studentAuthService.getCurrentStudent());
@@ -37,7 +36,6 @@ const HomePage = () => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    console.log("Current User:", currentStudent);
     // --- Data Fetching ---
      useEffect(() => {
         const loadDashboardData = async () => {

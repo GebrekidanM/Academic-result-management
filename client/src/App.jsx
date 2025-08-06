@@ -51,7 +51,6 @@ import EditStudentPage from './pages/EditStudentPage';
 import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
-import smallApi from './services/api';
 
 function App() {
   const { addNotification } = useNotifications();
@@ -60,7 +59,7 @@ function App() {
   useEffect(() => {
     let socket;
     if (currentUser && currentUser._id) {
-      socket = io(smallApi);
+      socket = io("https://academic-result-management.onrender.com");
       socket.emit("addNewUser", currentUser._id);
       socket.on("getNotification", (data) => {
         if (data && data.message) {
