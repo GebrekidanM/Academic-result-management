@@ -1,12 +1,10 @@
 // src/pages/SubjectRosterPage.js
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation} from 'react-router-dom';
 import rosterService from '../services/rosterService';
 import subjectService from '../services/subjectService';
 import authService from '../services/authService';
 import userService from '../services/userService';
-// We can reuse the RosterPage CSS for some base styles if needed, or keep it all in Tailwind
-// import './RosterPage.css'; 
 
 const SubjectRosterPage = () => {
     const location = useLocation();
@@ -15,7 +13,6 @@ const SubjectRosterPage = () => {
     const [currentUser] = useState(authService.getCurrentUser());
     const [subjects, setSubjects] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState(location.state?.subjectId || '');
-    const [gradeLevel, setGradeLevel] = useState(location.state?.gradeLevel || 'Grade 4');
     const [semester, setSemester] = useState('First Semester');
     const [academicYear, setAcademicYear] = useState('2017 E.C');
     const [rosterData, setRosterData] = useState(null);
@@ -41,19 +38,35 @@ const SubjectRosterPage = () => {
         };
         loadSubjectsForRole();
     }, [currentUser.role]);
+
+     useEffect(() => {
+        // When the 'subjects' list is loaded AND we have a selectedSubject from the location state...
+        if (subjects.length > 0 && location.state?.subjectId) {
+            handleGenerate();
+        }
+    }, [subjects, location.state]);
     
     // --- Handlers ---
     const handleGenerate = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
+        if (!selectedSubject) return;
+         
         setLoading(true);
         setError(null);
         setRosterData(null);
-        console.log("Hi")
         try {
-            const response = await rosterService.getSubjectRoster({ gradeLevel, subjectId: selectedSubject, semester, academicYear });
+             const subjectDetails = subjects.find(s => s._id === selectedSubject);
+             if (!subjectDetails) throw new Error("Selected subject not found.");
+
+            const response = await rosterService.getSubjectRoster(
+                { 
+                    gradeLevel: subjectDetails.gradeLevel,
+                    subjectId: selectedSubject,
+                    semester,
+                    academicYear
+                });
             setRosterData(response.data);
         } catch (err) {
-            console.log(err)
             setError(err.response?.data?.message || 'Failed to generate detailed roster.');
         } 
         finally {
@@ -63,7 +76,8 @@ const SubjectRosterPage = () => {
 
     const handlePrint = () => {
         const tableToPrint = document.getElementById('subjectRosterTable');
-        if (!tableToPrint) return;
+        const subjectDetails = subjects.find(s => s._id === selectedSubject);
+        if (!tableToPrint || !subjectDetails) return;
 
         const printWindow = window.open('', '', 'height=800,width=1200');
         printWindow.document.write('<html><head><title>Print Subject Roster</title>');
@@ -97,10 +111,6 @@ const SubjectRosterPage = () => {
                 <div className="p-4 bg-gray-100 rounded-lg mb-6">
                     <form onSubmit={handleGenerate} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
                         <div>
-                            <label htmlFor="gradeLevel" className={inputLabel}>Grade Level</label>
-                            <input id="gradeLevel" type="text" value={gradeLevel} onChange={e => setGradeLevel(e.target.value)} className={formInput} required />
-                        </div>
-                        <div>
                             <label htmlFor="subject" className={inputLabel}>Subject</label>
                             <select id="subject" value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className={formInput} required>
                                 <option value="">-- Select --</option>
@@ -133,12 +143,17 @@ const SubjectRosterPage = () => {
                 {rosterData && (
                     <div id="subjectRosterTableWrapper" className="overflow-x-auto">
                         <h3 className="text-xl font-bold text-gray-800 my-4 text-center">
-                            Detailed Roster for {subjects.find(s => s._id === selectedSubject)?.name} ({gradeLevel}) - {semester}
+                            Detailed Roster for {subjects.find(s => s._id === selectedSubject)?.name} 
+                            ({subjects.find(s => s._id === selectedSubject)?.gradeLevel}) 
+                            - {semester}
                         </h3>
                         <table id="subjectRosterTable" className="min-w-full divide-y divide-gray-200 border">
                             <thead>
                                 <tr>
+                                    <th rowSpan="2" className={tableHeader}>Student Id</th>
                                     <th rowSpan="2" className={tableHeader}>Student Name</th>
+                                    <th rowSpan="2" className={tableHeader}>Sex</th>
+                                    <th rowSpan="2" className={tableHeader}>Age</th>
                                     {rosterData && rosterData.sortedMonths.map(month => (
                                         <th key={month} colSpan={rosterData.assessmentsByMonth[month].length} className={`${tableHeader} bg-gray-100`}>
                                             {month}
@@ -157,7 +172,10 @@ const SubjectRosterPage = () => {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {rosterData.roster.map(student => (
                                     <tr key={student.studentId} className="hover:bg-gray-50">
+                                        <td className={tableCell}>{student.studentId}</td>
                                         <td className={`${tableCell} text-left font-medium text-gray-800 student-name`}>{student.fullName}</td>
+                                        <td className={tableCell}>{student.gender.charAt(0)}</td>
+                                        <td className={tableCell}>{student.age}</td>
                                         {rosterData.sortedMonths.map(month => (
                                             rosterData.assessmentsByMonth[month].map(at => (
                                                 <td key={at._id} className={tableCell}>{student.detailedScores[at._id]}</td>

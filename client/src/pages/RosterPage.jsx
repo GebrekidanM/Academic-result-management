@@ -9,12 +9,14 @@ const RosterPage = () => {
     const [rosterData, setRosterData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [homeroomTeacher, setHomeroomTeacher] = useState('');
 
      useEffect(() => {
         if (currentUser.role === 'teacher' && currentUser.homeroomGrade) {
             handleGenerateRoster();
         }
     }, [currentUser]);
+
     // --- Event Handlers (Perfect, no changes) ---
     const handleGenerateRoster = async (e) => {
         if (e) {
@@ -28,6 +30,7 @@ const RosterPage = () => {
         try {
             const response = await rosterService.getRoster({ gradeLevel, academicYear });
             setRosterData(response.data);
+            setHomeroomTeacher(response.data.homeroomTeacherName);
         } catch (err) { setError(err.response?.data?.message || 'Failed to generate roster.'); } 
         finally { setLoading(false); }
     };
@@ -39,12 +42,55 @@ const RosterPage = () => {
         const printWindow = window.open('', '', 'height=800,width=1200');
         printWindow.document.write('<html><head><title>Print Roster</title>');
         printWindow.document.write('<style>@page { size: A4 landscape; margin: 1cm; } body { font-family: Arial, sans-serif; } table { width: 100%; border-collapse: collapse; font-size: 7pt; } th, td { border: 1px solid black; padding: 4px; text-align: center; } th { vertical-align: middle; } td.student-name { text-align: left; }</style>');
+        printWindow.document.write(`
+        <link rel="stylesheet" href="/src/index.css"> <!-- Or the path to your main CSS file -->
+        <style>
+            @page { 
+                size: A4 landscape; 
+                margin: 1cm; 
+            }
+            body { 
+                padding:10px;
+                font-family: Arial, sans-serif;
+                /* These two lines are the magic for printing colors */
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            table { 
+                margin-top:10px;
+                width: 100%; 
+                border-collapse: collapse; 
+                font-size: 7pt; 
+            }
+            th, td { 
+                border: 1px solid black; 
+                padding: 4px; 
+                text-align: center; 
+            }
+            th { 
+                vertical-align: middle; 
+            }
+            .student-name { 
+                text-align: left; 
+            }
+            .titleOfAll {
+                text-align:cener;
+            }
+        </style>
+    `);
         printWindow.document.write('</head><body>');
-        printWindow.document.write(`<h3>Yearly Roster for ${gradeLevel} - ${academicYear}</h3>`);
+        printWindow.document.write(`<h3 className="titleOfAll text-xl font-bold text-gray-800">
+                                        Freedom Kg and Primary School Roster for ${gradeLevel} - ${academicYear} | 
+                                        <span className="font-normal text-gray-600"> Homeroom Teacher: ${homeroomTeacher}</span>
+                                    </h3>`);
         printWindow.document.write(tableToPrint.outerHTML);
         printWindow.document.write('</body></html>');
         printWindow.document.close();
-        setTimeout(() => { printWindow.focus(); printWindow.print(); printWindow.close(); }, 500);
+        setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }, 1000);
     };
 
     const textInput = "shadow-sm border rounded-lg py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500";
@@ -81,8 +127,11 @@ const RosterPage = () => {
             {error && <p className="text-red-500 text-center">{error}</p>}
             
             {rosterData && (
-                <div className="overflow-x-auto">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4">Roster for {gradeLevel} - {academicYear}</h3>
+                <div  className="overflow-x-auto">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">
+                        Roster for {gradeLevel} - {academicYear} | 
+                        <span className="font-normal text-gray-600"> Homeroom Teacher: {homeroomTeacher}</span>
+                    </h3>
                     <table id="rosterTable" className="min-w-full text-sm">
                         <thead>
                             <tr className='bg-rose-600 text-cyan-100'>
@@ -100,7 +149,7 @@ const RosterPage = () => {
                         <tbody>
                             {rosterData.roster.map(student => ([
                                 <tr key={`${student.studentId}-1`}>
-                                    <td rowSpan="3" className={tdStyle}>{student.studentId}</td>
+                                    <td rowSpan="3" className={`${tdStyle} bg-rose-600 text-cyan-100`}>{student.studentId}</td>
                                     <td rowSpan="3" className={`${tdStyle} text-left student-name`}>{student.fullName}</td>
                                     <td rowSpan="3" className={tdStyle}>{student.gender.charAt(0)}</td>
                                     <td rowSpan="3" className={tdStyle}>{student.age}</td>

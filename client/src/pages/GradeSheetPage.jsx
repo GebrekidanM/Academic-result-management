@@ -1,6 +1,6 @@
 // src/pages/GradeSheetPage.js
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import subjectService from '../services/subjectService';
 import assessmentTypeService from '../services/assessmentTypeService';
 import gradeService from '../services/gradeService';
@@ -8,18 +8,17 @@ import authService from '../services/authService';
 import userService from '../services/userService';
 
 const GradeSheetPage = () => {
-    const navigate = useNavigate();
-     const [academicYear, setAcademicYear] = useState('2017 E.C'); 
+    const [academicYear, setAcademicYear] = useState('2017 E.C'); 
     // --- State for Selections ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [subjects, setSubjects] = useState([]);
     const [assessmentTypes, setAssessmentTypes] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedAssessment, setSelectedAssessment] = useState('');
-    
+    console.log(selectedSubject)
     // --- State for Data ---
-    const [sheetData, setSheetData] = useState(null); // Holds the list of students and the assessment type
-    const [scores, setScores] = useState({}); // Holds the scores being edited: { studentId: score }
+    const [sheetData, setSheetData] = useState(null); 
+    const [scores, setScores] = useState({});
     
     // --- UI State ---
     const [loading, setLoading] = useState(false);
@@ -60,10 +59,9 @@ const GradeSheetPage = () => {
         try {
             const response = await gradeService.getGradeSheet(selectedAssessment);
             setSheetData(response.data);
-            // Initialize the scores state from the fetched data
             const initialScores = {};
             response.data.students.forEach(s => {
-                initialScores[s._id] = s.score ?? ''; // Use empty string for null/undefined scores
+                initialScores[s._id] = s.score ?? '';
             });
             setScores(initialScores);
         } catch (err) {
@@ -82,7 +80,7 @@ const GradeSheetPage = () => {
         setError(null);
         try {
             const scoresPayload = Object.keys(scores)
-                .filter(studentId => scores[studentId] !== '' && scores[studentId] !== null) // Only send scores that have been entered
+                .filter(studentId => scores[studentId] !== '' && scores[studentId] !== null)
                 .map(studentId => ({
                     studentId,
                     score: Number(scores[studentId])
@@ -92,11 +90,11 @@ const GradeSheetPage = () => {
                 assessmentTypeId: selectedAssessment,
                 subjectId: selectedSubject,
                 semester: sheetData.assessmentType.semester,
-                academicYear: academicYear, // Use the state variable
+                academicYear: academicYear,
                 scores: scoresPayload
             });
             alert('Grades saved successfully!');
-            handleLoadSheet(); // Reload the sheet to confirm changes
+            handleLoadSheet();
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to save grades.');
         } finally {

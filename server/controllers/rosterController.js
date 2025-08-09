@@ -2,6 +2,7 @@
 const Student = require('../models/Student');
 const Subject = require('../models/Subject');
 const Grade = require('../models/Grade');
+const User = require('../models/User')
 const AssessmentType = require('../models/AssessmentType');
 
 exports.generateRoster = async (req, res) => {
@@ -11,7 +12,9 @@ exports.generateRoster = async (req, res) => {
         return res.status(400).json({ message: 'Grade Level and Academic Year are required.' });
     }
 
+    
     try {
+        const homeroomTeacher = await User.findOne({ homeroomGrade: gradeLevel }).select('fullName');
         const subjects = await Subject.find({ gradeLevel }).sort({ name: 1 });
         if (subjects.length === 0) return res.status(404).json({ message: 'No subjects found.' });
 
@@ -69,7 +72,8 @@ exports.generateRoster = async (req, res) => {
                 age: calculateAge(student.dateOfBirth),
                 firstSemester, secondSemester, subjectAverages,
                 overallTotal, overallAverage,
-                rank1st: 0, rank2nd: 0, overallRank: 0
+                rank1st: 0, rank2nd: 0, overallRank: 0,
+                
             };
         });
         
@@ -94,9 +98,14 @@ exports.generateRoster = async (req, res) => {
         
         rosterData.sort((a, b) => a.fullName.localeCompare(b.fullName));
 
-        res.status(200).json({ subjects: subjects.map(s => s.name), roster: rosterData });
+        res.status(200).json(
+            { 
+                subjects: subjects.map(s => s.name), 
+                roster: rosterData,
+                homeroomTeacherName: homeroomTeacher ? homeroomTeacher.fullName : 'Not Assigned'
+            }
+        );
     } catch (error) {
-        console.error('Error generating roster:', error);
         res.status(500).json({ message: 'Server error while generating roster' });
     }
 };
@@ -112,7 +121,7 @@ exports.generateSubjectRoster = async (req, res) => {
     if (!gradeLevel || !subjectId || !semester || !academicYear) {
         return res.status(400).json({ message: 'Grade Level, Subject, Semester, and Year are required.' });
     }
-
+    
     try {
         const allAssessmentsForSubject = await AssessmentType.find({ subject: subjectId, gradeLevel }).sort({ name: 1 });
         if (allAssessmentsForSubject.length === 0) {
@@ -127,8 +136,10 @@ exports.generateSubjectRoster = async (req, res) => {
         });
         
         const sortedMonths = Object.keys(assessmentTypesByMonth).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+        const students = await Student.find({ gradeLevel, status: 'Active' })
+            .select('studentId fullName gender dateOfBirth')
+            .sort({ fullName: 1 });
 
-        const students = await Student.find({ gradeLevel, status: 'Active' }).sort({ fullName: 1 });
         if (students.length === 0) return res.status(404).json({ message: 'No active students found.' });
         
         const studentIds = students.map(s => s._id);
@@ -151,10 +162,21 @@ exports.generateSubjectRoster = async (req, res) => {
                 studentDetailedScores[at._id.toString()] = score;
             });
 
+             const calculateAge = (dateOfBirth) => {
+                if (!dateOfBirth) return 'N/A';
+                const ageDiffMs = Date.now() - new Date(dateOfBirth).getTime();
+                const ageDate = new Date(ageDiffMs);
+                return Math.abs(ageDate.getUTCFullYear() - 1970);
+            };
+
+
             return {
-                studentId: student.studentId, fullName: student.fullName,
+                studentId: student.studentId, 
+                fullName: student.fullName,
+                gender: student.gender,
+                age: calculateAge(student.dateOfBirth),
                 detailedScores: studentDetailedScores,
-                finalScore: gradeDoc ? gradeDoc.finalScore : '-'
+                finalScore: gradeDoc ? gradeDoc.finalScore : '-',
             };
         });
 
