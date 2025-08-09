@@ -1,18 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import rosterService from '../services/rosterService';
-// We no longer need to import the CSS file as the styles are self-contained or injected by the print handler.
+import authService from '../services/authService';
 
 const RosterPage = () => {
-    // --- State Management (Perfect, no changes) ---
-    const [gradeLevel, setGradeLevel] = useState('Grade 4');
+    const [currentUser] = useState(authService.getCurrentUser());
+    const [gradeLevel, setGradeLevel] = useState(currentUser.homeroomGrade || ''); 
     const [academicYear, setAcademicYear] = useState('2017 E.C');
     const [rosterData, setRosterData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
+     useEffect(() => {
+        if (currentUser.role === 'teacher' && currentUser.homeroomGrade) {
+            handleGenerateRoster();
+        }
+    }, [currentUser]);
     // --- Event Handlers (Perfect, no changes) ---
     const handleGenerateRoster = async (e) => {
-        e.preventDefault(); setLoading(true); setError(null); setRosterData(null);
+        if (e) {
+            e.preventDefault();
+        }
+        if (!gradeLevel) {
+            setError("Please specify a Grade Level.");
+            return;
+        }
+        setLoading(true); setError(null); setRosterData(null);
         try {
             const response = await rosterService.getRoster({ gradeLevel, academicYear });
             setRosterData(response.data);
@@ -20,15 +32,12 @@ const RosterPage = () => {
         finally { setLoading(false); }
     };
 
-    console.log(rosterData)
-    // The 'New Window' print handler is the best method and is already perfect.
     const handlePrint = () => {
         const tableToPrint = document.getElementById('rosterTable');
         if (!tableToPrint) return;
 
         const printWindow = window.open('', '', 'height=800,width=1200');
         printWindow.document.write('<html><head><title>Print Roster</title>');
-        // All necessary print styles are injected here directly.
         printWindow.document.write('<style>@page { size: A4 landscape; margin: 1cm; } body { font-family: Arial, sans-serif; } table { width: 100%; border-collapse: collapse; font-size: 7pt; } th, td { border: 1px solid black; padding: 4px; text-align: center; } th { vertical-align: middle; } td.student-name { text-align: left; }</style>');
         printWindow.document.write('</head><body>');
         printWindow.document.write(`<h3>Yearly Roster for ${gradeLevel} - ${academicYear}</h3>`);
@@ -38,7 +47,6 @@ const RosterPage = () => {
         setTimeout(() => { printWindow.focus(); printWindow.print(); printWindow.close(); }, 500);
     };
 
-    // --- Tailwind CSS class strings (Perfect, no changes) ---
     const textInput = "shadow-sm border rounded-lg py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500";
     const submitButton = `bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`;
     const thStyle = "p-2 border border-black text-center align-middle";
@@ -52,8 +60,8 @@ const RosterPage = () => {
             <div className="p-4 bg-gray-50 rounded-lg border mb-6">
                 <form onSubmit={handleGenerateRoster} className="flex flex-wrap items-center gap-4">
                     <div>
-                        <label htmlFor="gradeLevel" className="font-bold text-gray-700 mr-2">Grade Level:</label>
-                        <input id="gradeLevel" type="text" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} className={textInput} />
+                        <label htmlFor="gradeLevel" className="font-bold text-gray-700 mr-2">Enter Grade Level:</label>
+                        <input id="gradeLevel" type="text" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} className="shadow-sm border rounded-lg py-2 px-3"/>
                     </div>
                     <div>
                         <label htmlFor="academicYear" className="font-bold text-gray-700 mr-2">Academic Year:</label>
@@ -80,6 +88,8 @@ const RosterPage = () => {
                             <tr className='bg-rose-600 text-cyan-100'>
                                 <th className={thStyle}>Student ID</th>
                                 <th className={thStyle}>Full Name</th>
+                                <th className={thStyle}>Sex</th>
+                                <th className={thStyle}>Age</th>
                                 <th className={thStyle}>Semester</th>
                                 {rosterData.subjects.map(subjectName => (<th key={subjectName} className={thStyle}>{subjectName}</th>))}
                                 <th className={`${thStyle}`}>Total</th>
@@ -92,6 +102,8 @@ const RosterPage = () => {
                                 <tr key={`${student.studentId}-1`}>
                                     <td rowSpan="3" className={tdStyle}>{student.studentId}</td>
                                     <td rowSpan="3" className={`${tdStyle} text-left student-name`}>{student.fullName}</td>
+                                    <td rowSpan="3" className={tdStyle}>{student.gender.charAt(0)}</td>
+                                    <td rowSpan="3" className={tdStyle}>{student.age}</td>
                                     <td className={semesterCellStyle}>1st Sem</td>
                                     {rosterData.subjects.map(subject => <td key={`${subject}-1`} className={tdStyle}>{student.firstSemester.scores[subject]}</td>)}
                                     <td className={`${tdStyle} bg-gray-200 font-bold`}>{student.firstSemester.total.toFixed(2)}</td>

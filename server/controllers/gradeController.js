@@ -7,97 +7,6 @@ const Notification = require('../models/Notification');
 const Subscription = require('../models/Subscription');
 const webpush = require('web-push');
 
-// @desc    Add a new grade entry and send notifications
-// @route   POST /api/grades
-exports.addGrade = async (req, res) => {
-    // This is run after 'protect' and 'isTeacherForSubject' middleware
-    const { studentId, subjectId, academicYear, semester, assessments } = req.body;
-
-    try {
-        // Fetch the subject and assessment types for validation
-        const subject = await Subject.findById(subjectId);
-        if (!subject) return res.status(404).json({ message: 'Subject not found.' });
-
-        // Fetch all assessment type definitions to calculate final score and validate input
-        const assessmentTypeIds = assessments.map(a => a.assessmentType);
-        const assessmentTypeDefs = await AssessmentType.find({ '_id': { $in: assessmentTypeIds } });
-        
-        let finalScore = 0;
-        
-        for (const assessment of assessments) {
-            const def = assessmentTypeDefs.find(d => d._id.equals(assessment.assessmentType));
-            if (!def) {
-                return res.status(400).json({ message: `Invalid assessment type ID: ${assessment.assessmentType}` });
-            }
-            // Validation: score cannot be higher than total marks
-            if (Number(assessment.score) > def.totalMarks) {
-                return res.status(400).json({ message: `Score for ${def.name} cannot be higher than ${def.totalMarks}.` });
-            }
-            finalScore += Number(assessment.score);
-        }
-
-        const grade = await Grade.create({
-            student: studentId,
-            subject: subjectId,
-            academicYear,
-            semester,
-            assessments,
-            finalScore
-        });
-
-        // =======================================================
-        // --- NOTIFICATION LOGIC ---
-        // (This code depends on the Socket.IO setup in server.js)
-        try {
-            const student = await Student.findById(studentId);
-            const message = `New grade entered for ${student.fullName} in ${subject.name} (${semester}).`;
-            const link = `/students/${student._id}`;
-
-            // 1. Identify ALL Recipients (Admins and Homeroom Teachers)
-            const recipients = new Map();
-
-            const admins = await User.find({ role: 'admin' });
-            admins.forEach(admin => recipients.set(admin._id.toString(), admin));
-
-            const homeroomTeacher = await User.findOne({ homeroomGrade: student.gradeLevel });
-            if (homeroomTeacher) {
-                recipients.set(homeroomTeacher._id.toString(), homeroomTeacher);
-            }
-
-            // 2. Get Socket.IO and send notifications
-            const io = req.app.get('socketio');
-            const onlineUsers = req.app.get('onlineUsers');
-
-            for (const recipient of recipients.values()) {
-                await Notification.create({ recipient: recipient._id, message, link });
-
-                const socketId = onlineUsers.get(recipient._id.toString());
-                if (socketId) {
-                    // Send In-App notification
-                    io.to(socketId).emit("getNotification", { message, link });
-                }
-
-                // Send Push Notification
-                const subscriptions = await Subscription.find({ user: recipient._id });
-                subscriptions.forEach(sub => {
-                    const payload = JSON.stringify({ title: "Freedom School Update", body: message });
-                    webpush.sendNotification(sub.subscriptionObject, payload).catch(err => console.error("Push Notification Error:", err));
-                });
-            }
-        } catch (notificationError) {
-            console.error("Failed to process and send notifications:", notificationError);
-        }
-        // =======================================================
-
-        res.status(201).json({ success: true, data: grade });
-
-    } catch (error) {
-        // Handle validation errors from Mongoose
-        res.status(400).json({ success: false, message: error.message });
-    }
-};
-
-
 // @desc    Get a single grade by its ID
 // @route   GET /api/grades/:id
 exports.getGradeById = async (req, res) => {
@@ -166,6 +75,24 @@ exports.getGradesByStudent = async (req, res) => {
     }
 };
 
+// @desc    Get a single grade document by student, subject, semester, and year
+// @route   GET /api/grades/details?studentId=...&subjectId=...
+exports.getGradeDetails = async (req, res) => {
+    const { studentId, subjectId, semester, academicYear } = req.query;
+    try {
+        const grade = await Grade.findOne({ 
+            student: studentId, 
+            subject: subjectId,
+            semester,
+            academicYear
+        });
+        // It's okay if it's null, it just means no grades have been entered yet.
+        res.json({ success: true, data: grade });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 exports.deleteGrade = async (req, res) => {
     const grade = await Grade.findById(req.params.id);
 
@@ -180,21 +107,22 @@ exports.deleteGrade = async (req, res) => {
     res.status(200).json({ success: true, message: 'Grade deleted' });
 };
 
-// @desc    Update a grade entry
+// @desc    Update a grade entry and send notifications
 // @route   PUT /api/grades/:id
 exports.updateGrade = async (req, res) => {
     try {
         const grade = await Grade.findById(req.params.id);
-
         if (!grade) {
             return res.status(404).json({ message: 'Grade record not found' });
         }
         
+        // --- Security Check ---
         if (req.user.role === 'admin') {
             return res.status(403).json({ message: "Admins cannot alter grade records." });
         }
+        // (In the future, you could add a check here to ensure only the assigned teacher can update)
 
-        // --- Recalculate the finalScore on the server ---
+        // --- Server-Side Recalculation (Your existing logic is perfect) ---
         const { assessments } = req.body;
         let newFinalScore = 0;
         if (assessments && assessments.length > 0) {
@@ -211,11 +139,55 @@ exports.updateGrade = async (req, res) => {
             }
         }
 
-        // Update the document
+        // --- Update and Save the Document ---
         grade.assessments = assessments;
         grade.finalScore = newFinalScore;
-
         const updatedGrade = await grade.save();
+
+        // =======================================================
+        // --- DEFINITIVE NOTIFICATION TRIGGER LOGIC ---
+        // =======================================================
+        try {
+            // We need to populate the necessary details for the message
+            await updatedGrade.populate(['student', 'subject']);
+            const student = updatedGrade.student;
+            const subject = updatedGrade.subject;
+
+            const message = `A grade record for ${student.fullName} in ${subject.name} (${grade.semester}) was updated.`;
+            const link = `/students/${student._id}`;
+
+            // 1. Identify ALL Recipients
+            const recipients = new Map();
+            const admins = await User.find({ role: 'admin' });
+            admins.forEach(admin => recipients.set(admin._id.toString(), admin));
+            const homeroomTeacher = await User.findOne({ homeroomGrade: student.gradeLevel });
+            if (homeroomTeacher) {
+                recipients.set(homeroomTeacher._id.toString(), homeroomTeacher);
+            }
+
+            // Exclude the person who made the change
+            recipients.delete(req.user._id.toString());
+
+            // 2. Send Notifications
+            const io = req.app.get('socketio');
+            const onlineUsers = req.app.get('onlineUsers');
+            for (const recipient of recipients.values()) {
+                await Notification.create({ recipient: recipient._id, message, link });
+                const socketId = onlineUsers.get(recipient._id.toString());
+                if (socketId) {
+                    io.to(socketId).emit("getNotification", { message, link });
+                }
+                const subscriptions = await Subscription.find({ user: recipient._id });
+                subscriptions.forEach(sub => {
+                    const payload = JSON.stringify({ title: "Freedom School: Grade Update", body: message });
+                    webpush.sendNotification(sub.subscriptionObject, payload).catch(err => console.error("Push Error:", err));
+                });
+            }
+        } catch (notificationError) {
+            console.error("Failed to send notifications on grade update:", notificationError);
+        }
+        // --- END OF NOTIFICATION LOGIC ---
+        
         res.status(200).json({ success: true, data: updatedGrade });
 
     } catch (error) {
@@ -223,7 +195,6 @@ exports.updateGrade = async (req, res) => {
         res.status(500).json({ message: "Server error while updating grade." });
     }
 };
-
 
 
 // @desc    Get a list of students and their scores for a specific assessment

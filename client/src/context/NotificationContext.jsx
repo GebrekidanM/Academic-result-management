@@ -1,30 +1,32 @@
-// src/context/NotificationContext.js
 import React, { createContext, useState, useContext } from 'react';
+import notificationService from '../services/notificationService'; 
 
-// 1. Create the context
 const NotificationContext = createContext();
 
-// 2. Create a custom hook for easy access
 export const useNotifications = () => {
     return useContext(NotificationContext);
 };
 
-// 3. Create the Provider component that will wrap our app
 export const NotificationProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
 
-    // Function to add a new notification to the top of the list
     const addNotification = (notification) => {
         setNotifications(prev => [notification, ...prev]);
         setUnreadCount(prev => prev + 1);
     };
 
-    // Function to mark all as read
-    const markAllAsRead = () => {
+    const markAllAsRead = async () => {
+        if (unreadCount === 0) return; 
+
         setUnreadCount(0);
-        // In a more advanced version, you would also make an API call here
-        // to update the isRead flag in the database.
+        
+        try {
+            await notificationService.markAsRead();
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        } catch (error) {
+            console.error("Failed to mark notifications as read on the server.", error);
+        }
     };
 
     const value = {

@@ -51,7 +51,7 @@ import EditStudentPage from './pages/EditStudentPage';
 import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
-import AddGradePage from './pages/AddGradePage';
+
 const frontUrl = import.meta.env.VITE_FRONT_URL;
 
 function App() {
@@ -93,7 +93,6 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/students" element={<StudentListPage />} />
             <Route path="/students/:id" element={<StudentDetailPage />} />
-            <Route path="/grades/add/:studentId" element={<AddGradePage />} />
             <Route path="/grades/edit/:gradeId" element={<EditGradePage />} />
             <Route path="/reports/add/:studentId" element={<AddReportPage />} />
             <Route path="/reports/edit/:reportId" element={<EditReportPage />} />

@@ -36,12 +36,10 @@ const saveGradeSheet = (data) => {
     return api.post('/grades/sheet', data);
 };
 
-export default {
-    getGradesByStudent,
-    createGrade,
-    deleteGrade,
-    getGradeById,
-    updateGrade,
-    getGradeSheet,
-    saveGradeSheet  
+const getGradeDetails = ({ studentId, subjectId, semester, academicYear }) => {
+    return api.get(`${API_URL}/details`, {
+        params: { studentId, subjectId, semester, academicYear }
+    });
 };
+
+export default { getGradesByStudent, createGrade,deleteGrade, getGradeById, updateGrade, getGradeSheet, saveGradeSheet  ,getGradeDetails };

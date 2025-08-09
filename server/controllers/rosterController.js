@@ -15,7 +15,10 @@ exports.generateRoster = async (req, res) => {
         const subjects = await Subject.find({ gradeLevel }).sort({ name: 1 });
         if (subjects.length === 0) return res.status(404).json({ message: 'No subjects found.' });
 
-        const students = await Student.find({ gradeLevel, status: 'Active' }).sort({ fullName: 1 });
+        const students = await Student.find({ gradeLevel, status: 'Active' })
+            .select('studentId fullName gender dateOfBirth') // Explicitly select the new fields
+            .sort({ fullName: 1 });
+        
         if (students.length === 0) return res.status(404).json({ message: 'No active students found.' });
         
         const studentIds = students.map(s => s._id);
@@ -50,8 +53,20 @@ exports.generateRoster = async (req, res) => {
             const overallCount = firstSemester.count + secondSemester.count;
             const overallAverage = overallCount > 0 ? overallTotal / overallCount : 0;
 
+             // --- Helper function to calculate age ---
+            const calculateAge = (dateOfBirth) => {
+                if (!dateOfBirth) return 'N/A';
+                const ageDiffMs = Date.now() - new Date(dateOfBirth).getTime();
+                const ageDate = new Date(ageDiffMs);
+                return Math.abs(ageDate.getUTCFullYear() - 1970);
+            };
+
+
             return {
-                studentId: student.studentId, fullName: student.fullName,
+                studentId: student.studentId, 
+                fullName: student.fullName,
+                gender: student.gender,
+                age: calculateAge(student.dateOfBirth),
                 firstSemester, secondSemester, subjectAverages,
                 overallTotal, overallAverage,
                 rank1st: 0, rank2nd: 0, overallRank: 0
