@@ -61,27 +61,57 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,ico,json}'],
         runtimeCaching: [
+          // 1️⃣ Google Fonts (CacheFirst for offline font display)
           {
             urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'google-fonts',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 }
             }
           },
+
+          // 2️⃣ Navigation / HTML (NetworkFirst with offline fallback)
           {
-            urlPattern: ({ request }) => request.destination === 'document',
+            urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
-            options: { cacheName: 'html-cache' }
+            options: {
+              cacheName: 'pages-cache',
+              networkTimeoutSeconds: 3,
+              fallbackURL: '/offline.html' // display offline page if network fails
+            }
           },
+
+          // 3️⃣ JS and CSS (StaleWhileRevalidate)
           {
             urlPattern: ({ request }) =>
               request.destination === 'script' || request.destination === 'style',
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'assets-cache' }
+          },
+
+          // 4️⃣ API Requests (NetworkFirst to allow cached data offline)
+          {
+            urlPattern: /\/api\/.*$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 20 } 
+            }
+          },
+
+          // 5️⃣ Images (CacheFirst for student photos, icons, etc.)
+          {
+            urlPattern: ({ request }) => request.destination === 'image',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 } // 30 days
+            }
           }
         ]
       }
+
     })
   ]
 })

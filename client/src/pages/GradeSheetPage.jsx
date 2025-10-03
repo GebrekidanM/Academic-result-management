@@ -6,6 +6,7 @@ import assessmentTypeService from '../services/assessmentTypeService';
 import gradeService from '../services/gradeService';
 import authService from '../services/authService';
 import userService from '../services/userService';
+import { saveOfflineGrade, getOfflineGrades, deleteOfflineGrade } from '../offlineDB';
 
 const GradeSheetPage = () => {
     const [academicYear, setAcademicYear] = useState('2017 E.C'); 
@@ -78,22 +79,30 @@ const GradeSheetPage = () => {
     const handleSave = async () => {
         setLoading(true);
         setError(null);
+
+        const scoresPayload = Object.keys(scores)
+            .filter(studentId => scores[studentId] !== '' && scores[studentId] !== null)
+            .map(studentId => ({
+                studentId,
+                score: Number(scores[studentId])
+            }));
+
+        const gradeData = {
+            assessmentTypeId: selectedAssessment,
+            subjectId: selectedSubject,
+            semester: sheetData.assessmentType.semester,
+            academicYear,
+            scores: scoresPayload
+        };
+
         try {
-            const scoresPayload = Object.keys(scores)
-                .filter(studentId => scores[studentId] !== '' && scores[studentId] !== null)
-                .map(studentId => ({
-                    studentId,
-                    score: Number(scores[studentId])
-                }));
-            
-            await gradeService.saveGradeSheet({
-                assessmentTypeId: selectedAssessment,
-                subjectId: selectedSubject,
-                semester: sheetData.assessmentType.semester,
-                academicYear: academicYear,
-                scores: scoresPayload
-            });
-            alert('Grades saved successfully!');
+            if (navigator.onLine) {
+                await gradeService.saveGradeSheet(gradeData);
+                notification.show("Grades saved successfully!");
+            } else {
+                await saveOfflineGrade(gradeData);
+                notification.show("No internet. Grades saved offline and will sync automatically.");
+            }
             handleLoadSheet();
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to save grades.');
@@ -101,6 +110,7 @@ const GradeSheetPage = () => {
             setLoading(false);
         }
     };
+
 
     return (
         <div>
