@@ -1,24 +1,29 @@
 import { openDB } from 'idb';
 
-export const dbPromise = openDB('freedom-sms', 1, {
-  upgrade(db) {
-    if (!db.objectStoreNames.contains('offline-grades')) {
-      db.createObjectStore('offline-grades', { keyPath: 'id', autoIncrement: true });
+const DB_NAME = 'FreedomSMS';
+const STORE = 'offlineGrades';
+
+export async function getDB() {
+  return openDB(DB_NAME, 1, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+      }
     }
-  },
-});
+  });
+}
 
 export async function saveOfflineGrade(grade) {
-  const db = await dbPromise;
-  await db.add('offline-grades', grade);
+  const db = await getDB();
+  await db.add(STORE, grade);
 }
 
 export async function getOfflineGrades() {
-  const db = await dbPromise;
-  return db.getAll('offline-grades');
+  const db = await getDB();
+  return db.getAll(STORE);
 }
 
 export async function deleteOfflineGrade(id) {
-  const db = await dbPromise;
-  await db.delete('offline-grades', id);
+  const db = await getDB();
+  return db.delete(STORE, id);
 }

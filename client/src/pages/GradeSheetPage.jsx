@@ -6,7 +6,7 @@ import assessmentTypeService from '../services/assessmentTypeService';
 import gradeService from '../services/gradeService';
 import authService from '../services/authService';
 import userService from '../services/userService';
-import { saveOfflineGrade, getOfflineGrades, deleteOfflineGrade } from '../offlineDB';
+import { saveOfflineGrade } from '../offlineDB';
 
 const GradeSheetPage = () => {
     const [academicYear, setAcademicYear] = useState('2017 E.C'); 
@@ -77,17 +77,11 @@ const GradeSheetPage = () => {
     };
     
     const handleSave = async () => {
-        setLoading(true);
-        setError(null);
-
         const scoresPayload = Object.keys(scores)
-            .filter(studentId => scores[studentId] !== '' && scores[studentId] !== null)
-            .map(studentId => ({
-                studentId,
-                score: Number(scores[studentId])
-            }));
+            .filter(id => scores[id] !== '' && scores[id] !== null)
+            .map(id => ({ studentId: id, score: Number(scores[id]) }));
 
-        const gradeData = {
+        const payload = {
             assessmentTypeId: selectedAssessment,
             subjectId: selectedSubject,
             semester: sheetData.assessmentType.semester,
@@ -97,19 +91,17 @@ const GradeSheetPage = () => {
 
         try {
             if (navigator.onLine) {
-                await gradeService.saveGradeSheet(gradeData);
-                notification.show("Grades saved successfully!");
+            await gradeService.saveGradeSheet(payload);
+            alert('Grades saved successfully!');
             } else {
-                await saveOfflineGrade(gradeData);
-                notification.show("No internet. Grades saved offline and will sync automatically.");
+            await saveOfflineGrade(payload);
+            alert('No internet: grades saved offline ✅');
             }
-            handleLoadSheet();
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to save grades.');
-        } finally {
-            setLoading(false);
+            console.error(err);
+            alert('Failed to save grades.');
         }
-    };
+        };
 
 
     return (
