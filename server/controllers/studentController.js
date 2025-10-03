@@ -3,7 +3,7 @@ const xlsx = require('xlsx');
 const fs = require('fs');
 const Student = require('../models/Student');
 const Grade = require('../models/Grade');
-
+const { parseExcelDate } = require('../utils/parseExcelDate');
 // --- HELPER FUNCTIONS ---
 const capitalizeName = (name) => {
     if (!name || typeof name !== 'string') return '';
@@ -163,7 +163,6 @@ exports.uploadProfilePhoto = async (req, res) => {
 exports.bulkCreateStudents = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
     const filePath = req.file.path;
-
     try {
         const workbook = xlsx.readFile(filePath);
         const sheetName = workbook.SheetNames[0];
@@ -189,7 +188,7 @@ exports.bulkCreateStudents = async (req, res) => {
                 studentId: newStudentId,
                 fullName: capitalizeName(fullName),
                 gender: student['Gender'] || student['gender'],
-                dateOfBirth: new Date(student['Date of Birth'] || student['dateOfBirth']),
+                dateOfBirth: parseExcelDate(student['Date of Birth'] || student['dateOfBirth']),
                 gradeLevel: student['Grade Level'] || student['gradeLevel'],
                 password: initialPassword, // This will be sent to the database for hashing
                 parentContact: { parentName: student['Parent Name'], phone: student['Parent Phone'] },
@@ -219,6 +218,7 @@ exports.bulkCreateStudents = async (req, res) => {
         });
 
     } catch (error) {
+        console.log(error);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         if (error.code === 11000 || error.name === 'MongoBulkWriteError' || error.name === 'ValidationError') {
             return res.status(400).json({ message: 'Import failed. Students may already exist or have invalid data.' });
