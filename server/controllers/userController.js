@@ -2,7 +2,7 @@ const xlsx = require('xlsx');
 const fs = require('fs');
 const User = require('../models/User');
 const capitalizeName = require('../utils/capitalizeName');
-
+const generateToken = require('../utils/generateToken');
 // @desc    Get all users (for Admin)
 // @route   GET /api/users
 exports.getUsers = async (req, res) => {
