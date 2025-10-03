@@ -80,6 +80,14 @@ function App() {
         return () => { if (socket) socket.disconnect(); };
     }, [currentUser, currentStudent, addNotification]);
 
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => console.log('Service Worker registered:', reg))
+          .catch(err => console.error('Service Worker error:', err));
+      });
+    }
+
   return (
     <div className="bg-gray-100 min-h-screen">
       <Navbar /> 
@@ -88,7 +96,7 @@ function App() {
           {/* ======= 1. PUBLIC ROUTES ======== */}
            <Route path="/login" element={<LoginPage />} />
            <Route path="/parent-login" element={<ParentLoginPage />} />
-            <Route path="/" element={<HomePage />} />
+           <Route path="/" element={<HomePage />} />
 
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
