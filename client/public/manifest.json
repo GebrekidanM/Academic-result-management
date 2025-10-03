@@ -1,20 +1,46 @@
 {
   "name": "Freedom School Management System",
   "short_name": "Freedom",
+  "description": "A modern, installable school management system for Freedom KG & Primary School.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#0A0A0A",
+  "prefer_related_applications": false,
+  "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "./er.jpg",
+      "src": "/er-192.png",
       "sizes": "192x192",
-      "type": "image/jpg"
+      "type": "image/png"
     },
     {
-      "src": "./er.jpg",
+      "src": "/er-512.png",
       "sizes": "512x512",
-      "type": "image/jpg"
+      "type": "image/png"
+    },
+    {
+      "src": "/er-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/desktop.PNG",
+      "sizes": "720x540",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/mobile.PNG",
+      "sizes": "360x640",
+      "type": "image/png"
     }
   ]
 }
