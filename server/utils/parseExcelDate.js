@@ -1,5 +1,4 @@
-// ✅ Helper to parse different date formats
-function parseExcelDate(value) {
+export function parseExcelDate(value)  {
   if (!value) return null;
 
   // 1️⃣ If it's an Excel number (e.g., 45234)
