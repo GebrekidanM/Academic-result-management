@@ -65,6 +65,7 @@ const ProfilePage = () => {
             setConfirmPassword('');
             
             setTimeout(() => window.location.reload(), 2000);
+            navigate('/');
 
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to update profile.');
