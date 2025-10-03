@@ -17,7 +17,7 @@ const createAdminUser = async () => {
         const adminUser = {
             fullName: 'Administrator',
             username: 'admin',
-            password: 'Almi.21',
+            password: 'admin@123',
             role: 'admin'
         };
 
