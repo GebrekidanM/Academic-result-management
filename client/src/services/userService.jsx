@@ -32,10 +32,16 @@ const uploadUsers = (file) => {
     });
 };
 
+
+const updateProfile = (data) => {
+return api.put('/users/profile', data);
+};
+
 export default {
     getProfile,
     getAll,
     getById,
     update,
-    uploadUsers
+    uploadUsers,
+    updateProfile
 };

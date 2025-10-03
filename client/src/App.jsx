@@ -39,6 +39,7 @@ import EditGradePage from './pages/EditGradePage';
 import EditReportPage from './pages/EditReportPage'; 
 import GradeSheetPage from './pages/GradeSheetPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import ProfilePage from './pages/ProfilePage';
 
 // 5. Admin-Only Pages
 import UserManagementPage from './pages/UserManagementPage';
@@ -87,10 +88,11 @@ function App() {
           {/* ======= 1. PUBLIC ROUTES ======== */}
            <Route path="/login" element={<LoginPage />} />
            <Route path="/parent-login" element={<ParentLoginPage />} />
+            <Route path="/" element={<HomePage />} />
 
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/students" element={<StudentListPage />} />
             <Route path="/students/:id" element={<StudentDetailPage />} />
             <Route path="/grades/edit/:gradeId" element={<EditGradePage />} />

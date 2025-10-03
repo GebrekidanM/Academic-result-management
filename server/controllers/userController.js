@@ -206,3 +206,48 @@ exports.getHomeroomTeacher = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+// @desc    Update the logged-in user's own profile (including password)
+// @route   PUT /api/users/profile
+exports.updateUserProfile = async (req, res) => {
+    console.log("Update Profile Request Body:", req.body);
+    try {
+        const user = await User.findById(req.user._id).select('+password'); // Get the password hash
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        user.fullName = req.body.fullName || user.fullName;
+        user.username = req.body.username || user.username;
+
+        if (req.body.currentPassword && req.body.newPassword) {
+            const isMatch = await user.matchPassword(req.body.currentPassword);
+            if (!isMatch) {
+                return res.status(401).json({ message: 'Incorrect current password.' });
+            }
+            
+            user.password = req.body.newPassword;
+        }
+
+        const updatedUser = await user.save(); // The pre-save hook will hash the new password
+
+        const token = generateToken(updatedUser._id, 'user'); // Assuming you have generateToken utility
+
+        res.json({
+            _id: updatedUser._id,
+            fullName: updatedUser.fullName,
+            username: updatedUser.username,
+            role: updatedUser.role,
+            homeroomGrade: updatedUser.homeroomGrade,
+            token: token
+        });
+
+    } catch (error) {
+        // Handle duplicate username error
+        console.log("Error updating profile:", error);
+        if (error.code === 11000) {
+             return res.status(400).json({ message: 'That username is already taken.' });
+        }
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
