@@ -1,14 +1,12 @@
 // createAdmin.js
 const dotenv = require('dotenv');
-const User = require('./models/User'); // Adjust path if needed
-const connectDB = require('./config/db'); // Adjust path if needed
-
+const User = require('./models/User');
+const connectDB = require('./config/db');
 dotenv.config();
 connectDB();
 
 const createAdminUser = async () => {
     try {
-        // Check if an admin already exists
         const adminExists = await User.findOne({ role: 'admin' });
         if (adminExists) {
             console.log('Admin user already exists.');
