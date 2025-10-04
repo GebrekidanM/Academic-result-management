@@ -14,6 +14,7 @@ const AssessmentTypesPage = () => {
     const [subjects, setSubjects] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [assessmentTypes, setAssessmentTypes] = useState([]);
+    const [year,setYear]= useState(2018)
     const [newAssessmentSemester, setNewAssessmentSemester] = useState('First Semester');
 
     // States for the "Add New" form
@@ -92,7 +93,8 @@ const AssessmentTypesPage = () => {
                 subjectId: selectedSubject._id,
                 gradeLevel: selectedSubject.gradeLevel,
                 month: newAssessmentMonth,
-                semester: newAssessmentSemester
+                semester: newAssessmentSemester,
+                year
             };
             const response = await assessmentTypeService.create(newData);
             const updatedList = [...assessmentTypes, response.data.data].sort((a, b) => MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month));
@@ -180,6 +182,7 @@ const AssessmentTypesPage = () => {
                                         <option value="">-- Select Month --</option>
                                         {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
                                     </select>
+                                    <input type="number" value={year} onChange={(e)=>setYear(e.target.value)} className="shadow-sm border rounded w-full py-2 px-3" required/>
                                     <input type="text" placeholder="Assessment Name (e.g., Quiz 1)" value={newAssessmentName} onChange={(e) => setNewAssessmentName(e.target.value)} className="shadow-sm border rounded w-full py-2 px-3" required />
                                     <input type="number" placeholder="Total Marks" value={newAssessmentMarks} onChange={(e) => setNewAssessmentMarks(e.target.value)} className="shadow-sm border rounded w-full py-2 px-3" min="1" required />
                                     <button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">+ Add</button>

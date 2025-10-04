@@ -35,12 +35,15 @@ const assessmentTypeSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please specify the semester for this assessment'],
         enum: ['First Semester', 'Second Semester']
+    },
+    year: {
+        type: Number,
+        required: true
     }
 }, {
     timestamps: true
 });
 
-// The unique index now includes the month, allowing for a "Quiz" in September and a "Quiz" in October
 assessmentTypeSchema.index({ name: 1, subject: 1, gradeLevel: 1, month: 1, semester: 1 }, { unique: true });
 
 module.exports = mongoose.model('AssessmentType', assessmentTypeSchema);

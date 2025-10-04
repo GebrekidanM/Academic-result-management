@@ -30,15 +30,16 @@ exports.getAssessmentTypesBySubject = async (req, res) => {
 // @route   POST /api/assessment-types
 exports.createAssessmentType = async (req, res) => {
     // 1. Add 'semester' to the destructured body
-    const { name, totalMarks, subjectId, gradeLevel, month, semester } = req.body;
+    const { name, totalMarks, subjectId, gradeLevel, month, semester, year } = req.body;
     try {
         const subject = await Subject.findById(subjectId);
         if (!subject) return res.status(404).json({ message: 'Subject not found' });
         
         const assessmentType = await AssessmentType.create({
-            name, totalMarks, month, semester, // 2. Add 'semester' to the create call
+            name, totalMarks, month, semester,
             subject: subjectId,
-            gradeLevel
+            gradeLevel,
+            year
         });
         res.status(201).json({ success: true, data: assessmentType });
     } catch (error) {
