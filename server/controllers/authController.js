@@ -37,9 +37,10 @@ exports.register = async (req, res) => {
 // @route   POST /api/auth/login
 exports.login = async (req, res) => {
     const { username, password } = req.body;
+        console.log(username);
 
     try {
-        const user = await User.findOne({ username }).select('+password');
+        const user = await User.findOne({ username });
         console.log(user);
         if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
