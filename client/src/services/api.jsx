@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { queueRequest, processQueue, saveToCache, getFromCache } from './offlineDB';
+import { queueRequest, processQueue, saveToCache, getFromCache } from '../offlineDB';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 const Url = import.meta.env.VITE_URL;
