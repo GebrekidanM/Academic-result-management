@@ -21,6 +21,35 @@ export async function getDB() {
   });
 }
 
+
+// Save grade submission offline (for sync later)
+export async function saveOfflineGrade(gradeData) {
+  const db = await getDB();
+  const tx = db.transaction(PENDING_STORE, 'readwrite');
+  await tx.store.add({
+    url: '/api/grades',
+    method: 'POST',
+    body: gradeData,
+    timestamp: Date.now(),
+  });
+  await tx.done;
+  console.log('[OfflineDB] Saved grade offline:', gradeData);
+}
+
+// Retrieve all pending requests
+export async function getPendingRequests() {
+  const db = await getDB();
+  return await db.getAll(PENDING_STORE);
+}
+
+// Clear a synced request
+export async function clearPendingRequest(id) {
+  const db = await getDB();
+  const tx = db.transaction(PENDING_STORE, 'readwrite');
+  await tx.store.delete(id);
+  await tx.done;
+}
+
 /**
  * Queue a failed API request for later retry
  * Example: await queueRequest('/api/students', 'POST', studentData)
