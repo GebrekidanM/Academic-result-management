@@ -35,17 +35,16 @@ export async function saveOfflineGrade(gradeData) {
   await tx.done;
   console.log('[OfflineDB] Saved grade offline:', gradeData);
 }
-
 // ✅ Get all offline grades
 export async function getOfflineGrades() {
   const db = await getDB();
-  return await db.getAll(STORE_NAME);
+  return await db.getAll(PENDING_STORE);
 }
 
 // ✅ Delete synced grade
 export async function deleteOfflineGrade(id) {
   const db = await getDB();
-  const tx = db.transaction(STORE_NAME, 'readwrite');
+  const tx = db.transaction(PENDING_STORE, 'readwrite');
   await tx.store.delete(id);
   await tx.done;
 }
