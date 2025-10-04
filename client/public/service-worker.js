@@ -1,3 +1,4 @@
+//servce-worker.js
 const CACHE_NAME = "freedom-cache-v1";
 
 // In React builds, assets live in /dist or /build
