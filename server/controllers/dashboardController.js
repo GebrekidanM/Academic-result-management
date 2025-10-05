@@ -6,11 +6,10 @@ const Subject = require('../models/Subject');
 // @route   GET /api/dashboard/stats
 exports.getStats = async (req, res) => {
     try {
-        // Run all database queries in parallel for maximum efficiency
         const [studentCount, teacherCount, subjectCount] = await Promise.all([
             Student.countDocuments({ status: 'Active' }),
-            User.countDocuments({ role: { $ne: 'admin' } }), // Counts teachers and hometeachers
-            Subject.countDocuments({})
+            User.countDocuments({ role: { $ne: 'admin' } }),
+            Subject.distinct('name').then(names => names.length)
         ]);
 
         res.json({

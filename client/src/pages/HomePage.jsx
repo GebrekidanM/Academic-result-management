@@ -1,11 +1,9 @@
 // src/pages/HomePage.js
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link} from 'react-router-dom';
 import userService from '../services/userService';
 import authService from '../services/authService';
-import studentAuthService from '../services/studentAuthService';
 import dashboardService from '../services/dashboardService';
-import studentService from '../services/studentService';
 
 // --- Reusable UI Components for the Dashboards ---
 const StatCard = ({ title, value, icon }) => (
@@ -32,12 +30,9 @@ const ActionCard = ({ to, title, description, state = {} }) => (
 const HomePage = () => {
     // --- State Management ---
     const [currentUser] = useState(authService.getCurrentUser());
-    const [currentStudent] = useState(studentAuthService.getCurrentStudent());
     const [profileData, setProfileData] = useState(null); // For teacher/admin
-    const [studentData, setStudentData] = useState(null); // For parent
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
 
     // --- Data Fetching for ALL Roles ---
     useEffect(() => {
@@ -50,9 +45,6 @@ const HomePage = () => {
                         const statsRes = await dashboardService.getStats();
                         setStats(statsRes.data);
                     }
-                } else if (currentStudent) {
-                    const studentRes = await studentService.getStudentById(currentStudent._id);
-                    setStudentData(studentRes.data.data);
                 }
             } catch (error) {
                 console.error("Failed to load dashboard data", error);
@@ -61,7 +53,7 @@ const HomePage = () => {
             }
         };
         loadDashboardData();
-    }, [currentUser, currentStudent]);
+    }, [currentUser]);
 
     if (loading) return <p className="text-center text-lg mt-8">Loading Dashboard...</p>;
     
@@ -119,33 +111,7 @@ const HomePage = () => {
         );
     }
 
-    // --- 3. Parent Dashboard View ---
-    if (studentData) {
-        return (
-            <div className="space-y-8">
-                <h2 className="text-3xl font-bold text-gray-800">Parent Dashboard</h2>
-                <p className="text-lg text-gray-600">Welcome! Viewing records for <strong>{studentData.fullName}</strong>.</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-pink-500">
-                        <h3 className="text-xl font-bold text-gray-700 mb-3">Student Information</h3>
-                        <div className="space-y-2 text-sm">
-                            <p><strong>Student ID:</strong> {studentData.studentId}</p>
-                            <p><strong>Grade Level:</strong> {studentData.gradeLevel}</p>
-                            <p><strong>Status:</strong> {studentData.status}</p>
-                        </div>
-                    </div>
-                    <ActionCard 
-                        to={`/students/${studentData._id}/report`}
-                        title="Full Report Card"
-                        description="View and print the complete, official report card for the academic year."
-                    />
-                </div>
-            </div>
-        );
-    }
-
-    // --- 4. Logged-Out Visitor "Demo Portal" View ---
+    // --- 3. Logged-Out Visitor "Demo Portal" View ---
     return (
         <div className="bg-gray-50">
             {/* --- Hero Section --- */}
@@ -191,29 +157,6 @@ const HomePage = () => {
                             <p className="text-gray-600">A secure system with distinct roles for Admins, Teachers, and Parents, ensuring users only see the information relevant to them.</p>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            {/* --- Demo Login Section --- */}
-            <div className="bg-gray-800 text-white py-16">
-                <div className="container mx-auto text-center px-6">
-                    <h2 className="text-3xl font-bold mb-4">Explore the Live Demo</h2>
-                    <p className="text-gray-300 mb-8">Click a button below to automatically log in with pre-defined demo credentials and experience the system firsthand.</p>
-                    <div className="flex flex-col md:flex-row justify-center items-center gap-6">
-                        <button
-                            onClick={() => navigate('/login', { state: { username: 'admin', password: 'admin@123' } })}
-                            className="w-full md:w-auto bg-pink-600 hover:bg-pink-500 font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
-                            Login as Administrator
-                        </button>
-                        <button
-                            onClick={() => navigate('/login', { state: { username: 'bchebud', password: 'Bchebud@123' } })}
-                            className="w-full md:w-auto bg-gray-600 hover:bg-gray-500 font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
-                            Login as Teacher
-                        </button>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-8">
-                        (Parents can log in at the <Link to="/parent-login" className="text-pink-400 hover:underline">Parent Portal</Link>)
-                    </p>
                 </div>
             </div>
         </div>

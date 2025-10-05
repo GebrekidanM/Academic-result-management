@@ -14,6 +14,7 @@ const ParentDashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+
     // --- Data Fetching (remains the same) ---
     useEffect(() => {
         const currentStudent = studentAuthService.getCurrentStudent();
@@ -61,7 +62,7 @@ const ParentDashboardPage = () => {
         <div>
             {/* --- Main Info Card --- */}
             <div className={card}>
-                <h2 className={title}>Dashboard for {student?.fullName}</h2>
+                <h2 className={title}>{student?.fullName}</h2>
                 <div className={grid}>
                     <div><p className={infoLabel}>Student ID:</p><p className={infoValue}>{student?.studentId}</p></div>
                     <div><p className={infoLabel}>Grade Level:</p><p className={infoValue}>{student?.gradeLevel}</p></div>

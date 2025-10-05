@@ -75,7 +75,6 @@ export async function queueRequest(url, method, body) {
     body,
     timestamp: Date.now()
   });
-  console.log('📦 Queued request:', url);
 }
 
 /**
@@ -113,7 +112,6 @@ export async function processQueue() {
 export async function saveToCache(key, data) {
   const db = await getDB();
   await db.put(CACHE_STORE, { key, data, timestamp: Date.now() });
-  console.log(`💾 Cached data: ${key}`);
 }
 
 /**
