@@ -57,14 +57,20 @@ exports.getStudentById = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
-
 // @desc    Create a single new student with auto-generated ID and password
 // @route   POST /api/students
 exports.createStudent = async (req, res) => {
-    const { fullName, gender, dateOfBirth, gradeLevel, parentContact, healthStatus } = req.body;
+    const { fullName, gender, dateOfBirth, gradeLevel, parentContact, parentName, healthStatus } = req.body;
+
     try {
         const capitalizedFullName = capitalizeName(fullName);
-        const currentYear = new Date().getFullYear() - 8;
+
+        // 🔹 Accurate Ethiopian year calculation
+        const today = new Date();
+        const gregorianYear = today.getFullYear();
+        const gregorianMonth = today.getMonth() + 1; // JS months: 0–11
+        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
+
         const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) }).sort({ studentId: -1 });
         let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
         const newStudentId = `FKS-${currentYear}-${String(lastSequence + 1).padStart(3, '0')}`;
@@ -73,9 +79,17 @@ exports.createStudent = async (req, res) => {
         const initialPassword = `${middleName}@${currentYear}`;
 
         const student = new Student({
-            studentId: newStudentId, fullName: capitalizedFullName, gender, dateOfBirth,
-            gradeLevel, password: initialPassword, parentContact, healthStatus
+            studentId: newStudentId, 
+            fullName: capitalizedFullName, 
+            gender, 
+            dateOfBirth,
+            gradeLevel, 
+            password: initialPassword, 
+            parentContact, 
+            healthStatus,
+            parentName
         });
+
         await student.save();
         
         const responseData = student.toObject();
@@ -84,7 +98,9 @@ exports.createStudent = async (req, res) => {
 
         res.status(201).json({ success: true, data: responseData });
     } catch (error) {
-        if (error.code === 11000) return res.status(400).json({ message: 'A student with this ID already exists.' });
+        if (error.code === 11000) 
+            return res.status(400).json({ message: 'A student with this ID already exists.' });
+
         res.status(500).json({ message: 'Server Error', details: error.message });
     }
 };

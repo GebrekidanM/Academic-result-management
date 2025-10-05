@@ -75,10 +75,10 @@ const Navbar = () => {
                             <>
                                 <NavLink to="/students" className={navLink} onClick={closeMobileMenu}>Students</NavLink>
                                 {(currentUser.role === 'admin' || currentUser.homeroomGrade) && (
-                                    <NavLink to="/roster" className={navLink} onClick={closeMobileMenu}>Yearly Roster</NavLink>
+                                    <NavLink to="/roster" className={navLink} onClick={closeMobileMenu}>Roster</NavLink>
                                 )}
-                                <NavLink to="/analytics" className={navLink} onClick={closeMobileMenu}>Analytics</NavLink>
-                                <NavLink to="/grade-sheet" className={navLink} onClick={closeMobileMenu}>Grade Sheet</NavLink>
+                                <NavLink to="/analytics" className={navLink} onClick={closeMobileMenu}>ትንተና</NavLink>
+                                <NavLink to="/grade-sheet" className={navLink} onClick={closeMobileMenu}>ውጤት ለመሙላት</NavLink>
                                 <NavLink to="/manage-assessments" className={navLink} onClick={closeMobileMenu}>Assessments</NavLink>
                                 {currentUser.role === 'admin' && (
                                     <>

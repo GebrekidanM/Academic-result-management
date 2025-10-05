@@ -15,7 +15,7 @@ const studentSchema = new mongoose.Schema({
         type: String,
         default: '/images/students/default-avatar.png'
     },
-
+    parentName: { type: String, trim: true, default: '' },
     parentContact: {
         parentName: { type: String, trim: true, default: '' },
         phone: { type: String, trim: true, default: '' }

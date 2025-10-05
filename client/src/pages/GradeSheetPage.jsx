@@ -9,14 +9,13 @@ import userService from '../services/userService';
 import { saveOfflineGrade } from '../offlineDB';
 
 const GradeSheetPage = () => {
-    const [academicYear, setAcademicYear] = useState('2017 E.C'); 
+    const [academicYear, setAcademicYear] = useState(''); 
     // --- State for Selections ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [subjects, setSubjects] = useState([]);
     const [assessmentTypes, setAssessmentTypes] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedAssessment, setSelectedAssessment] = useState('');
-    console.log(selectedSubject)
     // --- State for Data ---
     const [sheetData, setSheetData] = useState(null); 
     const [scores, setScores] = useState({});
@@ -24,6 +23,8 @@ const GradeSheetPage = () => {
     // --- UI State ---
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+        
 
     // Fetch subjects available to the user
     useEffect(() => {
@@ -37,6 +38,10 @@ const GradeSheetPage = () => {
                     const res = await userService.getProfile();
                     subjectsToDisplay = res.data.subjectsTaught.map(a => a.subject).filter(Boolean);
                 }
+                const gregorianYear = new Date().getFullYear();
+                const gregorianMonth = new Date().getMonth() + 1; // JS months: 0–11
+                const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
+                setAcademicYear(currentYear);
                 setSubjects(subjectsToDisplay);
             } catch (err) { setError('Failed to load subjects.'); }
         };
@@ -110,7 +115,7 @@ const GradeSheetPage = () => {
                 <Link 
                     to={'/subject-roster'} 
                     className='w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md'>
-                        Subject Roster
+                        Marklist
                 </Link>
             
                 <h2 className="text-2xl font-bold text-gray-800 mt-4">Grade Entry Sheet</h2>

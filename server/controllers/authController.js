@@ -37,16 +37,12 @@ exports.register = async (req, res) => {
 // @route   POST /api/auth/login
 exports.login = async (req, res) => {
     const { username, password } = req.body;
-        console.log(username);
-
     try {
-        const user = await User.findOne({ username });
-        console.log(user);
-        if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+        const user = await User.findOne({ username }).select('+password');
+        if (!user) return res.status(401).json({ message: 'Invalid username or password' });
 
         const isMatch = await user.matchPassword(password);
-        if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
-        
+        if (!isMatch) return res.status(401).json({ message: 'Invalid username or password' });
 
         res.status(200).json({
             _id: user._id,
