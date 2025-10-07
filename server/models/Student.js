@@ -15,12 +15,9 @@ const studentSchema = new mongoose.Schema({
         type: String,
         default: '/images/students/default-avatar.png'
     },
-    parentName: { type: String, trim: true, default: '' },
-    parentContact: {
-        parentName: { type: String, trim: true, default: '' },
-        phone: { type: String, trim: true, default: '' }
-    },
-
+    motherName: { type: String, trim: true, default: '' },
+    motherContact: {type: String, trim: true, default: ''},
+    fatherContact: {type: String, trim: true, default: ''},
     healthStatus: {
         type: String,
         trim: true,
@@ -42,5 +39,11 @@ studentSchema.pre('save', async function (next) {
 studentSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
+
+studentSchema.index(
+  { fullName: 1, motherName: 1 },
+  { unique: true, collation: { locale: 'en', strength: 2 } }
+);
+
 
 module.exports = mongoose.model('Student', studentSchema);

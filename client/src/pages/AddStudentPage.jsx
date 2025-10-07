@@ -10,27 +10,24 @@ const AddStudentPage = () => {
         gender: 'Male',
         dateOfBirth: '',
         gradeLevel: '',
-        parentContact: { parentName: '', phone: '' },
-        healthStatus: ''
+        motherName: '',
+        motherContact: '',
+        fatherContact: '',
+        healthStatus: 'No known conditions',
     });
+
     const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null); // To show the auto-generated password
+    const [success, setSuccess] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    // --- Handle input changes ---
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name.startsWith('parentContact.')) {
-            const field = name.split('.')[1];
-            setStudentData(prev => ({
-                ...prev,
-                parentContact: { ...prev.parentContact, [field]: value }
-            }));
-        } else {
-            setStudentData(prev => ({ ...prev, [name]: value }));
-        }
+        setStudentData(prev => ({ ...prev, [name]: value }));
     };
 
+    // --- Handle form submission ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -50,12 +47,12 @@ const AddStudentPage = () => {
     const textInput = "shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500";
     const textAreaInput = `${textInput} h-24 resize-y`;
     const submitButton = `w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`;
-    
+
     return (
         <div className="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Add New Student</h2>
             <Link to="/students" className="text-pink-500 hover:underline mb-6 block">← Back to Students List</Link>
-            
+
             {success ? (
                 // --- Success Panel ---
                 <div className="p-6 bg-green-50 border border-green-300 rounded-lg text-center">
@@ -74,18 +71,45 @@ const AddStudentPage = () => {
                 // --- Add Student Form ---
                 <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><label htmlFor="fullName" className={inputLabel}>Full Name</label><input id="fullName" type="text" name="fullName" value={studentData.fullName} onChange={handleChange} className={textInput} required /></div>
-                        <div><label htmlFor="gradeLevel" className={inputLabel}>Grade Level</label><input id="gradeLevel" type="text" name="gradeLevel" value={studentData.gradeLevel} onChange={handleChange} className={textInput} placeholder="e.g., Grade 4" required /></div>
-                        <div><label htmlFor="gender" className={inputLabel}>Gender</label><select id="gender" name="gender" value={studentData.gender} onChange={handleChange} className={textInput}><option value="Male">Male</option><option value="Female">Female</option></select></div>
-                        <div><label htmlFor="dateOfBirth" className={inputLabel}>Date of Birth</label><input id="dateOfBirth" type="date" name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} required /></div>
+                        <div>
+                            <label htmlFor="fullName" className={inputLabel}>Full Name</label>
+                            <input id="fullName" type="text" name="fullName" value={studentData.fullName} onChange={handleChange} className={textInput} required />
+                        </div>
+                        <div>
+                            <label htmlFor="gradeLevel" className={inputLabel}>Grade Level</label>
+                            <input id="gradeLevel" type="text" name="gradeLevel" value={studentData.gradeLevel} onChange={handleChange} className={textInput} placeholder="e.g., Grade 4" required />
+                        </div>
+                        <div>
+                            <label htmlFor="gender" className={inputLabel}>Gender</label>
+                            <select id="gender" name="gender" value={studentData.gender} onChange={handleChange} className={textInput}>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="dateOfBirth" className={inputLabel}>Date of Birth</label>
+                            <input id="dateOfBirth" type="date" name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} required />
+                        </div>
                     </div>
+
                     <fieldset className="mt-8 border-t pt-6">
-                        <legend className="text-xl font-bold text-gray-700 mb-4">Parent/Guardian Details</legend>
+                        <legend className="text-xl font-bold text-gray-700 mb-4">Parent / Guardian Details</legend>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label htmlFor="parentName" className={inputLabel}>Parent's Name</label><input id="parentName" type="text" name="parentContact.parentName" value={studentData.parentContact.parentName} onChange={handleChange} className={textInput} /></div>
-                            <div><label htmlFor="phone" className={inputLabel}>Parent's Phone</label><input id="phone" type="tel" name="parentContact.phone" value={studentData.parentContact.phone} onChange={handleChange} className={textInput} /></div>
+                            <div>
+                                <label htmlFor="motherName" className={inputLabel}>Mother's Name</label>
+                                <input id="motherName" type="text" name="motherName" value={studentData.motherName} onChange={handleChange} className={textInput} />
+                            </div>
+                            <div>
+                                <label htmlFor="motherContact" className={inputLabel}>Mother's Phone</label>
+                                <input id="motherContact" type="tel" name="motherContact" value={studentData.motherContact} onChange={handleChange} className={textInput} />
+                            </div>
+                            <div>
+                                <label htmlFor="fatherContact" className={inputLabel}>Father's Phone</label>
+                                <input id="fatherContact" type="tel" name="fatherContact" value={studentData.fatherContact} onChange={handleChange} className={textInput} />
+                            </div>
                         </div>
                     </fieldset>
+
                     <fieldset className="mt-8 border-t pt-6">
                         <legend className="text-xl font-bold text-gray-700 mb-4">Health Information</legend>
                         <div>
@@ -93,6 +117,7 @@ const AddStudentPage = () => {
                             <textarea id="healthStatus" name="healthStatus" value={studentData.healthStatus} onChange={handleChange} className={textAreaInput} placeholder="Default: No known conditions"/>
                         </div>
                     </fieldset>
+
                     <div className="mt-8">
                         <button type="submit" className={submitButton} disabled={loading}>{loading ? 'Saving...' : 'Create Student & Generate Credentials'}</button>
                     </div>

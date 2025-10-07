@@ -57,53 +57,63 @@ exports.getStudentById = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+
 // @desc    Create a single new student with auto-generated ID and password
 // @route   POST /api/students
 exports.createStudent = async (req, res) => {
-    const { fullName, gender, dateOfBirth, gradeLevel, parentContact, parentName, healthStatus } = req.body;
+  const { fullName, gender, dateOfBirth, gradeLevel, motherName, motherContact, fatherContact, healthStatus } = req.body;
 
-    try {
-        const capitalizedFullName = capitalizeName(fullName);
+  try {
+    const capitalizedFullName = capitalizeName(fullName);
 
-        // 🔹 Accurate Ethiopian year calculation
-        const today = new Date();
-        const gregorianYear = today.getFullYear();
-        const gregorianMonth = today.getMonth() + 1; // JS months: 0–11
-        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
+    // ✅ Ethiopian year calculation
+    const today = new Date();
+    const gregorianYear = today.getFullYear();
+    const gregorianMonth = today.getMonth() + 1;
+    const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
 
-        const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) }).sort({ studentId: -1 });
-        let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
-        const newStudentId = `FKS-${currentYear}-${String(lastSequence + 1).padStart(3, '0')}`;
-        
-        const middleName = getMiddleName(capitalizedFullName);
-        const initialPassword = `${middleName}@${currentYear}`;
+    const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) }).sort({ studentId: -1 });
+    let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
+    const newStudentId = `FKS-${currentYear}-${String(lastSequence + 1).padStart(3, '0')}`;
 
-        const student = new Student({
-            studentId: newStudentId, 
-            fullName: capitalizedFullName, 
-            gender, 
-            dateOfBirth,
-            gradeLevel, 
-            password: initialPassword, 
-            parentContact, 
-            healthStatus,
-            parentName
+    const middleName = getMiddleName(capitalizedFullName);
+    const initialPassword = `${middleName}@${currentYear}`;
+
+    const student = new Student({
+      studentId: newStudentId,
+      fullName: capitalizedFullName,
+      gender,
+      dateOfBirth,
+      gradeLevel,
+      password: initialPassword,
+      motherName,
+      motherContact,
+      fatherContact,
+      healthStatus
+    });
+
+    await student.save();
+
+    const responseData = student.toObject();
+    responseData.initialPassword = initialPassword;
+    delete responseData.password;
+
+    res.status(201).json({ success: true, data: responseData });
+  } catch (error) {
+    if (error.code === 11000) {
+      if (error.keyPattern && error.keyPattern.fullName && error.keyPattern.motherName) {
+        return res.status(400).json({
+          message: 'A student with the same name and mother name already exists.'
         });
-
-        await student.save();
-        
-        const responseData = student.toObject();
-        responseData.initialPassword = initialPassword;
-        delete responseData.password;
-
-        res.status(201).json({ success: true, data: responseData });
-    } catch (error) {
-        if (error.code === 11000) 
-            return res.status(400).json({ message: 'A student with this ID already exists.' });
-
-        res.status(500).json({ message: 'Server Error', details: error.message });
+      }
+      return res.status(400).json({ message: 'Duplicate entry detected.' });
     }
+
+    res.status(500).json({ message: 'Server Error', details: error.message });
+  }
 };
+
 
 // @desc    Update a student's profile
 // @route   PUT /api/students/:id
@@ -178,7 +188,9 @@ exports.uploadProfilePhoto = async (req, res) => {
 // @route   POST /api/students/upload
 exports.bulkCreateStudents = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
+
     const filePath = req.file.path;
+
     try {
         const workbook = xlsx.readFile(filePath);
         const sheetName = workbook.SheetNames[0];
@@ -190,55 +202,85 @@ exports.bulkCreateStudents = async (req, res) => {
             return res.status(400).json({ message: 'The Excel file is empty.' });
         }
 
-        const currentYear = new Date().getFullYear() - 8;
+        // ✅ Validate required columns
+        const requiredColumns = ['Full Name', 'Gender', 'Date of Birth', 'Grade Level'];
+        const missingColumns = requiredColumns.filter(c => !Object.keys(studentsJson[0]).includes(c));
+        if (missingColumns.length) {
+            fs.unlinkSync(filePath);
+            return res.status(400).json({ message: `Missing required columns: ${missingColumns.join(', ')}` });
+        }
+
+        // ✅ Accurate Ethiopian year calculation
+        const today = new Date();
+        const gregorianYear = today.getFullYear();
+        const gregorianMonth = today.getMonth() + 1;
+        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
+
+        // ✅ Generate base student ID
         const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) }).sort({ studentId: -1 });
         let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
-        
-        const studentsToProcess = studentsJson.map((student, index) => {
-        const newSequence = lastSequence + 1 + index;
-        const newStudentId = `FKS-${currentYear}-${String(newSequence).padStart(3, '0')}`;
-        const fullName = student['Full Name'] || student['fullName'];
-        const middleName = getMiddleName(fullName);
-        const initialPassword = `${middleName}@${currentYear}`;
-            return {
+
+        const createdStudentsForResponse = [];
+
+        // ✅ Process each student in Excel file
+        for (const [index, student] of studentsJson.entries()) {
+            const newSequence = lastSequence + 1 + index;
+            const newStudentId = `FKS-${currentYear}-${String(newSequence).padStart(3, '0')}`;
+
+            const fullName = student['Full Name'] || student['fullName'];
+            const motherName = student['Mother Name'] || student['motherName'];
+            const middleName = getMiddleName(fullName);
+            const initialPassword = `${middleName}@${currentYear}`;
+
+            // ✅ Check for duplicates (fullName + motherName)
+            const existing = await Student.findOne({ fullName: capitalizeName(fullName), motherName });
+            if (existing) {
+                console.log(`⚠️ Skipped duplicate: ${fullName} (mother: ${motherName})`);
+                continue; // skip this student
+            }
+
+            const studentData = {
                 studentId: newStudentId,
                 fullName: capitalizeName(fullName),
                 gender: student['Gender'] || student['gender'],
                 dateOfBirth: parseExcelDate(student['Date of Birth'] || student['dateOfBirth']),
                 gradeLevel: student['Grade Level'] || student['gradeLevel'],
-                password: initialPassword, // This will be sent to the database for hashing
-                parentContact: { parentName: student['Parent Name'], phone: student['Parent Phone'] },
-                healthStatus: student['Health Status']
+                motherName: motherName || '',
+                motherContact: student['Mother Contact'] || '',
+                fatherContact: student['Father Contact'] || '',
+                password: initialPassword, // will be hashed by pre-save middleware
+                healthStatus: student['Health Status'] || 'No known conditions'
             };
-        });
-        
-        const createdStudentsForResponse = [];
-        for (const studentData of studentsToProcess) {
-            // Create a new Mongoose document with the data
-            const student = new Student(studentData);
-            // Calling .save() triggers the password hashing middleware
-            await student.save();
 
-            // Prepare the clean response object
-            const responseData = student.toObject();
-            // Add the plain-text password back for the admin to see
-            responseData.initialPassword = studentData.password;
-            delete responseData.password; // Remove the hash from the response
+            // ✅ Save new student
+            const newStudent = new Student(studentData);
+            await newStudent.save();
+
+            const responseData = newStudent.toObject();
+            responseData.initialPassword = initialPassword;
+            delete responseData.password;
             createdStudentsForResponse.push(responseData);
         }
+
         fs.unlinkSync(filePath);
 
-        res.status(201).json({ 
+        if (createdStudentsForResponse.length === 0) {
+            return res.status(200).json({ 
+                message: 'No new students added (all were duplicates).'
+            });
+        }
+
+        res.status(201).json({
             message: `${createdStudentsForResponse.length} students imported successfully.`,
             data: createdStudentsForResponse
         });
 
     } catch (error) {
-        console.log(error);
+        console.error('Bulk Create Error:', error);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         if (error.code === 11000 || error.name === 'MongoBulkWriteError' || error.name === 'ValidationError') {
             return res.status(400).json({ message: 'Import failed. Students may already exist or have invalid data.' });
         }
-        res.status(500).json({ message: 'An error occurred during the import process.' });
+        res.status(500).json({ message: 'An error occurred during the import process.', details: error.message });
     }
 };
