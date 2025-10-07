@@ -33,12 +33,14 @@ exports.register = async (req, res) => {
     }
 };
 
+
 // @desc    Authenticate a user (Login)
 // @route   POST /api/auth/login
 exports.login = async (req, res) => {
     const { username, password } = req.body;
     try {
-        const user = await User.findOne({ username }).select('+password');
+        // Case-insensitive username search
+        const user = await User.findOne({ username: { $regex: `^${username}$`, $options: 'i' } }).select('+password');
         if (!user) return res.status(401).json({ message: 'Invalid username or password' });
 
         const isMatch = await user.matchPassword(password);
