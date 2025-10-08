@@ -10,12 +10,11 @@ const capitalizeName = (name) => {
     return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 };
 
-const getMiddleName = (fullName) => {
+const getFirstName = (fullName) => {
     if (!fullName || typeof fullName !== 'string') return 'User';
     const names = fullName.trim().split(/\s+/);
-    if (names.length > 2) return names[1].charAt(0).toUpperCase() + names[1].slice(1).toLowerCase();
-    if (names.length === 2) return names[0].charAt(0).toUpperCase() + names[0].slice(1).toLowerCase();
-    return names[0] || 'User';
+    const firstName = names[0];
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 };
 
 // --- CONTROLLER FUNCTIONS ---
@@ -77,7 +76,7 @@ exports.createStudent = async (req, res) => {
     let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
     const newStudentId = `FKS-${currentYear}-${String(lastSequence + 1).padStart(3, '0')}`;
 
-    const middleName = getMiddleName(capitalizedFullName);
+    const middleName = getFirstName(capitalizedFullName);
     const initialPassword = `${middleName}@${currentYear}`;
 
     const student = new Student({
@@ -229,7 +228,7 @@ exports.bulkCreateStudents = async (req, res) => {
 
             const fullName = student['Full Name'] || student['fullName'];
             const motherName = student['Mother Name'] || student['motherName'];
-            const middleName = getMiddleName(fullName);
+            const middleName = getFirstName(fullName);
             const initialPassword = `${middleName}@${currentYear}`;
 
             // ✅ Check for duplicates (fullName + motherName)

@@ -6,7 +6,7 @@ const studentSchema = new mongoose.Schema({
     studentId: { type: String, required: true, unique: true },
     fullName: { type: String, required: true, trim: true },
     gender: { type: String, required: true, enum: ['Male', 'Female'] },
-    dateOfBirth: { type: Date, required: true },
+    dateOfBirth: { type: Date },
     gradeLevel: { type: String, required: true, trim: true },
     status: { type: String, required: true, enum: ['Active', 'Graduated', 'Withdrawn'], default: 'Active' },
     password: { type: String, required: true, select: false },
