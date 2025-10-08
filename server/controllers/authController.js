@@ -37,26 +37,26 @@ exports.register = async (req, res) => {
 // @desc    Authenticate a user (Login)
 // @route   POST /api/auth/login
 exports.login = async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        // Case-insensitive username search
-        const user = await User.findOne({ username: { $regex: `^${username}$`, $options: 'i' } }).select('+password');
-        if (!user) return res.status(401).json({ message: 'Invalid username or password' });
+  const { username, password } = req.body;
+  try {
+    // Convert input to lowercase before querying
+    const user = await User.findOne({ username: username.toLowerCase() }).select('+password');
+    if (!user) return res.status(401).json({ message: 'Invalid username or password' });
 
-        const isMatch = await user.matchPassword(password);
-        if (!isMatch) return res.status(401).json({ message: 'Invalid username or password' });
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) return res.status(401).json({ message: 'Invalid username or password' });
 
-        res.status(200).json({
-            _id: user._id,
-            fullName: user.fullName,
-            username: user.username,
-            role: user.role,
-            homeroomGrade: user.homeroomGrade,
-            token: generateToken(user._id, 'user')
-        });
+    res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      username: user.username,
+      role: user.role,
+      homeroomGrade: user.homeroomGrade,
+      token: generateToken(user._id, 'user')
+    });
 
-    } catch (error) {
-        console.error("Admin/Teacher Login Error:", error);
-        res.status(500).json({ message: 'Server Error' });
-    }
+  } catch (error) {
+    console.error("Admin/Teacher Login Error:", error);
+    res.status(500).json({ message: 'Server Error' });
+  }
 };

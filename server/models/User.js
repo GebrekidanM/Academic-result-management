@@ -1,23 +1,29 @@
-// backend/models/User.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-    fullName: { type: String, required: true },
-    username: { type: String, required: true, unique: true },
+    fullName: { type: String, required: true, trim: true },
+
+    // ✅ lowercase ensures consistent storage
+    username: { 
+        type: String, 
+        required: true, 
+        unique: true,
+        lowercase: true,
+        trim: true,
+        index: true
+    },
+
     password: { type: String, required: true, select: false },
+
     role: { 
         type: String, 
         required: true, 
         enum: ['admin', 'teacher'], 
         default: 'teacher' 
     },
-    
-    
-    homeroomGrade: {
-        type: String,
-        default: null
-    },
+
+    homeroomGrade: { type: String, default: null },
 
     subjectsTaught: [{
         subject: {
@@ -26,23 +32,26 @@ const userSchema = new mongoose.Schema({
         },
         _id: false
     }]
-
 }, { timestamps: true });
-    
 
-// This function runs BEFORE a document is saved to the database
+// ✅ Hash password before saving (keep bcrypt cost reasonable)
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
-        return next();
-    }
-    const salt = await bcrypt.genSalt(10);
+    if (!this.isModified('password')) return next();
+
+    const salt = await bcrypt.genSalt(8); // 🔥 reduced from 10 to 8 for faster hashing
     this.password = await bcrypt.hash(this.password, salt);
     next();
 });
 
-// Method to compare entered password with the hashed password in the DB
+// ✅ Compare password efficiently
 userSchema.methods.matchPassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
+    return bcrypt.compare(enteredPassword, this.password);
 };
+
+// ✅ Ensure case-insensitive uniqueness for username
+userSchema.index(
+  { username: 1 },
+  { unique: true, collation: { locale: 'en', strength: 2 } }
+);
 
 module.exports = mongoose.model('User', userSchema);
