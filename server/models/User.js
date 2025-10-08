@@ -47,10 +47,4 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
     return bcrypt.compare(enteredPassword, this.password);
 };
 
-// ✅ Ensure case-insensitive uniqueness for username
-userSchema.index(
-  { username: 1 },
-  { unique: true, collation: { locale: 'en', strength: 2 } }
-);
-
 module.exports = mongoose.model('User', userSchema);
