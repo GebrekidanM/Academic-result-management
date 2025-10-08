@@ -34,11 +34,16 @@ const uploadUsers = (file) => {
 
 
 const updateProfile = (data) => {
-return api.put('/users/profile', data);
+    return api.put('/users/profile', data);
 };
+
+const deleteUser = (id) => {
+    return api.delete(`/users/${id}`, getAuthConfig());
+}
 
 export default {
     getProfile,
+    deleteUser,
     getAll,
     getById,
     update,

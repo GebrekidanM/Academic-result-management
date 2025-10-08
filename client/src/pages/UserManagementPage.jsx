@@ -101,6 +101,22 @@ const UserManagementPage = () => {
                                 <Link to={`/admin/users/${user._id}`} className="text-pink-600 hover:text-pink-900 font-medium">
                                     Edit
                                 </Link>
+                                {/* --- NEW DELETE BUTTON --- */}
+                                <button 
+                                    onClick={async () => {
+                                        if (window.confirm(`Are you sure you want to delete user "${user.fullName}"? This action cannot be undone.`)) {
+                                            try {
+                                                await userService.deleteUser(user._id); // Call the delete API
+                                                setUsers(prev => prev.filter(u => u._id !== user._id)); // Remove from state
+                                            } catch (err) {
+                                                alert('Failed to delete user. Please try again.');
+                                            }       
+                                        }
+                                    }}
+                                    className="ml-4 text-red-600 hover:text-red-900 font-medium"
+                                >
+                                    Delete
+                                </button>
                             </td>
                         </tr>
                     ))}
