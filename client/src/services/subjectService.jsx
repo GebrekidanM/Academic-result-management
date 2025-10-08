@@ -30,7 +30,6 @@ const deleteSubject = (id) => {
 
 const uploadSubjects = (file) => {
     const formData = new FormData();
-    // 'subjectsFile' የሚለው key በጀርባ ክፍል (backend) multer ላይ ከገለጽነው ስም ጋር ተመሳሳይ መሆን አለበት
     formData.append('subjectsFile', file);
 
     return api.post(`${API_URL}/upload`, formData, {

@@ -1,8 +1,6 @@
 // src/App.js
 import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { io } from "socket.io-client";
-import { useNotifications } from './context/NotificationContext';
 import authService from './services/authService';
 import studentAuthService from './services/studentAuthService';
 
@@ -13,7 +11,7 @@ import AdminRoute from './components/AdminRoute';
 import ParentRoute from './components/ParentRoute';
 import UniversalRoute from './components/UniversalRoute';
 
-// --- Page Imports (Cleaned and Organized) ---
+// --- Page Imports ---
 
 // 1. Public Pages
 import LoginPage from './pages/LoginPage';
@@ -53,33 +51,14 @@ import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
 
-const frontUrl = import.meta.env.VITE_FRONT_URL;
-
 function App() {
-  const { addNotification } = useNotifications();
   const currentUser = authService.getCurrentUser();
   const currentStudent = studentAuthService.getCurrentStudent();
 
+  // ✅ Removed Socket.io setup completely
+
+  // Register service worker (for offline/PWA)
   useEffect(() => {
-    let socket;
-        if (currentUser?._id) {
-            socket = io(frontUrl);
-            socket.emit("addNewUser", currentUser._id);
-        } else if (currentStudent?._id) {
-            socket = io(frontUrl);
-            socket.emit("addParentUser", currentStudent._id);
-        }
-
-        if (socket) {
-            socket.on("getNotification", (data) => {
-                if (data && data.message) {
-                    addNotification({ message: data.message, link: data.link, createdAt: new Date() });
-                }
-            });
-        }
-        return () => { if (socket) socket.disconnect(); };
-    }, [currentUser, currentStudent, addNotification]);
-
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
@@ -87,6 +66,7 @@ function App() {
           .catch(err => console.error('Service Worker error:', err));
       });
     }
+  }, []);
 
   return (
     <div className="bg-gray-100 min-h-screen">
@@ -94,9 +74,9 @@ function App() {
       <main className="container mx-auto p-4">
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
-           <Route path="/login" element={<LoginPage />} />
-           <Route path="/parent-login" element={<ParentLoginPage />} />
-           <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/parent-login" element={<ParentLoginPage />} />
+          <Route path="/" element={<HomePage />} />
 
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
@@ -114,31 +94,30 @@ function App() {
             
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
-                <Route path="/subjects" element={<SubjectListPage />} />
-                <Route path="/subjects/add" element={<AddSubjectPage />} />
-                <Route path="/subjects/edit/:id" element={<EditSubjectPage />} />
-                <Route path="/subjects/import" element={<ImportSubjectsPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/students/add" element={<AddStudentPage />} />
-                <Route path="/students/edit/:id" element={<EditStudentPage />} />
-                <Route path="/students/import" element={<ImportStudentsPage />} />
-                <Route path="/admin/users" element={<UserManagementPage />} />
-                <Route path="/admin/users/:id" element={<UserEditPage />} />
-                <Route path="/admin/users/import" element={<ImportUsersPage />} />
+              <Route path="/subjects" element={<SubjectListPage />} />
+              <Route path="/subjects/add" element={<AddSubjectPage />} />
+              <Route path="/subjects/edit/:id" element={<EditSubjectPage />} />
+              <Route path="/subjects/import" element={<ImportSubjectsPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/students/add" element={<AddStudentPage />} />
+              <Route path="/students/edit/:id" element={<EditStudentPage />} />
+              <Route path="/students/import" element={<ImportStudentsPage />} />
+              <Route path="/admin/users" element={<UserManagementPage />} />
+              <Route path="/admin/users/:id" element={<UserEditPage />} />
+              <Route path="/admin/users/import" element={<ImportUsersPage />} />
             </Route>
           </Route>
           
           {/* ====== 3. PARENT ROUTES ========= */}
-            <Route element={<ParentRoute />}>
-                <Route path="/parent/dashboard" element={<ParentDashboardPage />} />
-                <Route path="/parent/change-password" element={<ForceChangePasswordPage />} />
-            </Route>
+          <Route element={<ParentRoute />}>
+            <Route path="/parent/dashboard" element={<ParentDashboardPage />} />
+            <Route path="/parent/change-password" element={<ForceChangePasswordPage />} />
+          </Route>
 
           {/* === 4. UNIVERSAL LOGGED-IN ROUTES === */}
-            <Route element={<UniversalRoute />}>
-                <Route path="/students/:id/report" element={<ReportCardPage />} />
-            </Route>
-
+          <Route element={<UniversalRoute />}>
+            <Route path="/students/:id/report" element={<ReportCardPage />} />
+          </Route>
         </Routes>
       </main>
     </div>

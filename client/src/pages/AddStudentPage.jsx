@@ -1,6 +1,5 @@
 // src/pages/AddStudentPage.js
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
 import studentService from '../services/studentService';
 
 const AddStudentPage = () => {
@@ -19,7 +18,6 @@ const AddStudentPage = () => {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
 
     // --- Handle input changes ---
     const handleChange = (e) => {
