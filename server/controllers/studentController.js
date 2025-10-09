@@ -203,7 +203,7 @@ exports.bulkCreateStudents = async (req, res) => {
         }
 
         // ✅ Validate required columns
-        const requiredColumns = ['Full Name', 'Gender', 'Date of Birth', 'Grade Level'];
+        const requiredColumns = ['Full Name', 'Gender', 'Grade Level'];
         const missingColumns = requiredColumns.filter(c => !Object.keys(studentsJson[0]).includes(c));
         if (missingColumns.length) {
             fs.unlinkSync(filePath);
