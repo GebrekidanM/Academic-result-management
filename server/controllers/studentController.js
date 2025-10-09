@@ -184,7 +184,7 @@ exports.uploadProfilePhoto = async (req, res) => {
     }
 };
 
-// @desc    Create multiple students from an uploaded Excel file (Ethiopian Calendar support)
+// @desc    Create multiple students from an uploaded Excel file (supports Ethiopian DD-MM-YYYY dates)
 // @route   POST /api/students/upload
 exports.bulkCreateStudents = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
@@ -210,18 +210,91 @@ exports.bulkCreateStudents = async (req, res) => {
             return res.status(400).json({ message: `Missing required columns: ${missingColumns.join(', ')}` });
         }
 
-        // ✅ Calculate Ethiopian academic year
+        // ✅ Accurate Ethiopian academic year calculation
         const today = new Date();
         const gregorianYear = today.getFullYear();
         const gregorianMonth = today.getMonth() + 1;
         const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
 
-        // ✅ Get last student for sequential ID
+        // ✅ Generate base student ID
         const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) }).sort({ studentId: -1 });
         let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
 
         const createdStudentsForResponse = [];
 
+        // --- Helpers ---
+
+        function getFirstName(fullName) {
+            return fullName?.split(' ')[0] || '';
+        }
+
+        function capitalizeName(name) {
+            if (!name) return '';
+            return name
+                .split(' ')
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                .join(' ');
+        }
+
+        // 📅 Convert Ethiopian date (YYYY, MM, DD) → Gregorian Date object
+        function convertEthiopianToGregorian(ethYear, ethMonth, ethDay) {
+            const jd = Math.floor(1723856 + 365 + 365 * (ethYear - 1) + Math.floor(ethYear / 4)
+                + 30 * ethMonth + ethDay - 31);
+            const r = (jd - 1721426) % 1461;
+            const n = Math.floor(r / 365) - Math.floor(r / 1460);
+            const gYear = Math.floor((jd - 1721426 - r) / 365.25) + n + 1;
+            const s = jd - Math.floor((gYear - 1) * 365.25) - 1721426;
+            let gMonth, gDay;
+
+            if (s <= 31) { gMonth = 1; gDay = s; }
+            else if (s <= 59) { gMonth = 2; gDay = s - 31; }
+            else if (s <= 90) { gMonth = 3; gDay = s - 59; }
+            else if (s <= 120) { gMonth = 4; gDay = s - 90; }
+            else if (s <= 151) { gMonth = 5; gDay = s - 120; }
+            else if (s <= 181) { gMonth = 6; gDay = s - 151; }
+            else if (s <= 212) { gMonth = 7; gDay = s - 181; }
+            else if (s <= 243) { gMonth = 8; gDay = s - 212; }
+            else if (s <= 273) { gMonth = 9; gDay = s - 243; }
+            else if (s <= 304) { gMonth = 10; gDay = s - 273; }
+            else if (s <= 334) { gMonth = 11; gDay = s - 304; }
+            else { gMonth = 12; gDay = s - 334; }
+
+            return new Date(`${gYear}-${String(gMonth).padStart(2, '0')}-${String(gDay).padStart(2, '0')}`);
+        }
+
+        // 🧩 Parse Excel date (supports DD-MM-YYYY Ethiopian format)
+        function parseExcelDate(value) {
+            if (!value) return null;
+
+            // Excel serial number
+            if (!isNaN(value)) {
+                const excelEpoch = new Date(1899, 11, 30);
+                return new Date(excelEpoch.getTime() + value * 86400000);
+            }
+
+            // Ethiopian calendar in DD-MM-YYYY or DD/MM/YYYY format
+            const parts = value.toString().split(/[-/]/);
+            if (parts.length === 3) {
+                let [day, month, year] = parts.map(Number);
+
+                // Fix if year appears first
+                if (year < 1800 && day > 1900) {
+                    [year, month, day] = [day, month, year];
+                }
+
+                // Ethiopian years are typically < 1800
+                if (year < 1800) {
+                    return convertEthiopianToGregorian(year, month, day);
+                } else {
+                    // Gregorian fallback
+                    return new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+                }
+            }
+
+            return null;
+        }
+
+        // --- Process each student ---
         for (const [index, student] of studentsJson.entries()) {
             const newSequence = lastSequence + 1 + index;
             const newStudentId = `FKS-${currentYear}-${String(newSequence).padStart(3, '0')}`;
@@ -231,29 +304,16 @@ exports.bulkCreateStudents = async (req, res) => {
             const middleName = getFirstName(fullName);
             const initialPassword = `${middleName}@${currentYear}`;
 
-            // ✅ Convert Ethiopian date → Gregorian
-            let dobInput = student['Date of Birth'] || student['dateOfBirth'];
-            let dateOfBirth;
-
-            try {
-                if (typeof dobInput === 'string' && dobInput.includes('/')) {
-                    // Example: "2012/05/23" (E.C)
-                    const [ethYear, ethMonth, ethDay] = dobInput.split(/[\/\-.]/).map(Number);
-                    const { year, month, date } = toGregorian(ethYear, ethMonth, ethDay);
-                    dateOfBirth = new Date(year, month - 1, date);
-                } else {
-                    // fallback if date is Excel serial number or already Gregorian
-                    dateOfBirth = parseExcelDate(dobInput);
-                }
-            } catch {
-                console.warn(`⚠️ Could not parse date for: ${fullName}, value: ${dobInput}`);
-                dateOfBirth = new Date(); // fallback to avoid crash
-            }
-
-            // ✅ Check duplicates
+            // Check duplicate
             const existing = await Student.findOne({ fullName: capitalizeName(fullName), motherName });
             if (existing) {
                 console.log(`⚠️ Skipped duplicate: ${fullName} (mother: ${motherName})`);
+                continue;
+            }
+
+            const parsedDate = parseExcelDate(student['Date of Birth'] || student['dateOfBirth']);
+            if (!parsedDate || isNaN(parsedDate)) {
+                console.warn(`⚠️ Skipped invalid date for student: ${fullName}`);
                 continue;
             }
 
@@ -261,7 +321,7 @@ exports.bulkCreateStudents = async (req, res) => {
                 studentId: newStudentId,
                 fullName: capitalizeName(fullName),
                 gender: student['Gender'] || student['gender'],
-                dateOfBirth,
+                dateOfBirth: parsedDate,
                 gradeLevel: student['Grade Level'] || student['gradeLevel'],
                 motherName: motherName || '',
                 motherContact: student['Mother Contact'] || '',
@@ -282,7 +342,9 @@ exports.bulkCreateStudents = async (req, res) => {
         fs.unlinkSync(filePath);
 
         if (createdStudentsForResponse.length === 0) {
-            return res.status(200).json({ message: 'No new students added (all were duplicates).' });
+            return res.status(200).json({
+                message: 'No new students added (duplicates or invalid dates).'
+            });
         }
 
         res.status(201).json({
@@ -296,6 +358,7 @@ exports.bulkCreateStudents = async (req, res) => {
         if (error.code === 11000 || error.name === 'MongoBulkWriteError' || error.name === 'ValidationError') {
             return res.status(400).json({ message: 'Import failed. Some students may already exist or have invalid data.' });
         }
-        res.status(500).json({ message: 'An error occurred during import.', details: error.message });
+        res.status(500).json({ message: 'An error occurred during the import process.', details: error.message });
     }
 };
+
