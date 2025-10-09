@@ -13,7 +13,6 @@ const ImportStudentsPage = () => {
     const handleFileChange = (e) => {
         setSelectedFile(e.target.files[0]);
     };
-    console.log("Selected file:", selectedFile);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
