@@ -312,16 +312,12 @@ exports.bulkCreateStudents = async (req, res) => {
             }
 
             const parsedDate = parseExcelDate(student['Date of Birth'] || student['dateOfBirth']);
-            if (!parsedDate || isNaN(parsedDate)) {
-                console.warn(`⚠️ Skipped invalid date for student: ${fullName}`);
-                continue;
-            }
-
+            
             const studentData = {
                 studentId: newStudentId,
                 fullName: capitalizeName(fullName),
                 gender: student['Gender'] || student['gender'],
-                dateOfBirth: parsedDate,
+                dateOfBirth: parsedDate || '',
                 gradeLevel: student['Grade Level'] || student['gradeLevel'],
                 motherName: motherName || '',
                 motherContact: student['Mother Contact'] || '',
