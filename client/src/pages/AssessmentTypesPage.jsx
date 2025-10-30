@@ -19,6 +19,7 @@ const AssessmentTypesPage = () => {
   const [assessmentTypes, setAssessmentTypes] = useState([]);
   const [year, setYear] = useState(2018);
   const [newAssessmentSemester, setNewAssessmentSemester] = useState('First Semester');
+  const [addDisabled, setAddDisabled] = useState(false);
 
   // "Add New" form state
   const [newAssessmentName, setNewAssessmentName] = useState('');
@@ -87,34 +88,45 @@ const AssessmentTypesPage = () => {
 
   // --- Handlers ---
   const handleCreate = async (e) => {
-    e.preventDefault();
-    setError('');
-    if (!newAssessmentMonth) {
-      setError('Please select a month for the new assessment.');
-      return;
-    }
+  e.preventDefault();
+  setError('');
 
-    try {
-      const newData = {
-        name: newAssessmentName,
-        totalMarks: newAssessmentMarks,
-        subjectId: selectedSubject._id,
-        gradeLevel: selectedSubject.gradeLevel,
-        month: newAssessmentMonth,
-        semester: newAssessmentSemester,
-        year,
-      };
-      const response = await assessmentTypeService.create(newData);
-      const updatedList = [...assessmentTypes, response.data.data].sort(
-        (a, b) => MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month)
-      );
-      setAssessmentTypes(updatedList);
-      setNewAssessmentName('');
-      setNewAssessmentMarks(10);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create assessment type.');
-    }
-  };
+  // Prevent multiple clicks
+  if (addDisabled) return;
+  setAddDisabled(true);
+
+  if (!newAssessmentMonth) {
+    setError('Please select a month for the new assessment.');
+    setAddDisabled(false);
+    return;
+  }
+
+  try {
+    const newData = {
+      name: newAssessmentName,
+      totalMarks: newAssessmentMarks,
+      subjectId: selectedSubject._id,
+      gradeLevel: selectedSubject.gradeLevel,
+      month: newAssessmentMonth,
+      semester: newAssessmentSemester,
+      year
+    };
+    const response = await assessmentTypeService.create(newData);
+    const updatedList = [...assessmentTypes, response.data.data]
+      .sort((a, b) => MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month));
+    setAssessmentTypes(updatedList);
+
+    // Reset form
+    setNewAssessmentName('');
+    setNewAssessmentMarks(10);
+    setError('');
+    alert('Assessment type added successfully!');
+  } catch (err) {
+    setError(err.response?.data?.message || 'Failed to create assessment type.');
+    setAddDisabled(false); // allow retry on failure
+  }
+};
+
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this assessment type?')) {
@@ -285,12 +297,18 @@ const AssessmentTypesPage = () => {
                     required
                   />
 
-                  <button
-                    type="submit"
-                    className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg"
-                  >
-                    + Add
-                  </button>
+                    <button
+                        type="submit"
+                        disabled={addDisabled}
+                        className={`w-full font-bold py-2 px-4 rounded-lg ${
+                            addDisabled
+                            ? 'bg-green-300 text-white cursor-not-allowed'
+                            : 'bg-green-500 hover:bg-green-600 text-white'
+                        }`}
+                        >
+                        {addDisabled ? 'Adding...' : '+ Add'}
+                    </button>
+
                 </div>
               </form>
             </div>

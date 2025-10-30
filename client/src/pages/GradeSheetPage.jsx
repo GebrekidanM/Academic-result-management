@@ -16,6 +16,7 @@ const GradeSheetPage = () => {
   const subjectFromLink = location.state?.subject || null;
 
   // --- State ---
+  const [saveDisabled, setSaveDisabled] = useState(false);
   const [academicYear, setAcademicYear] = useState('');
   const [currentUser] = useState(authService.getCurrentUser());
   const [subjects, setSubjects] = useState([]);
@@ -112,31 +113,37 @@ const GradeSheetPage = () => {
 
   // --- Save Grade Sheet ---
   const handleSave = async () => {
-    const scoresPayload = Object.keys(scores)
-      .filter(id => scores[id] !== '' && scores[id] !== null)
-      .map(id => ({ studentId: id, score: Number(scores[id]) }));
+  if (saveDisabled) return; // prevent double-clicks
 
-    const payload = {
-      assessmentTypeId: selectedAssessment,
-      subjectId: selectedSubject,
-      semester: sheetData.assessmentType.semester,
-      academicYear,
-      scores: scoresPayload,
-    };
+  setSaveDisabled(true); // disable the button immediately
 
-    try {
-      if (navigator.onLine) {
-        await gradeService.saveGradeSheet(payload);
-        alert('Grades saved successfully!');
-      } else {
-        await saveOfflineGrade(payload);
-        alert('No internet: grades saved offline ✅');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Failed to save grades.');
-    }
+  const scoresPayload = Object.keys(scores)
+    .filter(id => scores[id] !== '' && scores[id] !== null)
+    .map(id => ({ studentId: id, score: Number(scores[id]) }));
+
+  const payload = {
+    assessmentTypeId: selectedAssessment,
+    subjectId: selectedSubject,
+    semester: sheetData.assessmentType.semester,
+    academicYear,
+    scores: scoresPayload,
   };
+
+  try {
+    if (navigator.onLine) {
+      await gradeService.saveGradeSheet(payload);
+      alert('Grades saved successfully!');
+    } else {
+      await saveOfflineGrade(payload);
+      alert('No internet: grades saved offline ✅');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Failed to save grades.');
+    setSaveDisabled(false); // allow retry if save failed
+  }
+};
+
 
   return (
     <div>
@@ -237,10 +244,12 @@ const GradeSheetPage = () => {
               </div>
               <button
                 onClick={handleSave}
-                className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg"
-                disabled={loading}
-              >
-                {loading ? 'Saving...' : 'Save All Grades'}
+                className={`bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg ${
+                    saveDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={loading || saveDisabled}
+                >
+                {saveDisabled ? 'Saved ✅' : loading ? 'Saving...' : 'Save All Grades'}
               </button>
             </div>
 
