@@ -5,7 +5,7 @@ import authService from '../services/authService';
 const RosterPage = () => {
     const [currentUser] = useState(authService.getCurrentUser());
     const [gradeLevel, setGradeLevel] = useState(currentUser.homeroomGrade || ''); 
-    const [academicYear, setAcademicYear] = useState('2017 E.C');
+    const [academicYear, setAcademicYear] = useState('2018');
     const [rosterData, setRosterData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
