@@ -1,6 +1,7 @@
 // src/pages/AddStudentPage.js
 import React, { useState } from 'react';
 import studentService from '../services/studentService';
+import { Link } from 'react-router-dom';
 
 const AddStudentPage = () => {
     // --- State Management ---
@@ -15,6 +16,7 @@ const AddStudentPage = () => {
         healthStatus: 'No known conditions',
     });
 
+    console.log(studentData);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [loading, setLoading] = useState(false);
