@@ -54,28 +54,28 @@ exports.createAssessmentType = async (req, res) => {
 // @desc    Update an assessment type
 // @route   PUT /api/assessment-types/:id
 exports.updateAssessmentType = async (req, res) => {
-    try {
-        const assessmentType = await AssessmentType.findById(req.params.id);
-        if (!assessmentType) {
-            return res.status(404).json({ message: 'Assessment type not found' });
-        }
+  try {
+    const updatedAssessmentType = await AssessmentType.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
 
-        // --- THE DEFINITIVE PERMISSION CHECK ---
-        const isAdmin = req.user.role === 'admin';
-        const isAssignedTeacher = req.user.subjectsTaught.some(
-            assignment => assignment.subject.equals(assessmentType.subject)
-        );
-        if (!isAdmin && !isAssignedTeacher) {
-            return res.status(403).json({ message: 'Forbidden: You are not authorized to modify this assessment type.' });
-        }
-        // --- END OF CHECK ---
-
-        const updatedAssessmentType = await AssessmentType.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.status(200).json({ success: true, data: updatedAssessmentType });
-    } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
+    if (!updatedAssessmentType) {
+      return res.status(404).json({ success: false, message: 'Assessment type not found.' });
     }
+
+    res.status(200).json({
+      success: true,
+      message: 'Assessment type updated successfully.',
+      data: updatedAssessmentType,
+    });
+  } catch (error) {
+    console.error('Error updating assessment type:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
+
 
 // @desc    Delete an assessment type
 // @route   DELETE /api/assessment-types/:id

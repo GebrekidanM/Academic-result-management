@@ -22,7 +22,7 @@ router.route('/')
 // To UPDATE or DELETE a specific type, we need a check inside the controller,
 // because we don't know the subjectId from the route alone.
 router.route('/:id')
-    .put(protect, updateAssessmentType)
-    .delete(protect, deleteAssessmentType);
+    .put(protect, isTeacherForSubject, updateAssessmentType)
+    .delete(protect,  deleteAssessmentType);
 
 module.exports = router;
