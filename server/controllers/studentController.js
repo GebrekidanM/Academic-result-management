@@ -62,74 +62,114 @@ exports.getStudentById = async (req, res) => {
 
 // @desc    Create a single new student with auto-generated ID and password
 // @route   POST /api/students
+// controllers/studentController.js
+// @access  Admin or Homeroom Teacher
 exports.createStudent = async (req, res) => {
-  const { fullName, gender, dateOfBirth, gradeLevel, motherName, motherContact, fatherContact, healthStatus } = req.body;
+    const currentUser = req.user; // from protect middleware
+    const { fullName, gender, dateOfBirth, gradeLevel, motherName, motherContact, fatherContact, healthStatus } = req.body;
 
-  try {
-    const capitalizedFullName = capitalizeName(fullName);
+    try {
+        // 🔹 Permission check
+        if (currentUser.role === 'teacher') {
+            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== gradeLevel) {
+                return res.status(403).json({ 
+                    message: 'You can only create students in your homeroom grade.' 
+                });
+            }
+        } else if (currentUser.role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to create students.' });
+        }
 
-    // ✅ Ethiopian year calculation
-    const today = new Date();
-    const gregorianYear = today.getFullYear();
-    const gregorianMonth = today.getMonth() + 1;
-    const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
+        // 🔹 Capitalize full name
+        const capitalizedFullName = capitalizeName(fullName);
 
-    const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) }).sort({ studentId: -1 });
-    let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
-    const newStudentId = `FKS-${currentYear}-${String(lastSequence + 1).padStart(3, '0')}`;
+        // 🔹 Ethiopian year calculation
+        const today = new Date();
+        const gregorianYear = today.getFullYear();
+        const gregorianMonth = today.getMonth() + 1;
+        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
 
-    const middleName = getFirstName(capitalizedFullName);
-    const initialPassword = `${middleName}@${currentYear}`;
+        // 🔹 Generate unique student ID
+        const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) })
+                                         .sort({ studentId: -1 });
+        let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
+        const newStudentId = `FKS-${currentYear}-${String(lastSequence + 1).padStart(3, '0')}`;
 
-    const student = new Student({
-      studentId: newStudentId,
-      fullName: capitalizedFullName,
-      gender,
-      dateOfBirth,
-      gradeLevel,
-      password: initialPassword,
-      motherName,
-      motherContact,
-      fatherContact,
-      healthStatus
-    });
+        // 🔹 Generate initial password
+        const middleName = getFirstName(capitalizedFullName);
+        const initialPassword = `${middleName}@${currentYear}`;
 
-    await student.save();
-
-    const responseData = student.toObject();
-    responseData.initialPassword = initialPassword;
-    delete responseData.password;
-
-    res.status(201).json({ success: true, data: responseData });
-  } catch (error) {
-    if (error.code === 11000) {
-      if (error.keyPattern && error.keyPattern.fullName && error.keyPattern.motherName) {
-        return res.status(400).json({
-          message: 'A student with the same name and mother name already exists.'
+        // 🔹 Create student
+        const student = new Student({
+            studentId: newStudentId,
+            fullName: capitalizedFullName,
+            gender,
+            dateOfBirth,
+            gradeLevel,
+            password: initialPassword,
+            motherName,
+            motherContact,
+            fatherContact,
+            healthStatus
         });
-      }
-      return res.status(400).json({ message: 'Duplicate entry detected.' });
-    }
 
-    res.status(500).json({ message: 'Server Error', details: error.message });
-  }
+        await student.save();
+
+        const responseData = student.toObject();
+        responseData.initialPassword = initialPassword;
+        delete responseData.password;
+
+        res.status(201).json({ success: true, data: responseData });
+
+    } catch (error) {
+        // 🔹 Handle duplicates
+        if (error.code === 11000) {
+            if (error.keyPattern && error.keyPattern.fullName && error.keyPattern.motherName) {
+                return res.status(400).json({
+                    message: 'A student with the same name and mother name already exists.'
+                });
+            }
+            return res.status(400).json({ message: 'Duplicate entry detected.' });
+        }
+
+        res.status(500).json({ message: 'Server Error', details: error.message });
+    }
 };
 
 
 // @desc    Update a student's profile
 // @route   PUT /api/students/:id
+// controllers/studentController.js
+// @access  Admin or Homeroom Teacher (only for their grade)
 exports.updateStudent = async (req, res) => {
     try {
+        const currentUser = req.user;
+        const student = await Student.findById(req.params.id);
+        if (!student) return res.status(404).json({ message: 'Student not found.' });
+
+        // 🔹 Permission check
+        if (currentUser.role === 'teacher') {
+            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+                return res.status(403).json({ message: 'You are not authorized to update this student.' });
+            }
+        } else if (currentUser.role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to update students.' });
+        }
+
         const { fullName, ...otherData } = req.body;
         const updateData = { ...otherData };
         if (fullName) {
             updateData.fullName = capitalizeName(fullName);
         }
 
-        const updatedStudent = await Student.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
-        if (!updatedStudent) return res.status(404).json({ message: 'Student not found.' });
+        const updatedStudent = await Student.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true, runValidators: true }
+        );
 
         res.json({ success: true, data: updatedStudent });
+
     } catch (error) {
         res.status(500).json({ message: 'Server Error', details: error.message });
     }
@@ -137,12 +177,25 @@ exports.updateStudent = async (req, res) => {
 
 // @desc    Delete a student
 // @route   DELETE /api/students/:id
+// @access  Admin or Homeroom Teacher (only for their grade)
 exports.deleteStudent = async (req, res) => {
     try {
+        const currentUser = req.user;
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found' });
+
+        // 🔹 Permission check
+        if (currentUser.role === 'teacher') {
+            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+                return res.status(403).json({ message: 'You are not authorized to delete this student.' });
+            }
+        } else if (currentUser.role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to delete students.' });
+        }
+
         await student.deleteOne();
         res.json({ success: true, message: 'Student deleted successfully' });
+
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
@@ -150,22 +203,25 @@ exports.deleteStudent = async (req, res) => {
 
 // @desc    Upload student profile photo to Cloudinary
 // @route   POST /api/students/:id/photo
+// @access  Admin or Homeroom Teacher (only for their grade)
 exports.uploadProfilePhoto = async (req, res) => {
-
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file was uploaded.' });
         }
 
+        const currentUser = req.user;
         const student = await Student.findById(req.params.id);
-        if (!student) {
-            return res.status(404).json({ message: 'Student not found.' });
-        }
+        if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-        // Optional: Remove old image from Cloudinary if you track public_id
-        // if (student.imagePublicId) {
-        //     await cloudinary.uploader.destroy(student.imagePublicId);
-        // }
+        // 🔹 Permission check
+        if (currentUser.role === 'teacher') {
+            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+                return res.status(403).json({ message: 'You are not authorized to update this student.' });
+            }
+        } else if (currentUser.role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to update students.' });
+        }
 
         student.imageUrl = req.file.path; // Cloudinary URL
         student.imagePublicId = req.file.filename; // optional for future deletions

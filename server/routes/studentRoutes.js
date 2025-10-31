@@ -21,12 +21,12 @@ router.route('/')
 
 router.route('/:id')
     .get(canViewStudentData, getStudentById)
-    .put(protect, isHomeroomTeacherOrAdmin, updateStudent)
-    .delete(protect, isHomeroomTeacherOrAdmin, deleteStudent);
+    .put(protect, updateStudent)
+    .delete(protect, deleteStudent);
 
 // --- THE DEFINITIVE PHOTO UPLOAD ROUTE ---
 // We call upload.single() right here. This is the clearest and most direct way.
-router.post('/photo/:id', protect, isHomeroomTeacherOrAdmin,authorize('admin'), upload.single('profilePhoto'), uploadProfilePhoto);
+router.post('/photo/:id', protect, upload.single('profilePhoto'), uploadProfilePhoto);
 
 // --- The Excel upload route (we'll keep it simple for now) ---
 const localUpload = multer({ dest: 'uploads/' });

@@ -87,7 +87,7 @@ const AddStudentPage = () => {
                         </div>
                         <div>
                             <label htmlFor="dateOfBirth" className={inputLabel}>Date of Birth</label>
-                            <input id="dateOfBirth" type="date" name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} required />
+                            <input id="dateOfBirth" type="date" name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
                         </div>
                     </div>
 
