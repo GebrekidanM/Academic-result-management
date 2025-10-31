@@ -92,8 +92,22 @@ exports.generateRoster = async (req, res) => {
                 fullName: student.fullName,
                 gender: student.gender,
                 age: calculateEthiopianAge(student.dateOfBirth),
-                firstSemester, secondSemester,
-                subjectAverages:parseFloat(subjectAverages.toFixed(2)),
+                firstSemester: {
+                    ...firstSemester,
+                    average: parseFloat(firstSemester.average.toFixed(2))
+                },
+                secondSemester: {
+                    ...secondSemester,
+                    average: parseFloat(secondSemester.average.toFixed(2))
+                },
+
+                // Round each subject average safely
+                subjectAverages: Object.fromEntries(
+                    Object.entries(subjectAverages).map(([key, val]) => [
+                        key,
+                        val !== null ? parseFloat(val.toFixed(2)) : '-'
+                    ])
+                ),
                 overallTotal: parseFloat(overallAverage.toFixed(2)), 
                 overallAverage: parseFloat(overallAverage.toFixed(2)),
                 rank1st: 0, rank2nd: 0, overallRank: 0,
