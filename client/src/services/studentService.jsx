@@ -30,7 +30,6 @@ const deleteStudent = (id) => {
 
 // For bulk import of students from an Excel file
 const uploadStudents = (file) => {
-    console.log("Uploading students file:", file);
     const formData = new FormData();
     formData.append('studentsFile', file);
     return api.post(`${API_URL}/upload`, formData,{

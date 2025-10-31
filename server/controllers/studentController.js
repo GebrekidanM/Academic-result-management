@@ -140,6 +140,7 @@ exports.createStudent = async (req, res) => {
 // @desc    Update a student's profile
 // @route   PUT /api/students/:id
 // controllers/studentController.js
+
 // @access  Admin or Homeroom Teacher (only for their grade)
 exports.updateStudent = async (req, res) => {
     try {

@@ -9,7 +9,7 @@ const {
 } = require('../controllers/studentController');
 
 
-const { protect, authorize, canViewStudentData , isHomeroomTeacherOrAdmin} = require('../middleware/authMiddleware');
+const { protect, authorize, canViewStudentData } = require('../middleware/authMiddleware');
 
 // Import the main multer instance we just created
 const upload = require('../middleware/upload');
@@ -30,6 +30,6 @@ router.post('/photo/:id', protect, upload.single('profilePhoto'), uploadProfileP
 
 // --- The Excel upload route (we'll keep it simple for now) ---
 const localUpload = multer({ dest: 'uploads/' });
-router.post('/upload', protect, isHomeroomTeacherOrAdmin,localUpload.single('studentsFile'), bulkCreateStudents);
+router.post('/upload', protect, localUpload.single('studentsFile'), bulkCreateStudents);
 
 module.exports = router;

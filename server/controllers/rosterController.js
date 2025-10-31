@@ -57,11 +57,33 @@ exports.generateRoster = async (req, res) => {
             const overallAverage = overallCount > 0 ? overallTotal / overallCount : 0;
 
              // --- Helper function to calculate age ---
-            const calculateAge = (dateOfBirth) => {
+            const calculateEthiopianAge = (dateOfBirth) => {
                 if (!dateOfBirth) return 'N/A';
-                const ageDiffMs = Date.now() - new Date(dateOfBirth).getTime();
-                const ageDate = new Date(ageDiffMs);
-                return Math.abs(ageDate.getUTCFullYear() - 1970);
+                //dateOfBirth is in ethiopian calendar
+                const birthDate = new Date(dateOfBirth);
+                const currentDate = new Date();
+                // Convert current year to Ethiopian
+                const currentGregorianYear = currentDate.getFullYear();
+                const currentGregorianMonth = currentDate.getMonth() + 1;
+                const currentGregorianDay = currentDate.getDate();
+
+                // Ethiopian calendar is ~7–8 years behind
+                const currentEthiopianYear =
+                    currentGregorianMonth > 9 || (currentGregorianMonth === 9 && currentGregorianDay >= 11)
+                        ? currentGregorianYear - 7
+                        : currentGregorianYear - 8;
+
+                // Get Ethiopian birth year
+                const birthEthiopianYear = birthDate.getFullYear();
+                const birthEthiopianMonth = birthDate.getMonth();
+                const birthEthiopianDay = birthDate.getDate();
+
+                if(birthEthiopianMonth > (currentGregorianYear - 8) || (birthEthiopianMonth === (currentGregorianYear - 8) && birthEthiopianDay > currentGregorianDay)) {
+                    birthEthiopianYear -= 1;
+                }
+                // Age in Ethiopian years
+                const age = currentEthiopianYear - birthEthiopianYear;
+                return age < 0 ? 0 : age;
             };
 
 
@@ -69,7 +91,7 @@ exports.generateRoster = async (req, res) => {
                 studentId: student.studentId, 
                 fullName: student.fullName,
                 gender: student.gender,
-                age: calculateAge(student.dateOfBirth),
+                age: calculateEthiopianAge(student.dateOfBirth),
                 firstSemester, secondSemester, subjectAverages,
                 overallTotal, overallAverage,
                 rank1st: 0, rank2nd: 0, overallRank: 0,
@@ -162,11 +184,34 @@ exports.generateSubjectRoster = async (req, res) => {
                 studentDetailedScores[at._id.toString()] = score;
             });
 
-             const calculateAge = (dateOfBirth) => {
+             // --- Helper function to calculate age ---
+            const calculateEthiopianAge = (dateOfBirth) => {
                 if (!dateOfBirth) return 'N/A';
-                const ageDiffMs = Date.now() - new Date(dateOfBirth).getTime();
-                const ageDate = new Date(ageDiffMs);
-                return Math.abs(ageDate.getUTCFullYear() - 1970);
+                //dateOfBirth is in ethiopian calendar
+                const birthDate = new Date(dateOfBirth);
+                const currentDate = new Date();
+                // Convert current year to Ethiopian
+                const currentGregorianYear = currentDate.getFullYear();
+                const currentGregorianMonth = currentDate.getMonth() + 1;
+                const currentGregorianDay = currentDate.getDate();
+
+                // Ethiopian calendar is ~7–8 years behind
+                const currentEthiopianYear =
+                    currentGregorianMonth > 9 || (currentGregorianMonth === 9 && currentGregorianDay >= 11)
+                        ? currentGregorianYear - 7
+                        : currentGregorianYear - 8;
+
+                // Get Ethiopian birth year
+                const birthEthiopianYear = birthDate.getFullYear();
+                const birthEthiopianMonth = birthDate.getMonth();
+                const birthEthiopianDay = birthDate.getDate();
+
+                if(birthEthiopianMonth > (currentGregorianYear - 8) || (birthEthiopianMonth === (currentGregorianYear - 8) && birthEthiopianDay > currentGregorianDay)) {
+                    birthEthiopianYear -= 1;
+                }
+                // Age in Ethiopian years
+                const age = currentEthiopianYear - birthEthiopianYear;
+                return age < 0 ? 0 : age;
             };
 
 
@@ -174,7 +219,7 @@ exports.generateSubjectRoster = async (req, res) => {
                 studentId: student.studentId, 
                 fullName: student.fullName,
                 gender: student.gender,
-                age: calculateAge(student.dateOfBirth),
+                age: calculateEthiopianAge(student.dateOfBirth),
                 detailedScores: studentDetailedScores,
                 finalScore: gradeDoc ? gradeDoc.finalScore : '-',
             };

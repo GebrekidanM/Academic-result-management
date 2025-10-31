@@ -21,7 +21,6 @@ function getEthiopianYear() {
     return ethiopianYear;
 }
 
-// Usage
 
 
 const AssessmentTypesPage = () => {
@@ -205,7 +204,7 @@ const AssessmentTypesPage = () => {
                   onChange={handleChange}
                   placeholder="Assessment Name"
                   required
-                  className="border p-2 rounded"
+                  className="border p-2 rounded w-full"
                 />
                 <input
                   type="number"
@@ -215,15 +214,15 @@ const AssessmentTypesPage = () => {
                   min="1"
                   placeholder="Total Marks"
                   required
-                  className="border p-2 rounded"
+                  className="border p-2 rounded w-full"
                 />
               </div>
               <div className="flex flex-col md:flex-row gap-3">
-                <select name="semester" value={formData.semester} onChange={handleChange} className="border p-2 rounded">
+                <select name="semester" value={formData.semester} onChange={handleChange} className="border p-2 rounded w-full">
                   <option>First Semester</option>
                   <option>Second Semester</option>
                 </select>
-                <select name="month" value={formData.month} onChange={handleChange} className="border p-2 rounded">
+                <select name="month" value={formData.month} onChange={handleChange} className="border p-2 rounded w-full">
                   {MONTHS.map(m => <option key={m}>{m}</option>)}
                 </select>
               </div>
