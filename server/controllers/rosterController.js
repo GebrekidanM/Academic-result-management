@@ -92,8 +92,10 @@ exports.generateRoster = async (req, res) => {
                 fullName: student.fullName,
                 gender: student.gender,
                 age: calculateEthiopianAge(student.dateOfBirth),
-                firstSemester, secondSemester, subjectAverages,
-                overallTotal, overallAverage,
+                firstSemester, secondSemester,
+                subjectAverages:parseFloat(subjectAverages.toFixed(2)),
+                overallTotal: parseFloat(overallAverage.toFixed(2)), 
+                overallAverage: parseFloat(overallAverage.toFixed(2)),
                 rank1st: 0, rank2nd: 0, overallRank: 0,
                 
             };
@@ -221,7 +223,7 @@ exports.generateSubjectRoster = async (req, res) => {
                 gender: student.gender,
                 age: calculateEthiopianAge(student.dateOfBirth),
                 detailedScores: studentDetailedScores,
-                finalScore: gradeDoc ? gradeDoc.finalScore : '-',
+                finalScore: gradeDoc ? parseFloat(gradeDoc.finalScore.toFixed(2)) : '-',
             };
         });
 
