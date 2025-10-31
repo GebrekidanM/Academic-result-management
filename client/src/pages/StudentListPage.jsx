@@ -59,16 +59,18 @@ const StudentListPage = () => {
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Students List</h2>
-                {currentUser.role === 'admin' && (
+                
                     <div className="flex gap-4">
                         <Link to="/students/add" className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
                             Add New Student
                         </Link>
+                    {currentUser.role === 'admin' && (    
                         <Link to="/students/import" className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
                             Import from Excel
                         </Link>
+                    )}
                     </div>
-                )}
+                
             </div>
 
             {/* --- Grade Level Selection Buttons --- */}

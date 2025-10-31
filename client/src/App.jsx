@@ -91,7 +91,8 @@ function App() {
             <Route path="/subject-roster" element={<SubjectRosterPage />} />
             <Route path="/manage-assessments" element={<AssessmentTypesPage />} />
             <Route path="/grade-sheet" element={<GradeSheetPage />} />
-            
+            <Route path="/students/add" element={<AddStudentPage />} />
+            <Route path="/students/edit/:id" element={<EditStudentPage />} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
               <Route path="/subjects" element={<SubjectListPage />} />
@@ -99,8 +100,6 @@ function App() {
               <Route path="/subjects/edit/:id" element={<EditSubjectPage />} />
               <Route path="/subjects/import" element={<ImportSubjectsPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/students/add" element={<AddStudentPage />} />
-              <Route path="/students/edit/:id" element={<EditStudentPage />} />
               <Route path="/students/import" element={<ImportStudentsPage />} />
               <Route path="/admin/users" element={<UserManagementPage />} />
               <Route path="/admin/users/:id" element={<UserEditPage />} />

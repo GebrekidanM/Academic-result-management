@@ -116,7 +116,7 @@ const StudentDetailPage = () => {
                             <p className="text-gray-500 mt-1">Health: {student.healthStatus}</p>
                         </div>
                     </div>
-                    {isAdmin && (
+                    {isAdmin || isHomeroomTeacher && (
                         <div className="flex gap-2 mt-4 sm:mt-0">
                             <Link to={`/students/edit/${student._id}`} className={yellowButton}>Edit Info</Link>
                             <button onClick={handleStudentDelete} className={redButton}>Delete Student</button>
