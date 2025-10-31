@@ -10,6 +10,20 @@ const MONTHS = [
   "January", "February", "March", "April", "May", "June"
 ];
 
+// Function to get current Ethiopian year
+function getEthiopianYear() {
+    const today = new Date();
+    const gregYear = today.getFullYear();
+    const gregMonth = today.getMonth() + 1; // JS months are 0-indexed
+
+    // Ethiopian year starts in September
+    const ethiopianYear = gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
+    return ethiopianYear;
+}
+
+// Usage
+
+
 const AssessmentTypesPage = () => {
   const [currentUser] = useState(authService.getCurrentUser());
   const [subjects, setSubjects] = useState([]);
@@ -18,6 +32,7 @@ const AssessmentTypesPage = () => {
   const [loading, setLoading] = useState(true);
   const [assessmentsLoading, setAssessmentsLoading] = useState(false);
   const [error, setError] = useState('');
+  const currentEthiopianYear = getEthiopianYear();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -25,7 +40,7 @@ const AssessmentTypesPage = () => {
     totalMarks: 10,
     month: 'September',
     semester: 'First Semester',
-    year: new Date().getFullYear(),
+    year: currentEthiopianYear,
   });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -181,33 +196,38 @@ const AssessmentTypesPage = () => {
             <h3 className="text-xl font-bold mb-3 text-gray-700">
               {editingId ? 'Edit Assessment Type' : 'Add New Assessment Type'}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Assessment Name"
-                required
-                className="border p-2 rounded"
-              />
-              <input
-                type="number"
-                name="totalMarks"
-                value={formData.totalMarks}
-                onChange={handleChange}
-                min="1"
-                placeholder="Total Marks"
-                required
-                className="border p-2 rounded"
-              />
-              <select name="semester" value={formData.semester} onChange={handleChange} className="border p-2 rounded">
-                <option>First Semester</option>
-                <option>Second Semester</option>
-              </select>
-              <select name="month" value={formData.month} onChange={handleChange} className="border p-2 rounded">
-                {MONTHS.map(m => <option key={m}>{m}</option>)}
-              </select>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col md:flex-row gap-3">
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Assessment Name"
+                  required
+                  className="border p-2 rounded"
+                />
+                <input
+                  type="number"
+                  name="totalMarks"
+                  value={formData.totalMarks}
+                  onChange={handleChange}
+                  min="1"
+                  placeholder="Total Marks"
+                  required
+                  className="border p-2 rounded"
+                />
+              </div>
+              <div className="flex flex-col md:flex-row gap-3">
+                <select name="semester" value={formData.semester} onChange={handleChange} className="border p-2 rounded">
+                  <option>First Semester</option>
+                  <option>Second Semester</option>
+                </select>
+                <select name="month" value={formData.month} onChange={handleChange} className="border p-2 rounded">
+                  {MONTHS.map(m => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+              
               <input
                 type="number"
                 name="year"
