@@ -16,13 +16,13 @@ const upload = require('../middleware/upload');
 
 // Standard JSON routes
 router.route('/')
-    .post(protect, authorize('admin' || ""), createStudent)
+    .post(protect, createStudent)
     .get(protect, getStudents);
 
 router.route('/:id')
     .get(canViewStudentData, getStudentById)
-    .put(protect, authorize('admin'),isHomeroomTeacherOrAdmin, updateStudent)
-    .delete(protect, authorize('admin'),isHomeroomTeacherOrAdmin, deleteStudent);
+    .put(protect, isHomeroomTeacherOrAdmin, updateStudent)
+    .delete(protect, isHomeroomTeacherOrAdmin, deleteStudent);
 
 // --- THE DEFINITIVE PHOTO UPLOAD ROUTE ---
 // We call upload.single() right here. This is the clearest and most direct way.
@@ -30,6 +30,6 @@ router.post('/photo/:id', protect, isHomeroomTeacherOrAdmin,authorize('admin'), 
 
 // --- The Excel upload route (we'll keep it simple for now) ---
 const localUpload = multer({ dest: 'uploads/' });
-router.post('/upload', protect, authorize('admin'), isHomeroomTeacherOrAdmin,localUpload.single('studentsFile'), bulkCreateStudents);
+router.post('/upload', protect, isHomeroomTeacherOrAdmin,localUpload.single('studentsFile'), bulkCreateStudents);
 
 module.exports = router;
