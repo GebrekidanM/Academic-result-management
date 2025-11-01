@@ -1,3 +1,4 @@
+//Student Service Module
 import api from './api';
 
 const API_URL = '/students';
@@ -8,6 +9,10 @@ const getAllStudents = () => {
     return api.get(API_URL);
 };
 
+// Get students by grade
+const getStudentsByGrade = (gradeLevel) => {
+    return api.get(`${API_URL}?gradeLevel=${encodeURIComponent(gradeLevel)}`);
+};
 const getStudentById = (id) => {
     return api.get(`${API_URL}/${id}`);
 };
@@ -59,5 +64,6 @@ export default {
     updateStudent,
     deleteStudent,
     uploadStudents,
-    uploadPhoto
+    uploadPhoto,
+    getStudentsByGrade
 };

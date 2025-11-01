@@ -170,31 +170,57 @@ exports.saveGradeSheet = async (req, res) => {
   }
 
   try {
-    const bulkOps = [];
+    // Perform all updates in parallel
+    const updatePromises = scores.map(async ({ studentId, score }) => {
+      if (score == null || score === '' || isNaN(score)) return;
 
-    for (const { studentId, score } of scores) {
-      if (score == null || score === '') continue;
-
-      bulkOps.push({
-        updateOne: {
-          filter: { student: studentId, subject: subjectId, semester, academicYear },
-          update: {
-            $set: { semester, academicYear, subject: subjectId },
-            $push: { assessments: { assessmentType: assessmentTypeId, score } },
-            $inc: { finalScore: Number(score) }
-          },
-          upsert: true
+      // Update existing assessment
+      const updateResult = await Grade.updateOne(
+        {
+          student: studentId,
+          subject: subjectId,
+          semester,
+          academicYear,
+          "assessments.assessmentType": assessmentTypeId
+        },
+        {
+          $set: {
+            "assessments.$.score": score,
+            semester,
+            academicYear,
+            subject: subjectId
+          }
         }
-      });
-    }
+      );
 
-    if (bulkOps.length > 0) {
-      await Grade.bulkWrite(bulkOps);
-    }
+      // If no match, push new assessment
+      if (updateResult.matchedCount === 0) {
+        await Grade.updateOne(
+          { student: studentId, subject: subjectId, semester, academicYear },
+          {
+            $setOnInsert: { student: studentId, subject: subjectId, semester, academicYear },
+            $push: { assessments: { assessmentType: assessmentTypeId, score } }
+          },
+          { upsert: true }
+        );
+      }
 
-    res.status(200).json({ success: true, message: 'Grades saved successfully.' });
+      // Recalculate total after update
+      const gradeDoc = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear });
+      if (gradeDoc) {
+        const totalScore = gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+        gradeDoc.finalScore = totalScore;
+        await gradeDoc.save();
+      }
+    });
+
+    await Promise.all(updatePromises);
+
+    res.status(200).json({ success: true, message: 'Grades saved or updated successfully.' });
   } catch (error) {
     console.error("Error saving grade sheet:", error);
     res.status(500).json({ message: 'Server error saving grades.' });
   }
 };
+
+

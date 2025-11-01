@@ -19,13 +19,16 @@ const getFirstName = (fullName) => {
     return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 };
 
-// --- CONTROLLER FUNCTIONS ---
-
-// @desc    Get all students, sorted
-// @route   GET /api/students
+// @desc Get all students or by grade
+// @route GET /api/students
 exports.getStudents = async (req, res) => {
     try {
-        const students = await Student.find({}).sort({ gradeLevel: 1, fullName: 1 });
+        const { gradeLevel } = req.query;
+        const query = gradeLevel ? { gradeLevel } : {};
+        const students = await Student.find(query)
+            .sort({ fullName: 1 })
+            .select('studentId fullName gender gradeLevel');
+        
         res.json({ success: true, count: students.length, data: students });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
