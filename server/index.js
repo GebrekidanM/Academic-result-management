@@ -28,7 +28,10 @@ app.use('/api/assessment-types', require('./routes/assessmentTypeRoutes'));
 app.use('/api/student-auth', require('./routes/studentAuthRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
-app.use('/api/admin/clean-duplicates', async (req, res) => {
+const Grade = require('./models/Grade');
+
+// --- Admin utility to clean duplicate assessments ---
+app.post('/api/admin/clean-duplicates', async (req, res) => {
   try {
     const grades = await Grade.find({});
     for (const grade of grades) {
@@ -49,6 +52,7 @@ app.use('/api/admin/clean-duplicates', async (req, res) => {
     res.json({ message: '✅ Duplicate assessments cleaned successfully!' });
   } catch (error) {
     console.error(error);
+    
     res.status(500).json({ message: 'Server error cleaning duplicates.' });
   }
 })
