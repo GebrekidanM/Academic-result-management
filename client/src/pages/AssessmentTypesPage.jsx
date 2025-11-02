@@ -257,7 +257,18 @@ const AssessmentTypesPage = () => {
                     <li key={a._id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
                       <Link
                         to="/grade-sheet"
-                        state={{ assessmentType: a, subject: selectedSubject }}
+                        state={
+                          {
+                            assessmentType: a,
+                            subject: 
+                              {
+                                id: selectedSubject._id,
+                                name: selectedSubject.name,
+                                gradeLevel: selectedSubject.gradeLevel,
+                                type: selectedSubject.type || null,
+                              },
+                          }
+                        }
                         className="flex-1 hover:underline"
                       >
                         <strong>{a.month}:</strong> {a.name} ({a.totalMarks} Marks)

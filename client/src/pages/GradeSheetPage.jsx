@@ -10,8 +10,6 @@ import { saveOfflineGrade } from '../offlineDB';
 
 const GradeSheetPage = () => {
   const location = useLocation();
-
-  // Data received from AssessmentTypesPage (if navigated from there)
   const assessmentTypeFromLink = location.state?.assessmentType || null;
   const subjectFromLink = location.state?.subject || null;
 
@@ -67,25 +65,6 @@ const GradeSheetPage = () => {
     }
   }, [selectedSubject]);
 
-  // --- Preselect Subject & Assessment if Coming from Link ---
-  useEffect(() => {
-    if (subjectFromLink && assessmentTypeFromLink) {
-      setSelectedSubject(subjectFromLink.id);
-      setSelectedAssessment(assessmentTypeFromLink._id);
-    }
-  }, [subjectFromLink, assessmentTypeFromLink]);
-
-  // --- Auto Load Sheet if Coming From Link ---
-  useEffect(() => {
-    if (subjectFromLink && assessmentTypeFromLink) {
-      // Wait until subject and assessment are both set
-      setTimeout(() => {
-        handleLoadSheet();
-      }, 300);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assessmentTypeFromLink]);
-
   // --- Load Grade Sheet ---
   const handleLoadSheet = async () => {
     if (!selectedAssessment) return;
@@ -105,6 +84,24 @@ const GradeSheetPage = () => {
       setLoading(false);
     }
   };
+
+// --- Preselect Subject & Assessment if Coming from Link ---
+  useEffect(() => {
+    if (subjectFromLink && assessmentTypeFromLink) {
+      setSelectedSubject(subjectFromLink.id);
+      setSelectedAssessment(assessmentTypeFromLink._id);
+    }
+  }, [subjectFromLink, assessmentTypeFromLink]);
+
+  // --- Auto Load Sheet if Coming From Link ---
+  useEffect(() => {
+    if (subjectFromLink && assessmentTypeFromLink) {
+      // Wait until subject and assessment are both set
+      setTimeout(() => {
+        handleLoadSheet();
+      }, 300);
+    }
+  }, [assessmentTypeFromLink]);
 
   // --- Handle Input Change ---
   const handleScoreChange = (studentId, value) => {
