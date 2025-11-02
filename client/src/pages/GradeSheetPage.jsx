@@ -147,6 +147,7 @@ const GradeSheetPage = () => {
       <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
         <Link
           to={'/subject-roster'}
+          state={{subjectId: selectedSubject}}
           className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md"
         >
           Marklist

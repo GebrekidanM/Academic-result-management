@@ -3,7 +3,7 @@ import subjectService from '../services/subjectService';
 import assessmentTypeService from '../services/assessmentTypeService';
 import authService from '../services/authService';
 import userService from '../services/userService';
-import { Link } from 'react-router-dom';
+import { Link,useLocation } from 'react-router-dom';
 
 const MONTHS = [
   "September", "October", "November", "December",
@@ -24,6 +24,11 @@ function getEthiopianYear() {
 
 
 const AssessmentTypesPage = () => {
+  const location = useLocation();
+  // If navigated from SubjectRosterPage with a subject selected
+  const subjectFromLink = location.state?.subject || null;
+
+  // --- State ---
   const [currentUser] = useState(authService.getCurrentUser());
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -43,6 +48,13 @@ const AssessmentTypesPage = () => {
   });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // --- Pre-select subject if coming from SubjectRosterPage ---
+  useEffect(() => {
+    if (subjectFromLink) {
+      setSelectedSubject(subjectFromLink);
+    }
+  }, [subjectFromLink]);
 
   // --- Load subjects for user ---
   useEffect(() => {

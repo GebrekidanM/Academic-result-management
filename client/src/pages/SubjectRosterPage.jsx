@@ -1,6 +1,6 @@
 // src/pages/SubjectRosterPage.js
 import React, { useState, useEffect } from 'react';
-import { useLocation} from 'react-router-dom';
+import { useLocation,Link} from 'react-router-dom';
 import rosterService from '../services/rosterService';
 import subjectService from '../services/subjectService';
 import authService from '../services/authService';
@@ -8,7 +8,6 @@ import userService from '../services/userService';
 
 const SubjectRosterPage = () => {
     const location = useLocation();
-
     // --- State Management ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [subjects, setSubjects] = useState([]);
@@ -18,6 +17,7 @@ const SubjectRosterPage = () => {
     const [rosterData, setRosterData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const gradeLevel = subjects.find(s => s._id === selectedSubject)||'';
 
     // --- Data Fetching: Load the correct list of subjects based on the user's role ---
     useEffect(() => {
@@ -135,6 +135,13 @@ const SubjectRosterPage = () => {
                             {rosterData && <button type="button" onClick={handlePrint} className={buttonSecondary}>Print</button>}
                         </div>
                     </form>
+                    <Link 
+                        to={"/manage-assessments"}
+                        state={{ subject: gradeLevel }}
+                        className="text-sm text-gray-600 mt-2 p-2 hover:text-pink-500 inline-block"
+                    >
+                        &rarr; Go to Manage Assessments
+                    </Link>
                 </div>
 
                 {error && <p className="text-red-500 text-center mt-4">{error}</p>}
