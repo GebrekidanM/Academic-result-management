@@ -8,6 +8,6 @@ const {
 } = require('../middleware/authMiddleware');
 
 // The definitive, secure route for getting assessment analysis
-router.get('/assessment', protect,authorizeAnalytics, getAssessmentAnalysis);
+router.get('/assessment', protect, authorizeAnalytics, getAssessmentAnalysis);
 
 module.exports = router;

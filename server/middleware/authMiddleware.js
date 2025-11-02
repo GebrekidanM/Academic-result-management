@@ -186,11 +186,11 @@ exports.canViewStudentData = async (req, res, next) => {
 
 exports.authorizeAnalytics = async (req, res, next) => {
     try {
-        const { assessmentTypeId } = req.query;
-        if (!assessmentTypeId) return res.status(400).json({ message: 'Assessment Type ID is required.' });
+        const { selectedAssessment } = req.query;
+        if (!selectedAssessment) return res.status(400).json({ message: 'Assessment Type ID is required.' });
 
         // Step 1: Find the assessment and its subject
-        const assessmentType = await AssessmentType.findById(assessmentTypeId).select('subject');
+        const assessmentType = await AssessmentType.findById(selectedAssessment).select('subject');
         if (!assessmentType) return res.status(404).json({ message: 'Assessment Type not found.' });
         
         const subjectId = assessmentType.subject.toString();

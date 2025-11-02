@@ -1,8 +1,8 @@
 import api from './api';
 
-const getAnalysis = (assessmentTypeId) => {
+const getAnalysis = (selectedAssessment,selectedGrade) => {
     return api.get('/analytics/assessment', {
-        params: { assessmentTypeId }
+        params: { selectedAssessment ,selectedGrade }
     });
 };
 
