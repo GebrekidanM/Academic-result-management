@@ -29,7 +29,7 @@ app.use('/api/student-auth', require('./routes/studentAuthRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 const Grade = require('./models/Grade');
-const AssessmentType = require('../models/AssessmentType');
+const AssessmentType = require('./models/AssessmentType');
 
 // --- Admin utility to clean duplicate assessments ---
 app.post('/api/admin/clean-duplicates', async (req, res) => {
