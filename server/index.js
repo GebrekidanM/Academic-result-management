@@ -92,10 +92,11 @@ const seedAdminUser = async () => {
   }
 };
 
-//get grades with no assessments
+//get grades with final score above 40
 app.get('/api/admin/grades-no-assessments', async (req, res) => {
   try {
-    const grades = await Grade.find({ assessments: { $size: 0 } });
+    const grades = await Grade.find({ finalScore: { $gt: 40 }});
+    
     res.json(grades);
   } catch (error) {
     console.error(error);
