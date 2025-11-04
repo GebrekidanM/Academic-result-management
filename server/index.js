@@ -29,6 +29,7 @@ app.use('/api/student-auth', require('./routes/studentAuthRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 const Grade = require('./models/Grade');
+const AssessmentType = require('../models/AssessmentType');
 
 // --- Admin utility to clean duplicate assessments ---
 app.post('/api/admin/clean-duplicates', async (req, res) => {
@@ -102,6 +103,55 @@ app.get('/api/admin/grades-no-assessments', async (req, res) => {
     res.status(500).json({ message: 'Server error fetching grades.' });
   }
 });
+
+
+app.post('/api/admin/cleanup-grades', async (req, res) => {
+  try {
+    const subjectId = "68ecd038c55e3e676b7e4e59"; // the subject ID you provided
+
+    // 1. Load all valid AssessmentType IDs
+    const validAssessmentTypes = await AssessmentType.find({}, '_id');
+    const validIds = new Set(validAssessmentTypes.map(a => a._id.toString()));
+
+    // 2. Get all grades for the subject
+    const grades = await Grade.find({ subject: subjectId });
+
+    const updatedGrades = [];
+
+    // 3. Iterate and clean
+    for (let grade of grades) {
+      let originalFinalScore = grade.finalScore;
+      let updated = false;
+
+      const validAssessments = [];
+      for (let assessment of grade.assessments) {
+        if (validIds.has(assessment.assessmentType.toString())) {
+          validAssessments.push(assessment);
+        } else {
+          // AssessmentType deleted → subtract its score
+          grade.finalScore -= assessment.score;
+          updated = true;
+        }
+      }
+
+      if (updated) {
+        grade.assessments = validAssessments;
+        await grade.save();
+        updatedGrades.push({
+          gradeId: grade._id,
+          oldFinalScore: originalFinalScore,
+          newFinalScore: grade.finalScore
+        });
+      }
+    }
+
+    res.json({ message: 'Cleanup completed for subject.', updatedGrades });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during grade cleanup.' });
+  }
+});
+
 // --- Server start ---
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
