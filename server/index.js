@@ -96,7 +96,6 @@ const seedAdminUser = async () => {
 app.get('/api/admin/grades-no-assessments', async (req, res) => {
   try {
     const grades = await Grade.find({ finalScore: { $gt: 40 } });
-    
     res.json(grades);
   } catch (error) {
     console.error(error);
