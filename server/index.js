@@ -96,8 +96,11 @@ const seedAdminUser = async () => {
 app.get('/api/admin/grades-no-assessments', async (req, res) => {
   try {
     const grades = await Grade.find({ finalScore: { $gt: 40 }});
-    //looking for grades with no assessments
-    const filteredGrades = grades.filter(grade => grade.assessments.length === 0);
+    
+    //looking for grades with assessments.assessmentType id propagate is null
+    const filteredGrades = grades.filter(grade => 
+      grade.assessments.some(assessment => !assessment.assessmentType)
+    );
     res.json(filteredGrades);    
   } catch (error) {
     console.error(error);
