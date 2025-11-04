@@ -1,6 +1,7 @@
 // backend/controllers/assessmentTypeController.js
 const AssessmentType = require('../models/AssessmentType');
 const Subject = require('../models/Subject');
+const Grade = require('../models/Grade');
 
 // @desc    Get all assessment types for a specific subject
 // @route   GET /api/assessment-types?subjectId=...
@@ -96,6 +97,15 @@ exports.deleteAssessmentType = async (req, res) => {
         }
         // --- END OF CHECK ---
 
+        // Delete grade references to this assessment type
+        await Grade.updateMany
+        (
+            { "assessments.assessmentType": assessmentType._id },
+            { $pull: { assessments: { assessmentType: assessmentType._id } } }
+        );
+        
+        // Now delete the assessment type itself
+        
         await assessmentType.deleteOne();
         res.status(200).json({ success: true, message: 'Assessment type deleted' });
     } catch (error) {

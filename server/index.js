@@ -57,6 +57,17 @@ app.post('/api/admin/clean-duplicates', async (req, res) => {
   }
 })
 
+//to delete grades with out assessment types
+
+app.post('/api/admin/removegrade', async (req, res) => {
+  try {
+    const result = await Grade.deleteMany({ assessments: { $size: 0 } });
+    res.json({ message: `✅ Deleted ${result.deletedCount} grades without assessments.` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error deleting grades.' });
+  }
+})
 // --- Default admin seeding ---
 const seedAdminUser = async () => {
   try {
@@ -81,6 +92,16 @@ const seedAdminUser = async () => {
   }
 };
 
+//get grades with no assessments
+app.get('/api/admin/grades-no-assessments', async (req, res) => {
+  try {
+    const grades = await Grade.find({ assessments: { $size: 0 } });
+    res.json(grades);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching grades.' });
+  }
+});
 // --- Server start ---
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

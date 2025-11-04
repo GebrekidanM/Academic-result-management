@@ -43,9 +43,6 @@ const gradeSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// --- THIS IS THE CRITICAL NEW RULE ---
-// This tells MongoDB that the combination of a student, a subject, a semester,
-// and a year must be unique. No duplicates are allowed.
 gradeSchema.index(
   { student: 1, subject: 1, semester: 1, academicYear: 1, "assessments.assessmentType": 1 },
   { unique: false } 
