@@ -96,8 +96,9 @@ const seedAdminUser = async () => {
 app.get('/api/admin/grades-no-assessments', async (req, res) => {
   try {
     const grades = await Grade.find({ finalScore: { $gt: 40 }});
-    
-    res.json(grades);
+    //looking for grades with no assessments
+    const filteredGrades = grades.filter(grade => grade.assessments.length === 0);
+    res.json(filteredGrades);    
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error fetching grades.' });
