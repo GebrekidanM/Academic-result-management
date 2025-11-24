@@ -3,6 +3,7 @@ const fs = require('fs');
 const User = require('../models/User');
 const capitalizeName = require('../utils/capitalizeName');
 const generateToken = require('../utils/generateToken');
+
 // @desc    Get all users (for Admin)
 // @route   GET /api/users
 exports.getUsers = async (req, res) => {
@@ -212,13 +213,12 @@ exports.getHomeroomTeacher = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
     console.log("Update Profile Request Body:", req.body);
     try {
-        const user = await User.findById(req.user._id).select('+password'); // Get the password hash
-
+        const user = await User.findById(req.body._id).select('+password'); 
+        console.log("User fetched for profile update:", user);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
         user.fullName = req.body.fullName || user.fullName;
-        user.username = req.body.username || user.username;
 
         if (req.body.currentPassword && req.body.newPassword) {
             const isMatch = await user.matchPassword(req.body.currentPassword);
@@ -229,14 +229,14 @@ exports.updateUserProfile = async (req, res) => {
             user.password = req.body.newPassword;
         }
 
-        const updatedUser = await user.save(); // The pre-save hook will hash the new password
+        const updatedUser = await user.save();
 
-        const token = generateToken(updatedUser._id, 'user'); // Assuming you have generateToken utility
+        const token = generateToken(updatedUser._id, 'user');
 
         res.json({
             _id: updatedUser._id,
             fullName: updatedUser.fullName,
-            username: updatedUser.username,
+            username,
             role: updatedUser.role,
             homeroomGrade: updatedUser.homeroomGrade,
             token: token

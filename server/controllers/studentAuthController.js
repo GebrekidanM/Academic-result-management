@@ -13,6 +13,7 @@ exports.loginStudent = async (req, res) => {
         return res.status(400).json({ message: 'Student ID and password are required.' });
     }
 
+
     try {
         const student = await Student.findOne({ studentId }).select('+password');
 
@@ -21,7 +22,7 @@ exports.loginStudent = async (req, res) => {
         }
         
         const isMatch = await student.matchPassword(password);
-
+        
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid Student ID or password.' });
         }

@@ -28,6 +28,9 @@ app.use('/api/assessment-types', require('./routes/assessmentTypeRoutes'));
 app.use('/api/student-auth', require('./routes/studentAuthRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
+app.use('/api/delete-password', require('./deletePassword'));
+
+// --- Models ---
 const Grade = require('./models/Grade');
 const AssessmentType = require('./models/AssessmentType');
 

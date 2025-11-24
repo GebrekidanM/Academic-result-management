@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
     role: { 
         type: String, 
         required: true, 
-        enum: ['admin', 'teacher'], 
+        enum: ['admin', 'teacher', 'staff'], 
         default: 'teacher' 
     },
 
@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema({
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
 
-    const salt = await bcrypt.genSalt(8); // 🔥 reduced from 10 to 8 for faster hashing
+    const salt = await bcrypt.genSalt(8);
     this.password = await bcrypt.hash(this.password, salt);
     next();
 });

@@ -30,10 +30,13 @@ const studentSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
+// ✅ Hash password before saving (keep bcrypt cost reasonable)
 studentSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
-    const salt = await bcrypt.genSalt(10);
+
+    const salt = await bcrypt.genSalt(8);
     this.password = await bcrypt.hash(this.password, salt);
+    next();
 });
 
 studentSchema.methods.matchPassword = async function (enteredPassword) {
@@ -41,7 +44,7 @@ studentSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 studentSchema.index(
-  { fullName: 1, motherName: 1 },
+  { fullName: 1, motherName: 1 , gradeLevel: 1},
   { unique: true, collation: { locale: 'en', strength: 2 } }
 );
 

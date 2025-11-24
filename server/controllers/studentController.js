@@ -284,18 +284,6 @@ exports.bulkCreateStudents = async (req, res) => {
 
         // --- Helpers ---
 
-        function getFirstName(fullName) {
-            return fullName?.split(' ')[0] || '';
-        }
-
-        function capitalizeName(name) {
-            if (!name) return '';
-            return name
-                .split(' ')
-                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                .join(' ');
-        }
-
         // 📅 Convert Ethiopian date (YYYY, MM, DD) → Gregorian Date object
         function convertEthiopianToGregorian(ethYear, ethMonth, ethDay) {
             const jd = Math.floor(1723856 + 365 + 365 * (ethYear - 1) + Math.floor(ethYear / 4)
@@ -359,13 +347,15 @@ exports.bulkCreateStudents = async (req, res) => {
             const newSequence = lastSequence + 1 + index;
             const newStudentId = `FKS-${currentYear}-${String(newSequence).padStart(3, '0')}`;
 
-            const fullName = student['Full Name'] || student['fullName'];
+            const Name = student['Full Name'] || student['fullName'];
+            const fullName = capitalizeName(Name);
             const motherName = student['Mother Name'] || student['motherName'];
             const middleName = getFirstName(fullName);
             const initialPassword = `${middleName}@${currentYear}`;
+            const gradeLevel = student['Grade Level'] || student['gradeLevel'];
 
             // Check duplicate
-            const existing = await Student.findOne({ fullName: capitalizeName(fullName), motherName });
+            const existing = await Student.findOne({ fullName, motherName, gradeLevel });
             if (existing) {
                 console.log(`⚠️ Skipped duplicate: ${fullName} (mother: ${motherName})`);
                 continue;
@@ -375,17 +365,17 @@ exports.bulkCreateStudents = async (req, res) => {
             
             const studentData = {
                 studentId: newStudentId,
-                fullName: capitalizeName(fullName),
+                fullName,
                 gender: student['Gender'] || student['gender'],
                 dateOfBirth: parsedDate || '',
-                gradeLevel: student['Grade Level'] || student['gradeLevel'],
+                gradeLevel,
                 motherName: motherName || '',
                 motherContact: student['Mother Contact'] || '',
                 fatherContact: student['Father Contact'] || '',
                 password: initialPassword,
                 healthStatus: student['Health Status'] || 'No known conditions'
             };
-
+            console.log(initialPassword);
             const newStudent = new Student(studentData);
             await newStudent.save();
 

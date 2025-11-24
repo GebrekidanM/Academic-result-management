@@ -63,7 +63,7 @@ const HomePage = () => {
             <div className="space-y-8">
                 <div>
                     <h2 className="text-3xl font-bold text-gray-800">Welcome {currentUser.fullName}</h2>
-                    <Link to="/profile" className="text-gray-400 italic pb-2 font-bold">Change Username and password</Link>
+                    <Link to="/profile" state={{profileData}} className="text-gray-400 italic pb-2 font-bold">Change Username and password</Link>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard title="Active Students" value={stats?.students ?? '...'} icon={'🎓'} />
@@ -88,8 +88,9 @@ const HomePage = () => {
         return (
             <div className="space-y-8">
                 <h2 className="text-3xl font-bold text-gray-800">Teacher Dashboard</h2>
-                <p className="text-lg text-gray-600">Welcome, {profileData.fullName}!</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <p className="text-lg text-gray-600 m-0">Welcome, {profileData.fullName}!</p>
+                <Link to="/profile" state={{profileData}} className="text-gray-400 italic font-bold">Change Username and password</Link>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
                     {profileData.homeroomGrade && (
                         <ActionCard to="/roster" title={`My Homeroom: ${profileData.homeroomGrade}`} description="Generate the comprehensive yearly roster for your class." />
                     )}

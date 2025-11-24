@@ -9,11 +9,11 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 router.post('/upload', protect, authorize('admin'), upload.single('usersFile'), bulkCreateUsers);
 router.route('/profile')
     .get(protect, getUserProfile)
-    .put(protect, updateUserProfile);
+    .put(protect, authorize('admin'), updateUserProfile);
     
-router.get('/', protect, authorize('admin'), getUsers);// GET /api/users - Protected and only for Admins
-router.put('/:id', protect, authorize('admin'), updateUser);// PUT /api/users/:id - Protected and only for Admins
-router.get('/:id', protect, authorize('admin'), getUserById);// GET /api/users/:id - Protected and only for Admins
-router.delete('/:id', protect, authorize('admin'), deleteUser);// DELETE /api/users/:id - Protected and only for Admins
+router.get('/', protect, authorize('admin'), getUsers);
+router.put('/:id', protect, authorize('admin'), updateUser);
+router.get('/:id', protect, authorize('admin'), getUserById);
+router.delete('/:id', protect, authorize('admin'), deleteUser);
 
 module.exports = router;
