@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getUsers, getUserById, updateUser,getUserProfile ,bulkCreateUsers,updateUserProfile, deleteUser} = require('../controllers/userController');
+const { getUsers, getUserById, updateUser,getUserProfile ,bulkCreateUsers,updateUserProfile, deleteUser, updateOtherUserProfile} = require('../controllers/userController');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
@@ -11,6 +11,7 @@ router.route('/profile')
     .get(protect, getUserProfile)
     .put(protect, authorize('admin'), updateUserProfile);
     
+router.put('/otherprofile/:id',protect,authorize('admin'),updateOtherUserProfile)
 router.get('/', protect, authorize('admin'), getUsers);
 router.put('/:id', protect, authorize('admin'), updateUser);
 router.get('/:id', protect, authorize('admin'), getUserById);

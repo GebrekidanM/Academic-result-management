@@ -37,6 +37,10 @@ const updateProfile = (data) => {
     return api.put('/users/profile', data);
 };
 
+const updateOtherProfile = (data) =>{
+    console.log("service",data);
+    return api.put(`/users/otherprofile/${data.id}`,data)
+};
 const deleteUser = (id) => {
     return api.delete(`/users/${id}`, getAuthConfig());
 }
@@ -48,5 +52,6 @@ export default {
     getById,
     update,
     uploadUsers,
-    updateProfile
+    updateProfile,
+    updateOtherProfile
 };

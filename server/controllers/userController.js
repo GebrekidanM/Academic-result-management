@@ -208,50 +208,74 @@ exports.getHomeroomTeacher = async (req, res) => {
     }
 };
 
-// @desc    Update the logged-in user's own profile (including password)
-// @route   PUT /api/users/profile
+// @desc Update logged-in user's own profile
+// @route PUT /api/users/profile
 exports.updateUserProfile = async (req, res) => {
-    console.log("Update Profile Request Body:", req.body);
     try {
-        const user = await User.findById(req.body._id).select('+password'); 
-        console.log("User fetched for profile update:", user);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        user.fullName = req.body.fullName || user.fullName;
+        const user = await User.findById(req.user._id).select("+password");
 
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update full name
+        if (req.body.fullName) {
+            user.fullName = req.body.fullName;
+        }
+
+        // Change password section
         if (req.body.currentPassword && req.body.newPassword) {
+
             const isMatch = await user.matchPassword(req.body.currentPassword);
             if (!isMatch) {
-                return res.status(401).json({ message: 'Incorrect current password.' });
+                return res
+                    .status(401)
+                    .json({ message: "Incorrect current password." });
             }
-            
+
             user.password = req.body.newPassword;
         }
 
         const updatedUser = await user.save();
 
-        const token = generateToken(updatedUser._id, 'user');
+        const token = generateToken(updatedUser._id);
 
-        res.json({
+        return res.json({
             _id: updatedUser._id,
             fullName: updatedUser.fullName,
-            username,
+            username: updatedUser.username,
             role: updatedUser.role,
-            homeroomGrade: updatedUser.homeroomGrade,
-            token: token
+            token,
         });
 
     } catch (error) {
-        // Handle duplicate username error
-        console.log("Error updating profile:", error);
-        if (error.code === 11000) {
-             return res.status(400).json({ message: 'That username is already taken.' });
-        }
-        res.status(500).json({ message: 'Server Error' });
+        console.error("Error updating profile:", error);
+        return res.status(500).json({ message: "Server Error" });
     }
 };
 
+// @desc UPDATE a user by Id (Admin only)
+//@route PUT /api/users/otheruser/:id
+exports.updateOtherUserProfile = async(req,res)=>{
+    try{
+        const userToEdit = await User.findById(req.params.id);
+        if (!userToEdit) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        userToEdit.fullName = req.body.fullName || userToEdit.fullName;
+        userToEdit.role = req.body.role || userToEdit.role;
+        if(req.body.password){
+            userToEdit.password = req.body.password;
+        }
+        const updatedUser = await userToEdit.save();
+        await updatedUser.populate('subjectsTaught.subject');
+        res.json(updatedUser);
+    }
+    catch(error){
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
 
 // @desc    Delete a user by ID (Admin only)
 // @route   DELETE /api/users/:id

@@ -71,7 +71,7 @@ const UserManagementPage = () => {
                     {users.map(user => (
                         <tr key={user._id} className="hover:bg-gray-50">
                             <td className={`${tableCell} font-medium text-gray-900`}>
-                                <Link to={'/profile'} state={{profileData:user}}>{user.fullName}</Link>
+                                <Link to={'/otherprofile'} state={{profileData:user}}>{user.fullName}</Link>
                             </td>
                             <td className={`${tableCell} text-gray-700`}>{user.username}</td>
                             <td className={`${tableCell} text-gray-500 capitalize`}>{user.role}</td>

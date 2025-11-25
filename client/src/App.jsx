@@ -50,6 +50,7 @@ import EditStudentPage from './pages/EditStudentPage';
 import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
+import UserProfileEditPage from './pages/UserProfileEditPage';
 
 function App() {
   const currentUser = authService.getCurrentUser();
@@ -95,6 +96,7 @@ function App() {
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
+              <Route path='/otherprofile' element={<UserProfileEditPage/>}/>
               <Route path="/subjects" element={<SubjectListPage />} />
               <Route path="/subjects/add" element={<AddSubjectPage />} />
               <Route path="/subjects/edit/:id" element={<EditSubjectPage />} />
