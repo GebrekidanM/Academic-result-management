@@ -15,7 +15,6 @@ import UniversalRoute from './components/UniversalRoute';
 
 // 1. Public Pages
 import LoginPage from './pages/LoginPage';
-import ParentLoginPage from './pages/ParentLoginPage';
 import RegisterPage from './pages/RegisterPage';
 
 // 2. Parent-Only Pages
@@ -76,7 +75,6 @@ function App() {
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/parent-login" element={<ParentLoginPage />} />
           <Route path="/" element={<HomePage />} />
 
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import authService from '../services/authService';
+import studentAuthService from '../services/studentAuthService';
 
 const LoginPage = () => {
     const [formData, setFormData] = useState({ username: '', password: '' });
@@ -18,13 +19,35 @@ const LoginPage = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await authService.login(formData);
-            if (response.data.token) {
-                localStorage.setItem('user', JSON.stringify(response.data));
-                navigate('/');
-                window.location.reload();
+            if(formData.role==="staff"){
+                const response = await authService.login(formData);
+                    if (response.data.token) {
+                        localStorage.setItem('user', JSON.stringify(response.data));
+                        navigate('/');
+                        window.location.reload();
+                    }
             }
+            else if(formData.role === "parent"){
+
+                const response = await studentAuthService.login(formData.username, formData.password);
+                if (response.data.token) {
+                    // Use a different key in local storage to avoid conflicts with teacher/admin login
+                    localStorage.setItem('student-user', JSON.stringify(response.data));
+
+                    // The crucial check: if it's the initial password, force a change.
+                    if (response.data.isInitialPassword) {
+                        navigate('/parent/change-password');
+                    } else {
+                        navigate('/parent/dashboard');
+                    }
+                    window.location.reload();
+                }
+            }else{
+                return  setError("Select your Role!")
+            }
+            
         } catch (err) {
+            console.log("here",err)
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
             setLoading(false);
         }
@@ -58,6 +81,14 @@ const LoginPage = () => {
                             required 
                         />
                     </div>
+                     <div className={inputGroup}>
+                        <label htmlFor="role" className={inputLabel}>Username</label>
+                        <select name="role" onChange={handleChange} className={textInput} required>
+                            <option value="">Select your role</option>
+                            <option value="parent">Parent</option>
+                            <option value="staff">Staff</option>
+                        </select>
+                    </div>
                     <div className={inputGroup}>
                         <label htmlFor="password" className={inputLabel}>Password</label>
                         <input 
@@ -70,7 +101,9 @@ const LoginPage = () => {
                             required 
                         />
                     </div>
-                    
+                    <div className={inputGroup}>
+                        {error && <p className={errorText}>{error}</p>}                    
+                    </div>
                     <div className="mt-6">
                         <button type="submit" className={submitButton} disabled={loading}>
                             {loading ? 'Logging in...' : 'Login'}
@@ -80,7 +113,6 @@ const LoginPage = () => {
                         Are you a parent or student? <Link to="/parent-login" className='font-bold text-blue-500'>Login here</Link>
                     </div>
 
-                    {error && <p className={errorText}>{error}</p>}
                 </form>
             </div>
         </div>

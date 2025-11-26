@@ -247,7 +247,9 @@ exports.uploadProfilePhoto = async (req, res) => {
 // @desc    Create multiple students from an uploaded Excel file (supports Ethiopian DD-MM-YYYY dates)
 // @route   POST /api/students/upload
 exports.bulkCreateStudents = async (req, res) => {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
+    if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded.' });
+    }
 
     const filePath = req.file.path;
 
@@ -255,34 +257,42 @@ exports.bulkCreateStudents = async (req, res) => {
         const workbook = xlsx.readFile(filePath);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const studentsJson = xlsx.utils.sheet_to_json(worksheet);
+        const rows = xlsx.utils.sheet_to_json(worksheet);
 
-        if (studentsJson.length === 0) {
+        if (!rows.length) {
             fs.unlinkSync(filePath);
             return res.status(400).json({ message: 'The Excel file is empty.' });
         }
 
-        // ✅ Validate required columns
+        // Required columns
         const requiredColumns = ['Full Name', 'Gender', 'Grade Level'];
-        const missingColumns = requiredColumns.filter(c => !Object.keys(studentsJson[0]).includes(c));
-        if (missingColumns.length) {
+        const missing = requiredColumns.filter(c => !Object.keys(rows[0]).includes(c));
+
+        if (missing.length) {
             fs.unlinkSync(filePath);
-            return res.status(400).json({ message: `Missing required columns: ${missingColumns.join(', ')}` });
+            return res.status(400).json({
+                message: `Missing required columns: ${missing.join(', ')}`,
+                hint: "Required columns must match the exact names."
+            });
         }
 
-        // ✅ Accurate Ethiopian academic year calculation
+        // Determine Academic Year (Ethiopian)
         const today = new Date();
-        const gregorianYear = today.getFullYear();
-        const gregorianMonth = today.getMonth() + 1;
-        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
+        const gYear = today.getFullYear();
+        const gMonth = today.getMonth() + 1;
+        const currentYear = gMonth > 8 ? gYear - 7 : gYear - 8;
 
-        // ✅ Generate base student ID
-        const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) }).sort({ studentId: -1 });
-        let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
+        const lastStudent = await Student.findOne({
+            studentId: new RegExp(`^FKS-${currentYear}`)
+        }).sort({ studentId: -1 });
 
-        const createdStudentsForResponse = [];
+        let lastSeq = lastStudent ? parseInt(lastStudent.studentId.split('-')[2]) : 0;
 
-        // --- Helpers ---
+        const createdStudents = [];
+        let rowNumber = 2; // Row 1 = header
+
+        // Date parsing helpers ...
+
 
         // 📅 Convert Ethiopian date (YYYY, MM, DD) → Gregorian Date object
         function convertEthiopianToGregorian(ethYear, ethMonth, ethDay) {
@@ -342,69 +352,100 @@ exports.bulkCreateStudents = async (req, res) => {
             return null;
         }
 
-        // --- Process each student ---
-        for (const [index, student] of studentsJson.entries()) {
-            const newSequence = lastSequence + 1 + index;
-            const newStudentId = `FKS-${currentYear}-${String(newSequence).padStart(3, '0')}`;
 
-            const Name = student['Full Name'] || student['fullName'];
-            const fullName = capitalizeName(Name);
-            const motherName = student['Mother Name'] || student['motherName'];
-            const middleName = getFirstName(fullName);
-            const initialPassword = `${middleName}@${currentYear}`;
-            const gradeLevel = student['Grade Level'] || student['gradeLevel'];
+        // ------------------------
+        //   PROCESS EACH STUDENT
+        // ------------------------
 
-            // Check duplicate
-            const existing = await Student.findOne({ fullName, motherName, gradeLevel });
-            if (existing) {
-                console.log(`⚠️ Skipped duplicate: ${fullName} (mother: ${motherName})`);
-                continue;
+        for (const row of rows) {
+            try {
+                const sequence = ++lastSeq;
+                const studentId = `FKS-${currentYear}-${String(sequence).padStart(3, '0')}`;
+
+                const fullName = capitalizeName(row['Full Name']);
+                const motherName = row['Mother Name'] || '';
+                const gradeLevel = row['Grade Level'];
+
+                // Check duplicate
+                const exists = await Student.findOne({ fullName, motherName, gradeLevel });
+                if (exists) {
+                    createdStudents.push({
+                        status: "skipped",
+                        row: rowNumber,
+                        fullName,
+                        reason: "Duplicate student"
+                    });
+                    rowNumber++;
+                    continue;
+                }
+
+                const parsedDOB = parseExcelDate(row['Date of Birth']);
+
+                const initialPassword = `${getFirstName(fullName)}@${currentYear}`;
+
+                const newStudent = new Student({
+                    studentId,
+                    fullName,
+                    gender: row['Gender'],
+                    dateOfBirth: parsedDOB || null,
+                    gradeLevel,
+                    motherName,
+                    motherContact: row['Mother Contact'] || '',
+                    fatherContact: row['Father Contact'] || '',
+                    password: initialPassword,
+                    healthStatus: row['Health Status'] || 'No known conditions'
+                });
+
+                await newStudent.save();
+
+                createdStudents.push({
+                    status: "created",
+                    row: rowNumber,
+                    studentId,
+                    fullName,
+                    initialPassword
+                });
+
+            } catch (rowErr) {
+                createdStudents.push({
+                    status: "error",
+                    row: rowNumber,
+                    fullName: row['Full Name'],
+                    reason: rowErr.message
+                });
             }
 
-            const parsedDate = parseExcelDate(student['Date of Birth'] || student['dateOfBirth']);
-            
-            const studentData = {
-                studentId: newStudentId,
-                fullName,
-                gender: student['Gender'] || student['gender'],
-                dateOfBirth: parsedDate || '',
-                gradeLevel,
-                motherName: motherName || '',
-                motherContact: student['Mother Contact'] || '',
-                fatherContact: student['Father Contact'] || '',
-                password: initialPassword,
-                healthStatus: student['Health Status'] || 'No known conditions'
-            };
-            console.log(initialPassword);
-            const newStudent = new Student(studentData);
-            await newStudent.save();
-
-            const responseData = newStudent.toObject();
-            responseData.initialPassword = initialPassword;
-            delete responseData.password;
-            createdStudentsForResponse.push(responseData);
+            rowNumber++;
         }
 
         fs.unlinkSync(filePath);
 
-        if (createdStudentsForResponse.length === 0) {
-            return res.status(200).json({
-                message: 'No new students added (duplicates or invalid dates).'
+        return res.status(201).json({
+            message: "Import completed.",
+            summary: {
+                created: createdStudents.filter(s => s.status === "created").length,
+                skipped: createdStudents.filter(s => s.status === "skipped").length,
+                errors: createdStudents.filter(s => s.status === "error").length
+            },
+            results: createdStudents
+        });
+
+    } catch (err) {
+        console.error("Bulk Import Error:", err);
+
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+        if (err.code === 11000) {
+            return res.status(400).json({
+                message: "Duplicate student found in database.",
+                details: err.keyValue
             });
         }
 
-        res.status(201).json({
-            message: `${createdStudentsForResponse.length} students imported successfully.`,
-            data: createdStudentsForResponse
+        return res.status(500).json({
+            message: "Server error processing the file.",
+            details: err.message
         });
-
-    } catch (error) {
-        console.error('Bulk Create Error:', error);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        if (error.code === 11000 || error.name === 'MongoBulkWriteError' || error.name === 'ValidationError') {
-            return res.status(400).json({ message: 'Import failed. Some students may already exist or have invalid data.' });
-        }
-        res.status(500).json({ message: 'An error occurred during the import process.', details: error.message });
     }
 };
 

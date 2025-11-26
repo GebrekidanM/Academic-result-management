@@ -6,15 +6,15 @@ const upload = multer({ dest: 'uploads/' });
 
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-router.post('/upload', protect, authorize('admin'), upload.single('usersFile'), bulkCreateUsers);
+router.post('/upload', protect, authorize('admin','staff'), upload.single('usersFile'), bulkCreateUsers);
 router.route('/profile')
     .get(protect, getUserProfile)
-    .put(protect, authorize('admin'), updateUserProfile);
+    .put(protect, authorize('admin','staff'), updateUserProfile);
     
-router.put('/otherprofile/:id',protect,authorize('admin'),updateOtherUserProfile)
-router.get('/', protect, authorize('admin'), getUsers);
-router.put('/:id', protect, authorize('admin'), updateUser);
-router.get('/:id', protect, authorize('admin'), getUserById);
-router.delete('/:id', protect, authorize('admin'), deleteUser);
+router.put('/otherprofile/:id',protect,authorize('admin','staff'),updateOtherUserProfile)
+router.get('/', protect, authorize('admin','staff'), getUsers);
+router.put('/:id', protect, authorize('admin','staff'), updateUser);
+router.get('/:id', protect, authorize('admin','staff'), getUserById);
+router.delete('/:id', protect, authorize('admin','staff'), deleteUser);
 
 module.exports = router;

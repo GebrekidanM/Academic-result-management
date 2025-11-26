@@ -25,7 +25,7 @@ const Navbar = () => {
     } else if (currentStudent) {
       studentAuthService.logout();
       setCurrentStudent(null);
-      navigate('/parent-login');
+      navigate('/login');
     }
     window.location.reload();
   };
@@ -102,8 +102,7 @@ const Navbar = () => {
               </button>
             ) : (
               <>
-                <NavLink to="/login" className={navLink} onClick={closeMobileMenu}>Teacher/Admin Login</NavLink>
-                <NavLink to="/parent-login" className={navLink} onClick={closeMobileMenu}>Parent Login</NavLink>
+                <NavLink to="/login" className={navLink} onClick={closeMobileMenu}>Login</NavLink>
               </>
             )}
           </div>
