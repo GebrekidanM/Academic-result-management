@@ -5,7 +5,8 @@ const {
     getAssessmentTypesBySubject,
     createAssessmentType,
     updateAssessmentType,
-    deleteAssessmentType
+    deleteAssessmentType,
+    getAllAssessments
 } = require('../controllers/assessmentTypeController');
 
 // --- Import the correct middleware ---
@@ -14,7 +15,8 @@ const { protect, isTeacherForSubject } = require('../middleware/authMiddleware')
 // Anyone logged in can GET the assessment types for a subject.
 router.route('/')
     .get(protect, getAssessmentTypesBySubject);
-
+router.route('/all')
+    .get(protect,getAllAssessments)
 // To CREATE a new type, you must be the assigned teacher for that subject (or an admin).
 router.route('/')
     .post(protect, isTeacherForSubject, createAssessmentType);

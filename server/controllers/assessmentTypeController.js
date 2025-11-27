@@ -51,6 +51,17 @@ exports.createAssessmentType = async (req, res) => {
     }
 };
 
+exports.getAllAssessments = async (req,res)=>{
+  try{
+    const assessmentTypes = await AssessmentType.find({year:2018}).select('name').select('month')
+      if(assessmentTypes){
+        return res.status(202).json(assessmentTypes) 
+      }
+  }catch(error){
+    res.status(500).json({'message':"server error"})
+  }
+    
+}
 
 // @desc    Update an assessment type
 // @route   PUT /api/assessment-types/:id

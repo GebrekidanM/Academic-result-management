@@ -4,10 +4,9 @@ import { NavLink, useNavigate, Link } from 'react-router-dom';
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService';
 
-const Navbar = () => {
+const Navbar = ({isOpen, setIsOpen}) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {

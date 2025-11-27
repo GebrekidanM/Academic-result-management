@@ -1,8 +1,6 @@
 // src/App.js
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import authService from './services/authService';
-import studentAuthService from './services/studentAuthService';
 
 // --- Component Imports ---
 import Navbar from './components/Navbar';
@@ -50,10 +48,10 @@ import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
 import UserProfileEditPage from './pages/UserProfileEditPage';
+import SubjectAnalysisForm from './pages/SubjectAnalysisForm';
 
 function App() {
-  const currentUser = authService.getCurrentUser();
-  const currentStudent = studentAuthService.getCurrentStudent();
+  const [isOpen,setIsOpen] = useState(false)
 
   // ✅ Removed Socket.io setup completely
 
@@ -70,13 +68,12 @@ function App() {
 
   return (
     <div className="bg-gray-100 min-h-screen">
-      <Navbar /> 
-      <main className="container mx-auto p-4">
+      <Navbar  isOpen={isOpen} setIsOpen={setIsOpen}/> 
+      <main className="container mx-auto p-4" onClick={()=> setIsOpen(false)}>
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<HomePage />} />
-
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<ProfilePage />} />
@@ -94,6 +91,7 @@ function App() {
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
+              <Route path="/allsubjectAnalysis" element={<SubjectAnalysisForm/>}/>
               <Route path='/otherprofile' element={<UserProfileEditPage/>}/>
               <Route path="/subjects" element={<SubjectListPage />} />
               <Route path="/subjects/add" element={<AddSubjectPage />} />

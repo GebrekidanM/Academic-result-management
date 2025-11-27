@@ -82,7 +82,7 @@ const LoginPage = () => {
                         />
                     </div>
                      <div className={inputGroup}>
-                        <label htmlFor="role" className={inputLabel}>Username</label>
+                        <label htmlFor="role" className={inputLabel}>Role</label>
                         <select name="role" onChange={handleChange} className={textInput} required>
                             <option value="">Select your role</option>
                             <option value="parent">Parent</option>
@@ -102,7 +102,7 @@ const LoginPage = () => {
                         />
                     </div>
                     <div className={inputGroup}>
-                        {error && <p className={errorText}>{error}</p>}                    
+                        {error && <p className={errorText}>{error}</p>}
                     </div>
                     <div className="mt-6">
                         <button type="submit" className={submitButton} disabled={loading}>

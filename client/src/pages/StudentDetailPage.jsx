@@ -82,9 +82,10 @@ const StudentDetailPage = () => {
     if (error) return <p className="text-center text-red-500 mt-8">{error}</p>;
     if (!student) return <p className="text-center text-lg mt-8">Student not found.</p>;
 
-    const isAdmin = currentUser?.role === 'admin';
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'staff';
     const isHomeroomTeacher = currentUser?.role === 'teacher' && currentUser.homeroomGrade === student.gradeLevel;
 
+    console.log(isAdmin)
     // --- Tailwind CSS classes ---
     const sectionWrapper = "bg-white p-6 rounded-lg shadow-md mb-8";
     const sectionTitle = "text-xl font-bold text-gray-800";
@@ -116,7 +117,7 @@ const StudentDetailPage = () => {
                             <p className="text-gray-500 mt-1">Health: {student.healthStatus}</p>
                         </div>
                     </div>
-                    {isAdmin || isHomeroomTeacher && (
+                    {(isAdmin || isHomeroomTeacher) && (
                         <div className="flex gap-2 mt-4 sm:mt-0">
                             <Link to={`/students/edit/${student._id}`} className={yellowButton}>Edit Info</Link>
                             <button onClick={handleStudentDelete} className={redButton}>Delete Student</button>

@@ -5,7 +5,7 @@ import assessmentTypeService from '../services/assessmentTypeService';
 import analyticsService from '../services/analyticsService';
 import authService from '../services/authService';
 import userService from '../services/userService';
-
+import {Link} from 'react-router-dom'
 // --- Reusable Stat Card Component ---
 const StatCard = ({ title, value, unit = '', colorClass = 'text-gray-900' }) => (
   <div className="bg-white p-4 rounded-lg shadow text-center border">
@@ -92,6 +92,7 @@ const AnalyticsPage = () => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
       <h2 className="text-2xl font-bold text-gray-800">Assessment Analysis</h2>
+      <Link to="/allsubjectAnalysis">Get One Grade Assessement in one</Link>
 
       {/* Selection Controls */}
       <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-4 gap-4 items-end">

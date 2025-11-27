@@ -7,6 +7,10 @@ const getBySubject = (subjectId,semester) => {
     return api.get(API_URL, { params: { subjectId, semester } });
 };
 
+const getAllAssessments = ()=>{
+    return api.get(`${API_URL}/all`)
+}
+
 const create = (data) => {
     return api.post(API_URL, data);
 };
@@ -21,6 +25,7 @@ const remove = (id) => {
 
 export default {
     getBySubject,
+    getAllAssessments,
     create,
     update,
     remove

@@ -37,7 +37,7 @@ exports.authorize = (...roles) => {
 
 // It checks if a user is an admin OR a teacher assigned to the requested subject.
 exports.isTeacherForSubject = (req, res, next) => {
-    if (req.user.role === 'admin') {
+    if (req.user.role === 'admin' || req.user.role === 'staff') {
         return next();
     }
     
@@ -68,7 +68,7 @@ exports.isHomeroomTeacherOrAdmin = (req, res, next) => {
 
     const { role, homeroomGrade } = req.user;
 
-    if (role === 'admin') {
+    if (role === 'admin'|| role === 'staff') {
         return next();
     }
 
@@ -79,7 +79,7 @@ exports.isHomeroomTeacherOrAdmin = (req, res, next) => {
     return res.status(403).json({ message: 'Forbidden: You are not the homeroom teacher for this grade.' });
 };
 exports.isHomeroomTeacherForStudent = async (req, res, next) => {
-    if (req.user.role === 'admin') {
+    if (req.user.role === 'admin'||req.user.role === 'staff') {
         return next();
     }
 
@@ -144,7 +144,7 @@ exports.canViewStudentData = async (req, res, next) => {
                 }
                 req.user = user;
 
-                if (user.role === 'admin') {
+                if (user.role === 'admin'||user.role === 'admin') {
                     return next();
                 }
 
@@ -198,7 +198,7 @@ exports.authorizeAnalytics = async (req, res, next) => {
         // Step 2: Check the user's role and permissions
         const user = req.user; // Get the user from the 'protect' middleware
         
-        if (user.role === 'admin') {
+        if (user.role === 'admin'||user.role === 'staff') {
             return next();
         }
 
