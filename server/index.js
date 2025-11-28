@@ -118,6 +118,42 @@ app.post('/api/admin/cleanup-grades', async (req, res) => {
   }
 });
 
+// 2. Fix all grades
+async function recalcAllGrades() {
+    try {
+        const grades = await Grade.find();
+
+        console.log(`Found ${grades.length} grades.`);
+
+        for (const grade of grades) {
+            // safety: ensure assessments exists
+            const assessments = grade.assessments || [];
+
+            // sum all scores
+            const newFinal = assessments.reduce(
+                (sum, a) => sum + (a.score || 0),
+                0
+            );
+
+            grade.finalScore = newFinal;
+            await grade.save();
+
+            console.log(
+                `Updated grade ${grade._id}: finalScore = ${newFinal}`
+            );
+        }
+
+        console.log("All grades recalculated successfully.");
+        process.exit();
+
+    } catch (err) {
+        console.error(err);
+        process.exit(1);
+    }
+}
+
+recalcAllGrades();
+
 // --- Server start ---
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
