@@ -85,7 +85,6 @@ const StudentDetailPage = () => {
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'staff';
     const isHomeroomTeacher = currentUser?.role === 'teacher' && currentUser.homeroomGrade === student.gradeLevel;
 
-    console.log(isAdmin)
     // --- Tailwind CSS classes ---
     const sectionWrapper = "bg-white p-6 rounded-lg shadow-md mb-8";
     const sectionTitle = "text-xl font-bold text-gray-800";

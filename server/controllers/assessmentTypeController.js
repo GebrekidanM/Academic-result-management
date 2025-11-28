@@ -52,8 +52,10 @@ exports.createAssessmentType = async (req, res) => {
 };
 
 exports.getAllAssessments = async (req,res)=>{
+  const {year,semester} = req.query;
+
   try{
-    const assessmentTypes = await AssessmentType.find({year:2018}).select('name').select('month')
+    const assessmentTypes = await AssessmentType.find({year,semester}).select('name').select('month')
       if(assessmentTypes){
         return res.status(202).json(assessmentTypes) 
       }

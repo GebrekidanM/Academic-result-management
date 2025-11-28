@@ -7,8 +7,8 @@ const getBySubject = (subjectId,semester) => {
     return api.get(API_URL, { params: { subjectId, semester } });
 };
 
-const getAllAssessments = ()=>{
-    return api.get(`${API_URL}/all`)
+const getAllAssessments = (year,semester)=>{
+    return api.get(`${API_URL}/all`,{params:{year,semester}})
 }
 
 const create = (data) => {

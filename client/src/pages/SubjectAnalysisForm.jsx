@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useEffect } from "react";
 import assessmentTypeService from "../services/assessmentTypeService";
+import { useNavigate } from "react-router-dom";
 //get this year
 const ThisYear = ()=>{
     const date = new Date().getFullYear();
@@ -14,43 +15,32 @@ const ThisYear = ()=>{
 }
 
 function SubjectAnalysisForm() {
+  const Navigate = useNavigate()
   const [gradeLevel, setGradeLevel] = useState("");
-  const [assessmentType, setAssessmentType] = useState(null);
-  const [assessment,setAssessment] = useState({
-    name:'',
-    month:''
-  })
+  const [semester,setSemester] = useState('First Semester')
   const [year, setYear] = useState(ThisYear());
-  
-  useEffect(()=>{
-    const getAllAss = async ()=>{
-        const res = await assessmentTypeService.getAllAssessments()
+  const [error,setError] = useState(null)
 
-        setAssessmentType(res.data)
-    }
-    getAllAss()
-  },[])
-  
-  console.log(assessment)
-
-  const handleGenerate = (e) => {
+  const handleGenerate = async (e) => {
     e.preventDefault();
-    console.log({
-      gradeLevel,
-      assessmentType,
-      year,
-    });
-
-    
-    // axios.post("/api/analysis/generate", { gradeLevel, assessmentType, year })
+    setError(null)
+    try {
+        const res = await assessmentTypeService.getAllAssessments(year,semester)
+        if(res?.data.length > 0){
+          Navigate('/subject-analysis', { state: { assessmentTypes: res.data, gradeLevel, year, semester } });
+        }else{
+          setError("No Assessment type is for this requirement!")
+        }
+    } catch (error) {
+      setError(error.message)      
+    }
   };
 
-  const inputStyle =
-    "w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400";
+  const inputStyle = "w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400";
 
   return (
     <div className="max-w-xl mx-auto bg-white shadow p-6 rounded-lg mt-10">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">
+      <h1 className="text-2xl text-center text-pink-600 font-bold mb-6 text-gray-800">
         Subject Analysis Generator
       </h1>
 
@@ -71,31 +61,12 @@ function SubjectAnalysisForm() {
           /> 
         </div>
 
-        {/* Insert Assessment Type */}
         <div>
-          
-          <select
-              name="assessmentType"
-              className={inputStyle}
-              onChange={(e) => {
-                  const selected = assessmentType.find(a => a._id === e.target.value);
-                  if (selected) {
-                      setAssessment({
-                          name: selected.name,
-                          month: selected.month
-                      });
-                  }
-              }}
-            >
-              <option value="">Select assessment type</option>
-
-              {assessmentType?.map(as => (
-                <option value={as._id} key={as._id}>
-                  {as.name} - {as.month}
-                </option>
-              ))}
-            </select>
-
+          <label className="block font-semibold mb-1 text-gray-700">Semester</label>
+          <select name="semester" className={inputStyle} onChange={(e)=>setSemester(e.target.value)}>
+            <option value="First Semester">First Semester</option>
+            <option value="Second Semester">Second Semester</option>
+          </select>
         </div>
 
         {/* Year */}
@@ -110,6 +81,7 @@ function SubjectAnalysisForm() {
             required
           />
         </div>
+        {error && <p className="text-red-600 text-center">{error}</p>}
 
         {/* Generate Button */}
         <button

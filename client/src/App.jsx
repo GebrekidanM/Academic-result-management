@@ -49,6 +49,7 @@ import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
 import UserProfileEditPage from './pages/UserProfileEditPage';
 import SubjectAnalysisForm from './pages/SubjectAnalysisForm';
+import SubjectAnalysisDetail from './pages/SubjectAnalysisDetail';
 
 function App() {
   const [isOpen,setIsOpen] = useState(false)
@@ -76,6 +77,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
+            <Route path='/subject-analysis' element={<SubjectAnalysisDetail/>}/>
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/students" element={<StudentListPage />} />
             <Route path="/students/:id" element={<StudentDetailPage />} />
