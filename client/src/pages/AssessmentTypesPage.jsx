@@ -247,6 +247,8 @@ const AssessmentTypesPage = () => {
                 placeholder="Year"
                 className="border p-2 rounded"
               />
+              {error && selectedSubject && <p className="text-red-500 mt-4 text-center">{error}</p>}
+
               <button
                 type="submit"
                 disabled={saving}
@@ -298,7 +300,6 @@ const AssessmentTypesPage = () => {
         </>
       )}
 
-      {error && selectedSubject && <p className="text-red-500 mt-4">{error}</p>}
     </div>
   );
 };

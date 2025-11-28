@@ -44,6 +44,6 @@ const assessmentTypeSchema = new mongoose.Schema({
     timestamps: true
 });
 
-assessmentTypeSchema.index({ name: 1, subject: 1, gradeLevel: 1, month: 1, semester: 1 }, { unique: true });
+assessmentTypeSchema.index({ name: 1, subject: 1, gradeLevel: 1, semester: 1 }, { unique: true });
 
 module.exports = mongoose.model('AssessmentType', assessmentTypeSchema);

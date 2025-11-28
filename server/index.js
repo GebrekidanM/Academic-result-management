@@ -34,44 +34,7 @@ app.use('/api/delete-password', require('./deletePassword'));
 const Grade = require('./models/Grade');
 const AssessmentType = require('./models/AssessmentType');
 
-// --- Admin utility to clean duplicate assessments ---
-app.post('/api/admin/clean-duplicates', async (req, res) => {
-  try {
-    const grades = await Grade.find({});
-    for (const grade of grades) {
-      const seen = new Map();
-      const cleaned = [];
 
-      for (const assessment of grade.assessments) {
-        const id = assessment.assessmentType.toString();
-        if (!seen.has(id)) seen.set(id, assessment);
-        else seen.set(id, assessment); // keep latest
-      }
-
-      grade.assessments = Array.from(seen.values());
-      grade.finalScore = grade.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
-      await grade.save();
-    }
-
-    res.json({ message: '✅ Duplicate assessments cleaned successfully!' });
-  } catch (error) {
-    console.error(error);
-    
-    res.status(500).json({ message: 'Server error cleaning duplicates.' });
-  }
-})
-
-//to delete grades with out assessment types
-
-app.post('/api/admin/removegrade', async (req, res) => {
-  try {
-    const result = await Grade.deleteMany({ assessments: { $size: 0 } });
-    res.json({ message: `✅ Deleted ${result.deletedCount} grades without assessments.` });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error deleting grades.' });
-  }
-})
 // --- Default admin seeding ---
 const seedAdminUser = async () => {
   try {

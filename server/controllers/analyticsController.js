@@ -133,3 +133,15 @@ exports.getAssessmentAnalysis = async (req, res) => {
   }
 };
 
+    
+exports.aGradeAnalysis = async (req,res)=>{
+  const {assessment} = req.params;
+  try {
+    const grades = await Grade.find({})
+    grades.map(grade=>console.log(grade))
+
+  } catch (error) {
+    
+  }
+}
+

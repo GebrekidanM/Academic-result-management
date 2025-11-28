@@ -110,9 +110,9 @@ const GradeSheetPage = () => {
 
   // --- Save Grade Sheet ---
   const handleSave = async () => {
-  if (saveDisabled) return; // prevent double-clicks
+  if (saveDisabled) return;
 
-  setSaveDisabled(true); // disable the button immediately
+  setSaveDisabled(true);
 
   const scoresPayload = Object.keys(scores)
     .filter(id => scores[id] !== '' && scores[id] !== null)
@@ -130,6 +130,7 @@ const GradeSheetPage = () => {
     if (navigator.onLine) {
       await gradeService.saveGradeSheet(payload);
       alert('Grades saved successfully!');
+      setSaveDisabled(false)
     } else {
       await saveOfflineGrade(payload);
       alert('No internet: grades saved offline ✅');

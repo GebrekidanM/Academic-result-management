@@ -5,7 +5,12 @@ const getAnalysis = (selectedAssessment,selectedGrade) => {
         params: { selectedAssessment ,selectedGrade }
     });
 };
+const aGradeAnalysis = (assessment) =>{
+    return api.get(`analytics/aGradeAnalysis/${assessment}`)
+}
+
 
 export default {
-    getAnalysis
+    getAnalysis,
+    aGradeAnalysis
 };

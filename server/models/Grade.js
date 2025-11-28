@@ -33,7 +33,7 @@ const gradeSchema = new mongoose.Schema({
         enum: ['First Semester', 'Second Semester'],
         required: true
     },
-    assessments: [assessmentSchema], 
+    assessments: [assessmentSchema],
     finalScore: {
         type: Number,
         required: true,

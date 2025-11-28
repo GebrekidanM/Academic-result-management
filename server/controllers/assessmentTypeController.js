@@ -55,9 +55,12 @@ exports.getAllAssessments = async (req,res)=>{
   const {year,semester} = req.query;
 
   try{
-    const assessmentTypes = await AssessmentType.find({year,semester}).select('name').select('month')
+    const assessmentTypes = await AssessmentType.find({year,semester}).select('name')
       if(assessmentTypes){
-        return res.status(202).json(assessmentTypes) 
+        const uniqueAssessment = Array.from(
+          new Map(assessmentTypes.map(ass=>[ass.name,ass])).values()
+        )
+        return res.status(202).json(uniqueAssessment) 
       }
   }catch(error){
     res.status(500).json({'message':"server error"})
