@@ -71,65 +71,18 @@ app.get('/api/admin/grades-no-assessments', async (req, res) => {
 });
 
 
-app.post('/api/admin/cleanup-grades', async (req, res) => {
-  try {
-    const subjectId = "68ecd038c55e3e676b7e4e59"; // the subject ID you provided
-
-    // 1. Load all valid AssessmentType IDs
-    const validAssessmentTypes = await AssessmentType.find({}, '_id');
-    const validIds = new Set(validAssessmentTypes.map(a => a._id.toString()));
-
-    // 2. Get all grades for the subject
-    const grades = await Grade.find({ subject: subjectId });
-
-    const updatedGrades = [];
-
-    // 3. Iterate and clean
-    for (let grade of grades) {
-      let originalFinalScore = grade.finalScore;
-      let updated = false;
-
-      const validAssessments = [];
-      for (let assessment of grade.assessments) {
-        if (validIds.has(assessment.assessmentType.toString())) {
-          validAssessments.push(assessment);
-        } else {
-          // AssessmentType deleted → subtract its score
-          grade.finalScore -= assessment.score;
-          updated = true;
-        }
-      }
-
-      if (updated) {
-        grade.assessments = validAssessments;
-        await grade.save();
-        updatedGrades.push({
-          gradeId: grade._id,
-          oldFinalScore: originalFinalScore,
-          newFinalScore: grade.finalScore
-        });
-      }
-    }
-
-    res.json({ message: 'Cleanup completed for subject.', updatedGrades });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error during grade cleanup.' });
-  }
-});
-
-// 2. Fix all grades
-app.post('/api/admin/recalculate',async (req,res)=> {
+app.post('/api/admin/recalculate', async (req, res) => {
     try {
-        const grades = await Grade.find({subject:"Spoken"});
+        const grades = await Grade.find();  // include everything
 
         console.log(`Found ${grades.length} grades.`);
 
+        let updatedCount = 0;
+
         for (const grade of grades) {
-            // safety: ensure assessments exists
+
             const assessments = grade.assessments || [];
 
-            // sum all scores
             const newFinal = assessments.reduce(
                 (sum, a) => sum + (a.score || 0),
                 0
@@ -137,17 +90,24 @@ app.post('/api/admin/recalculate',async (req,res)=> {
 
             grade.finalScore = newFinal;
             await grade.save();
+
+            updatedCount++;
         }
 
-        console.log("All grades recalculated successfully.");
-        process.exit();
+        return res.status(200).json({
+            success: true,
+            message: "All grades recalculated successfully.",
+            updated: updatedCount
+        });
 
     } catch (err) {
-        console.error(err);
-        process.exit(1);
+        console.error("Recalculation failed:", err);
+        return res.status(500).json({
+            success: false,
+            message: "Server error during recalculation."
+        });
     }
-}
-)
+});
 
 // --- Server start ---
 const PORT = process.env.PORT || 5001;
