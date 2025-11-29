@@ -121,7 +121,7 @@ app.post('/api/admin/cleanup-grades', async (req, res) => {
 // 2. Fix all grades
 app.post('/api/admin/recalculate',async (req,res)=> {
     try {
-        const grades = await Grade.find();
+        const grades = await Grade.find({subject:"Spoken"});
 
         console.log(`Found ${grades.length} grades.`);
 
