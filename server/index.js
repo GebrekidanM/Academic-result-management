@@ -119,7 +119,7 @@ app.post('/api/admin/cleanup-grades', async (req, res) => {
 });
 
 // 2. Fix all grades
-async function recalcAllGrades() {
+api.post('api/admin/recalculate',async (req,res)=> {
     try {
         const grades = await Grade.find();
 
@@ -151,7 +151,7 @@ async function recalcAllGrades() {
         process.exit(1);
     }
 }
-
+)
 
 // --- Server start ---
 const PORT = process.env.PORT || 5001;
