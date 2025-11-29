@@ -36,7 +36,7 @@ exports.getGradesByStudent = async (req, res) => {
 
     const grades = await Grade.find({ student: studentId })
       .populate('subject', 'name gradeLevel')
-      .populate('assessments.assessmentType', 'name totalMarks');
+      .populate('assessments.assessmentType', 'name totalMarks month');
 
     if (!grades.length) return res.status(200).json({ success: true, data: [] });
 

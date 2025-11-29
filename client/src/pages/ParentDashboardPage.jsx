@@ -61,16 +61,30 @@ console.log(grades)
     return (
         <div>
             {/* --- Main Info Card --- */}
-            <div className={card}>
-                <h2 className={title}>{student?.fullName}</h2>
-                <div className={grid}>
-                    <div><p className={infoLabel}>Student ID:</p><p className={infoValue}>{student?.studentId}</p></div>
-                    <div><p className={infoLabel}>Grade Level:</p><p className={infoValue}>{student?.gradeLevel}</p></div>
-                </div>
-                <div className="mt-6 text-center">
-                    <Link to={`/students/${student?._id}/report`} className={buttonLink}>
-                        View & Print Full Report Card
-                    </Link>
+            <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6 bg-white p-4 rounded-lg shadow">
+                <img
+                    src={student.imageUrl}
+                    alt={student.fullName}
+                    className="w-30 h-30 rounded-full object-cover"
+                />
+                <div>
+                    <h2 className="text-2xl font-bold">{student.fullName}</h2>
+                    <div className="flex flex-wrap gap-6">
+                        <div className='text-lg'>
+                            <p className="text-gray-600">Student ID: {student.studentId}</p>
+                            <p className="text-gray-600">Grade Level: {student.gradeLevel}</p>
+                            <p className="text-gray-600">Gender: {student.gender}</p>
+                            <p className="text-gray-600">Date of Birth: {student.dateOfBirth || "N/A"}</p>
+                            <p className="text-gray-600">Promotion Status: {student.promotionStatus}</p>
+                            <p className="text-gray-600">Mother Name: {student.motherName}</p>
+                        </div>
+                        <div className='text-lg'>
+                            <p className="text-gray-600">Mother Contact: {student.motherContact || "N/A"}</p>
+                            <p className="text-gray-600">Father Contact: {student.fatherContact || "N/A"}</p>
+                            <p className="text-gray-600">Health Status: {student.healthStatus}</p>
+                            <p className="text-gray-600">Overall Average: {student.overallAverage}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -79,24 +93,67 @@ console.log(grades)
                 <h3 className={sectionTitle}>Recent Academic Performance</h3>
                 {grades.length > 0 ? (
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className={tableHeader}>Subject</th>
-                                    <th className={tableHeader}>Semester</th>
-                                    <th className={tableHeader}>Final Score</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {grades.map(grade => (
-                                    <tr key={grade._id}>
-                                        <td className={`${tableCell} font-medium text-gray-900`}>{grade.subject.name}</td>
-                                        <td className={`${tableCell} text-gray-500`}>{grade.semester}</td>
-                                        <td className={`${tableCell} text-gray-800 font-bold`}>{grade.finalScore}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                        <tr>
+                            <th className={tableHeader}>Subject</th>
+                            <th className={tableHeader}>Semester</th>
+                            <th className={tableHeader}>Month</th>
+                            <th className={tableHeader}>Assessment</th>
+                            <th className={tableHeader}>Score</th>
+                            <th className={tableHeader}>Total Marks</th>
+                            <th className={tableHeader}>Final Score</th>
+                        </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                        {grades.map((grade) =>
+                            grade.assessments.map((assess, index) => (
+                            <tr key={`${grade._id}-${index}`}>
+                                {index === 0 && (
+                                <>
+                                    <td
+                                        className={`${tableCell} font-medium text-gray-900`}
+                                        rowSpan={grade.assessments.length}
+                                    >
+                                        {grade.subject.name}
+                                    </td>
+                                    <td className={`${tableCell} text-gray-500`} rowSpan={grade.assessments.length}>
+                                        {grade.semester}
+                                    </td>
+                                    <td className={`${tableCell} text-gray-500`} rowSpan={grade.assessments.length}>
+                                        {assess.assessmentType.month}
+                                    </td>
+                                    
+                                </>
+                                )}
+                                
+                                <td className={`${tableCell} text-gray-700`}>{assess.assessmentType.name}</td>
+                                <td className={`${tableCell} text-gray-800 font-semibold`}>{assess.score}</td>
+                                <td className={`${tableCell} text-gray-500`}>{assess.assessmentType.totalMarks}</td>
+                                {index === 0 && (
+                                    <td className={`${tableCell} text-gray-800 font-bold`} rowSpan={grade.assessments.length}>
+                                        {grade.finalScore}
+                                    </td>
+                                )}
+                            </tr>
+                            ))
+                        )}
+                        </tbody>
+                        <tfoot className="bg-gray-100">
+                            <tr>
+                                <td className={`${tableCell} font-bold`} colSpan={6}>Total</td>
+                                <td className={`${tableCell} font-bold`}>
+                                    {grades.reduce((sum, g) => sum + g.finalScore, 0)}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td className={`${tableCell} font-bold`} colSpan={6}>Average</td>
+                                <td className={`${tableCell} font-bold`}>
+                                    {(grades.reduce((sum, g) => sum + g.finalScore, 0) / grades.length).toFixed(2)}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
                     </div>
                 ) : (
                     <p className="text-gray-500">No academic grades have been recorded yet.</p>
