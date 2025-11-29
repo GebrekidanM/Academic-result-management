@@ -119,7 +119,7 @@ app.post('/api/admin/cleanup-grades', async (req, res) => {
 });
 
 // 2. Fix all grades
-app.post('api/admin/recalculate',async (req,res)=> {
+app.post('/api/admin/recalculate',async (req,res)=> {
     try {
         const grades = await Grade.find();
 
