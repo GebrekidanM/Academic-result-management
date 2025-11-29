@@ -205,10 +205,15 @@ exports.saveGradeSheet = async (req, res) => {
         );
       }
 
-      // Recalculate total after update
       const gradeDoc = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear });
       if (gradeDoc) {
-        const totalScore = gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+        const validAssessments = gradeDoc.assessments.filter(a => a.score !== null && a.score !== undefined);
+
+        const totalScore = validAssessments.reduce(
+          (sum, a) => sum + (a.score || 0),
+          0
+        );
+
         gradeDoc.finalScore = totalScore;
         await gradeDoc.save();
       }
