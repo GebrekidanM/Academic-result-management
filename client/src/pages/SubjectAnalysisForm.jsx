@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useEffect } from "react";
 import assessmentTypeService from "../services/assessmentTypeService";
 import { useNavigate } from "react-router-dom";
 //get this year

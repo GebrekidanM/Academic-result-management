@@ -229,3 +229,14 @@ exports.saveGradeSheet = async (req, res) => {
 };
 
 
+exports.aGradeAnalysis = async(req,res)=>{
+    const {assessment} = req.params
+    console.log(assessment)
+    try {
+      
+    } catch (error) {
+      
+    }
+    res.status(200).json()
+}
+

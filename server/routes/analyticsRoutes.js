@@ -4,8 +4,7 @@ const router = express.Router();
 const { getAssessmentAnalysis ,aGradeAnalysis} = require('../controllers/analyticsController');
 const { 
     protect, 
-    authorizeAnalytics,
-    
+    authorizeAnalytics,    
 } = require('../middleware/authMiddleware');
 
 // The definitive, secure route for getting assessment analysis

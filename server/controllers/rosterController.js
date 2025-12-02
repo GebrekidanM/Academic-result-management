@@ -177,7 +177,6 @@ exports.generateSubjectRoster = async (req, res) => {
     
     try {
         const allAssessmentsForSubject = await AssessmentType.find({ subject: subjectId, gradeLevel ,year:academicYear}).sort({ name: 1 });
-        console.log(allAssessmentsForSubject)
         if (allAssessmentsForSubject.length === 0) {
             return res.status(404).json({ message: 'No assessment types found for this subject.' });
         }

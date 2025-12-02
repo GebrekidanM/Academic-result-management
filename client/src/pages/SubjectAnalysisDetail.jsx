@@ -7,12 +7,13 @@ function SubjectAnalysisDetail() {
     const [assessment, setAssessment] = useState("")
     const [analysis,setAnalysis] = useState(null)
 
-    console.log(analysis)
     
     useEffect(()=>{
         const QueryAssessmentAnalysis = async ()=>{
-            const res = await analyticsService.aGradeAnalysis(assessment)
+            const res = await analyticsService.aGradeAnalysis({assessment,academicYear:state.year})
+            console.log(res)
             if(res.data){
+                console.log("res",res.data)
                 setAnalysis(res.data)
             }
         }
@@ -27,14 +28,15 @@ function SubjectAnalysisDetail() {
 
   return (
     <div>
-        <div>
+        <div className=''>
+            <label className='mb-3'>Select Assessment: </label>
+
             <select className={inputStyle} onChange={(e)=>setAssessment(e.target.value)}>
                 <option value="">Select Assessment</option>
                 {state?.assessmentTypes && state.assessmentTypes.map(as=>(
                     <option key={as._id} value={as.name}>{as.name}</option>
                 ))}
             </select>
-            
         </div>
     </div>
   )

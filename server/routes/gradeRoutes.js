@@ -1,7 +1,7 @@
 // backend/routes/gradeRoutes.js
 const express = require('express');
 const router = express.Router();
-const {getGradesByStudent, getGradeById, updateGrade, deleteGrade, getGradeSheet, saveGradeSheet, getGradeDetails } = require('../controllers/gradeController');
+const {getGradesByStudent, getGradeById, updateGrade, deleteGrade, getGradeSheet, saveGradeSheet, getGradeDetails ,aGradeAnalysis} = require('../controllers/gradeController');
 const { protect, isTeacherForSubject, canViewStudentData} = require('../middleware/authMiddleware');
 
 
@@ -16,5 +16,6 @@ router.route('/:id')
     .get(protect, getGradeById)
     .put(protect, updateGrade)
     .delete(protect, deleteGrade);
+router.get('/aGradeAnalysis/:assessment',aGradeAnalysis)
 
 module.exports = router;

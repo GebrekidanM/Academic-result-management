@@ -1,13 +1,10 @@
-// backend/controllers/rankController.js
 const Grade = require('../models/Grade');
-const mongoose = require('mongoose');
 
 // @desc    Calculate a student's rank in their class for a semester
 // @route   GET /api/ranks/class-rank/:studentId?academicYear=...&semester=...
 exports.getStudentRank = async (req, res) => {
     const { studentId } = req.params;
     const { academicYear, semester, gradeLevel } = req.query;
-
     if (!academicYear || !semester || !gradeLevel) {
         return res.status(400).json({ message: 'Year, semester, and grade level are required' });
     }
@@ -17,12 +14,7 @@ exports.getStudentRank = async (req, res) => {
         const rankedList = await Grade.aggregate([
             // Stage 1: Match only the grades for the specific year, semester, and grade level
             {
-                $lookup: {
-                    from: 'students',
-                    localField: 'student',
-                    foreignField: '_id',
-                    as: 'studentInfo'
-                }
+                $lookup: {from: 'students', localField: 'student', foreignField: '_id', as: 'studentInfo'}
             },
             { $unwind: '$studentInfo' },
             {
@@ -44,6 +36,7 @@ exports.getStudentRank = async (req, res) => {
                 $sort: { averageScore: -1 }
             }
         ]);
+        console.log(rankedList)//it replies [] why?
 
         // Stage 4: Find the index (position) of our target student in the sorted list
         const studentRank = rankedList.findIndex(

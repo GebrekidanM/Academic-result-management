@@ -1,10 +1,9 @@
-// src/pages/ParentDashboardPage.js
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import studentAuthService from '../services/studentAuthService';
 import studentService from '../services/studentService';
 import gradeService from '../services/gradeService';
 import behavioralReportService from '../services/behavioralReportService';
+import rankService from '../services/rankService';
 
 const ParentDashboardPage = () => {
     // --- State Management ---
@@ -13,7 +12,7 @@ const ParentDashboardPage = () => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-console.log(grades)
+    const [rankBySemester, setRankBySemester] = useState({});
 
     // --- Data Fetching (remains the same) ---
     useEffect(() => {
@@ -43,14 +42,28 @@ console.log(grades)
         }
     }, []);
 
+    const fetchSemesterRank = async (sem) => {
+        if (!student) return;
+
+        const academicYear = student.studentId.split('-')[1];
+
+        const res = await rankService.getRank({
+            studentId: student._id,
+            academicYear,
+            semester: sem,
+            gradeLevel: student.gradeLevel
+        });
+
+        setRankBySemester(prev => ({
+            ...prev,
+            [sem]: res.data.rank
+        }));
+    };
+
+
     // --- Style Strings ---
     const card = "bg-white p-6 rounded-lg shadow-md mb-6";
-    const title = "text-2xl font-bold text-gray-800 mb-4 border-b pb-2";
     const sectionTitle = "text-xl font-bold text-gray-700 mb-3";
-    const grid = "grid grid-cols-1 md:grid-cols-2 gap-4";
-    const infoLabel = "font-bold text-gray-600";
-    const infoValue = "text-gray-800";
-    const buttonLink = "inline-block bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 text-center";
     const tableHeader = "px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider";
     const tableCell = "px-4 py-2 whitespace-nowrap text-sm";
 
@@ -61,104 +74,155 @@ console.log(grades)
     return (
         <div>
             {/* --- Main Info Card --- */}
-            <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6 bg-white p-4 rounded-lg shadow">
-                <img
-                    src={student.imageUrl}
-                    alt={student.fullName}
-                    className="w-30 h-30 rounded-full object-cover"
-                />
-                <div>
-                    <h2 className="text-2xl font-bold">{student.fullName}</h2>
-                    <div className="flex flex-wrap gap-6">
-                        <div className='text-lg'>
-                            <p className="text-gray-600">Student ID: {student.studentId}</p>
-                            <p className="text-gray-600">Grade Level: {student.gradeLevel}</p>
-                            <p className="text-gray-600">Gender: {student.gender}</p>
-                            <p className="text-gray-600">Date of Birth: {student.dateOfBirth || "N/A"}</p>
-                            <p className="text-gray-600">Promotion Status: {student.promotionStatus}</p>
-                            <p className="text-gray-600">Mother Name: {student.motherName}</p>
+            <div className="bg-white w-full md:w-1/3 p-6 rounded-xl shadow-md mb-4">
+                {/* Name */}
+                <h2 className="text-2xl font-bold text-center mb-4">
+                    {student.fullName}
+                </h2>
+
+                <div className="flex flex-col items-center gap-6">
+
+                    {/* Profile Image */}
+                    <img
+                        src={student.imageUrl}
+                        alt={student.fullName}
+                        className="w-32 h-32 rounded-xl object-cover shadow"
+                    />
+
+                    {/* Info Section */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+
+                        <div className="space-y-2 text-gray-700">
+                            <p><span className="font-medium">Student ID:</span> {student.studentId}</p>
+                            <p><span className="font-medium">Grade Level:</span> {student.gradeLevel}</p>
+                            <p><span className="font-medium">Gender:</span> {student.gender}</p>
+                            <p><span className="font-medium">Date of Birth:</span> {student.dateOfBirth || "N/A"}</p>
+                            <p><span className="font-medium">Promotion Status:</span> {student.promotionStatus}</p>
                         </div>
-                        <div className='text-lg'>
-                            <p className="text-gray-600">Mother Contact: {student.motherContact || "N/A"}</p>
-                            <p className="text-gray-600">Father Contact: {student.fatherContact || "N/A"}</p>
-                            <p className="text-gray-600">Health Status: {student.healthStatus}</p>
-                            <p className="text-gray-600">Overall Average: {student.overallAverage}</p>
+
+                        <div className="space-y-2 text-gray-700">
+                            <p><span className="font-medium">Mother Name:</span> {student.motherName}</p>
+                            <p><span className="font-medium">Mother Contact:</span> {student.motherContact || "N/A"}</p>
+                            <p><span className="font-medium">Father Contact:</span> {student.fatherContact || "N/A"}</p>
+                            <p><span className="font-medium">Health Status:</span> {student.healthStatus}</p>
+                            <p><span className="font-medium">Overall Average:</span> {student.overallAverage}</p>
                         </div>
+
                     </div>
                 </div>
             </div>
 
             {/* --- NEW: Academic Grades Summary --- */}
             <div className={card}>
-                <h3 className={sectionTitle}>Recent Academic Performance</h3>
+                <h3 className={sectionTitle}>Academic Performance by Semester</h3>
                 {grades.length > 0 ? (
-                    <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                        <tr>
-                            <th className={tableHeader}>Subject</th>
-                            <th className={tableHeader}>Semester</th>
-                            <th className={tableHeader}>Month</th>
-                            <th className={tableHeader}>Assessment</th>
-                            <th className={tableHeader}>Score</th>
-                            <th className={tableHeader}>Total Marks</th>
-                            <th className={tableHeader}>Final Score</th>
-                        </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                        {grades.map((grade) =>
-                            grade.assessments.map((assess, index) => (
-                            <tr key={`${grade._id}-${index}`}>
-                                {index === 0 && (
-                                <>
-                                    <td
-                                        className={`${tableCell} font-medium text-gray-900`}
-                                        rowSpan={grade.assessments.length}
-                                    >
-                                        {grade.subject.name}
-                                    </td>
-                                    <td className={`${tableCell} text-gray-500`} rowSpan={grade.assessments.length}>
-                                        {grade.semester}
-                                    </td>
-                                    <td className={`${tableCell} text-gray-500`} rowSpan={grade.assessments.length}>
-                                        {assess.assessmentType.month}
-                                    </td>
-                                    
-                                </>
-                                )}
-                                
-                                <td className={`${tableCell} text-gray-700`}>{assess.assessmentType.name}</td>
-                                <td className={`${tableCell} text-gray-800 font-semibold`}>{assess.score}</td>
-                                <td className={`${tableCell} text-gray-500`}>{assess.assessmentType.totalMarks}</td>
-                                {index === 0 && (
-                                    <td className={`${tableCell} text-gray-800 font-bold`} rowSpan={grade.assessments.length}>
-                                        {grade.finalScore}
-                                    </td>
-                                )}
-                            </tr>
-                            ))
-                        )}
-                        </tbody>
-                        <tfoot className="bg-gray-100">
-                            <tr>
-                                <td className={`${tableCell} font-bold`} colSpan={6}>Total</td>
-                                <td className={`${tableCell} font-bold`}>
-                                    {grades.reduce((sum, g) => sum + g.finalScore, 0)}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td className={`${tableCell} font-bold`} colSpan={6}>Average</td>
-                                <td className={`${tableCell} font-bold`}>
-                                    {(grades.reduce((sum, g) => sum + g.finalScore, 0) / grades.length).toFixed(2)}
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                    <div className="space-y-10">
+
+                        {/* Group by Semester */}
+                        {Object.entries(
+                            grades.reduce((acc, g) => {
+                                acc[g.semester] = acc[g.semester] || [];
+                                acc[g.semester].push(g);
+                                return acc;
+                            }, {})
+                        ).map(([semester, semesterGrades]) => {
+
+                            // Fetch rank once
+                            if (!rankBySemester[semester]) {
+                                fetchSemesterRank(semester);
+                            }
+
+                            const total = semesterGrades.reduce((sum, g) => sum + g.finalScore, 0);
+                            const avg = (total / semesterGrades.length).toFixed(2);
+
+                            return (
+                                <div key={semester} className="rounded-xl shadow bg-white p-4">
+                                    <h4 className="text-xl font-bold mb-3 text-gray-700">
+                                        Semester {semester}
+                                    </h4>
+
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className={tableHeader}>Subject</th>
+                                                    <th className={tableHeader}>Month</th>
+                                                    <th className={tableHeader}>Assessment</th>
+                                                    <th className={tableHeader}>Score</th>
+                                                    <th className={tableHeader}>Total Marks</th>
+                                                    <th className={tableHeader}>Final Score</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {semesterGrades.map((grade) =>
+                                                    grade.assessments.map((assess, index) => (
+                                                        <tr key={`${grade._id}-${index}`}>
+                                                            {index === 0 && (
+                                                                <>
+                                                                    <td
+                                                                        className={`${tableCell} font-medium text-gray-900`}
+                                                                        rowSpan={grade.assessments.length}
+                                                                    >
+                                                                        {grade.subject.name}
+                                                                    </td>
+
+                                                                    <td
+                                                                        className={`${tableCell} text-gray-500`}
+                                                                        rowSpan={grade.assessments.length}
+                                                                    >
+                                                                        {assess.assessmentType.month}
+                                                                    </td>
+                                                                </>
+                                                            )}
+
+                                                            <td className={tableCell}>{assess.assessmentType.name}</td>
+                                                            <td className={tableCell}>{assess.score}</td>
+                                                            <td className={tableCell}>{assess.assessmentType.totalMarks}</td>
+
+                                                            {index === 0 && (
+                                                                <td
+                                                                    className={`${tableCell} font-bold`}
+                                                                    rowSpan={grade.assessments.length}
+                                                                >
+                                                                    {grade.finalScore}
+                                                                </td>
+                                                            )}
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+
+                                            <tfoot className="bg-gray-100">
+                                                <tr>
+                                                    <td className={`${tableCell} font-bold`} colSpan={5}>Total</td>
+                                                    <td className={`${tableCell} font-bold`}>{total}</td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td className={`${tableCell} font-bold`} colSpan={5}>Average</td>
+                                                    <td className={`${tableCell} font-bold`}>{avg}</td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td className={`${tableCell} font-bold`} colSpan={5}>Rank</td>
+                                                    <td className={`${tableCell} font-bold`}>
+                                                        {rankBySemester[semester] || "Loading..."}
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
                     </div>
                 ) : (
                     <p className="text-gray-500">No academic grades have been recorded yet.</p>
                 )}
             </div>
+
 
             {/* --- NEW: Behavioral Reports Summary --- */}
             <div className={card}>
