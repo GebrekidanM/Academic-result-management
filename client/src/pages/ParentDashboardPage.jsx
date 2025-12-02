@@ -105,7 +105,7 @@ const ParentDashboardPage = () => {
                             <p><span className="font-medium">Mother Contact:</span> {student.motherContact || "N/A"}</p>
                             <p><span className="font-medium">Father Contact:</span> {student.fatherContact || "N/A"}</p>
                             <p><span className="font-medium">Health Status:</span> {student.healthStatus}</p>
-                            <p><span className="font-medium">Overall Average:</span> {student.overallAverage}</p>
+                            <p><span className="font-medium">Overall Average:</span> {student.overallAverage.toFixed(2)}</p>
                         </div>
 
                     </div>
@@ -148,9 +148,9 @@ const ParentDashboardPage = () => {
                                                     <th className={tableHeader}>Subject</th>
                                                     <th className={tableHeader}>Month</th>
                                                     <th className={tableHeader}>Assessment</th>
-                                                    <th className={tableHeader}>Score</th>
-                                                    <th className={tableHeader}>Total Marks</th>
-                                                    <th className={tableHeader}>Final Score</th>
+                                                    <th className={tableHeader}>ውጤት</th>
+                                                    <th className={tableHeader}>ከ</th>
+                                                    <th className={tableHeader}>ድምር</th>
                                                 </tr>
                                             </thead>
 
