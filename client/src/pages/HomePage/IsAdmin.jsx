@@ -11,9 +11,9 @@ function IsAdmin({currentUser,profileData,stats}) {
                     <Link to="/profile" state={{profileData}} className="text-gray-400 italic pb-2 font-bold">Change Username and password</Link>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <StatCard title="Active Students" value={stats?.students ?? '...'} icon={'🎓'} />
-                    <StatCard title="Teachers" value={stats?.teachers ?? '...'} icon={'👩‍🏫'} />
-                    <StatCard title="Subjects" value={stats?.subjects ?? '...'} icon={'📚'} />
+                    <StatCard title="Active Students" link={'/students'} value={stats?.students ?? '...'} icon={'🎓'} />
+                    <StatCard title="Teachers" link="/teachers" value={stats?.teachers ?? '...'} icon={'👩‍🏫'} />
+                    <StatCard title="Subjects" link={"/subjects"} value={stats?.subjects ?? '...'} icon={'📚'} />
                 </div>
                 <div>
                     <h3 className="text-xl font-bold text-gray-700 mb-4">Quick Actions</h3>

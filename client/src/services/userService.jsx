@@ -44,6 +44,9 @@ const updateOtherProfile = (data) =>{
 const deleteUser = (id) => {
     return api.delete(`/users/${id}`, getAuthConfig());
 }
+const getTeachers = ()=>{
+    return api.get('/users/teachers',getAuthConfig())
+}
 
 export default {
     getProfile,
@@ -53,5 +56,6 @@ export default {
     update,
     uploadUsers,
     updateProfile,
-    updateOtherProfile
+    updateOtherProfile,
+    getTeachers
 };
