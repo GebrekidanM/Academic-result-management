@@ -39,7 +39,6 @@ exports.getGradesByStudent = async (req, res) => {
       .populate('assessments.assessmentType', 'name totalMarks month');
 
     if (!grades.length) return res.status(200).json({ success: true, data: [] });
-
     // Role-based filtering
     if (req.user?.role === 'teacher' && req.user.subjectsTaught) {
       const teacherSubjectIds = new Set(

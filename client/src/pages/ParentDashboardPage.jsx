@@ -132,8 +132,16 @@ const ParentDashboardPage = () => {
                                 fetchSemesterRank(semester);
                             }
 
-                            const total = semesterGrades.reduce((sum, g) => sum + g.finalScore, 0);
-                            const avg = (total / semesterGrades.length).toFixed(2);
+                            const total = semesterGrades.reduce(
+                                (sum, g) => sum + g.finalScore, 0
+                            );
+
+                            const totalMarksPossible = semesterGrades.reduce(
+                                (sum, g) => sum + g.assessments.reduce((s, a) => s + a.assessmentType.totalMarks, 0), 0
+                            );
+
+                            const avg = ((total / totalMarksPossible) * 100).toFixed(2);
+
 
                             return (
                                 <div key={semester} className="rounded-xl shadow bg-white p-4">
@@ -148,64 +156,87 @@ const ParentDashboardPage = () => {
                                                     <th className={tableHeader}>Subject</th>
                                                     <th className={tableHeader}>Month</th>
                                                     <th className={tableHeader}>Assessment</th>
-                                                    <th className={tableHeader}>ውጤት</th>
-                                                    <th className={tableHeader}>ከ</th>
-                                                    <th className={tableHeader}>ድምር</th>
+                                                    <th className={tableHeader}>Result</th>
+                                                    <th className={tableHeader}>Total</th>
                                                 </tr>
                                             </thead>
 
                                             <tbody className="bg-white divide-y divide-gray-200">
-                                                {semesterGrades.map((grade) =>
-                                                    grade.assessments.map((assess, index) => (
-                                                        <tr key={`${grade._id}-${index}`}>
-                                                            {index === 0 && (
-                                                                <>
-                                                                    <td
-                                                                        className={`${tableCell} font-medium text-gray-900`}
-                                                                        rowSpan={grade.assessments.length}
-                                                                    >
-                                                                        {grade.subject.name}
-                                                                    </td>
+                                                {semesterGrades.map((grade) => {
+                                                    
+                                                    // Group assessments by month
+                                                    const assessmentsByMonth = grade.assessments.reduce((acc, assess) => {
+                                                        const month = assess.assessmentType.month;
+                                                        acc[month] = acc[month] || [];
+                                                        acc[month].push(assess);
+                                                        return acc;
+                                                    }, {});
+                                                    
+                                                    const sumOutOf = grade.assessments.reduce((sum,asses)=>{
+                                                        return sum + asses.assessmentType.totalMarks
+                                                    },0)
+                                                                                                       
 
-                                                                    <td
-                                                                        className={`${tableCell} text-gray-500`}
-                                                                        rowSpan={grade.assessments.length}
-                                                                    >
-                                                                        {assess.assessmentType.month}
-                                                                    </td>
-                                                                </>
-                                                            )}
+                                                    return (
+                                                        Object.entries(assessmentsByMonth).map(([month, monthAssessments], monthIndex) => (
+                                                            monthAssessments.map((assess, index) => (
+                                                                <tr key={`${grade._id}-${month}-${index}`}>
 
-                                                            <td className={tableCell}>{assess.assessmentType.name}</td>
-                                                            <td className={tableCell}>{assess.score}</td>
-                                                            <td className={tableCell}>{assess.assessmentType.totalMarks}</td>
+                                                                    {/* Show subject once for all months */}
+                                                                    {monthIndex === 0 && index === 0 && (
+                                                                        <td
+                                                                            className={`${tableCell} font-medium text-gray-900`}
+                                                                            rowSpan={grade.assessments.length}
+                                                                        >
+                                                                            {grade.subject.name}
+                                                                        </td>
+                                                                    )}
 
-                                                            {index === 0 && (
-                                                                <td
-                                                                    className={`${tableCell} font-bold`}
-                                                                    rowSpan={grade.assessments.length}
-                                                                >
-                                                                    {grade.finalScore}
-                                                                </td>
-                                                            )}
-                                                        </tr>
-                                                    ))
-                                                )}
+                                                                    {/* Show Month once per month group */}
+                                                                    {index === 0 && (
+                                                                        <td
+                                                                            className={`${tableCell} text-gray-500`}
+                                                                            rowSpan={monthAssessments.length}
+                                                                        >
+                                                                            {month}
+                                                                        </td>
+                                                                    )}
+
+                                                                    {/* Assessment name */}
+                                                                    <td className={tableCell}>{assess.assessmentType.name}</td>
+
+                                                                    {/* Student Score */}
+                                                                    <td className={tableCell}>{assess.score}/{assess.assessmentType.totalMarks}</td>
+
+                                                                    {monthIndex === 0 && index === 0 && (
+                                                                        <td
+                                                                            className={`${tableCell} font-bold`}
+                                                                            rowSpan={grade.assessments.length}
+                                                                        >
+                                                                            {grade.finalScore}/{sumOutOf}
+                                                                        </td>
+                                                                    )}
+
+                                                                </tr>
+                                                            ))
+                                                        ))
+                                                    );
+                                                })}
                                             </tbody>
 
                                             <tfoot className="bg-gray-100">
                                                 <tr>
-                                                    <td className={`${tableCell} font-bold`} colSpan={5}>Total</td>
-                                                    <td className={`${tableCell} font-bold`}>{total}</td>
+                                                    <td className={`${tableCell} font-bold`} colSpan={4}>Total</td>
+                                                    <td className={`${tableCell} font-bold`}>{total}/{totalMarksPossible}</td>
                                                 </tr>
 
                                                 <tr>
-                                                    <td className={`${tableCell} font-bold`} colSpan={5}>Average</td>
+                                                    <td className={`${tableCell} font-bold`} colSpan={4}>Average</td>
                                                     <td className={`${tableCell} font-bold`}>{avg}</td>
                                                 </tr>
 
                                                 <tr>
-                                                    <td className={`${tableCell} font-bold`} colSpan={5}>Rank</td>
+                                                    <td className={`${tableCell} font-bold`} colSpan={4}>Rank</td>
                                                     <td className={`${tableCell} font-bold`}>
                                                         {rankBySemester[semester] || "Loading..."}
                                                     </td>

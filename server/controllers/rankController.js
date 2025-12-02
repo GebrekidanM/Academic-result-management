@@ -36,7 +36,6 @@ exports.getStudentRank = async (req, res) => {
                 $sort: { averageScore: -1 }
             }
         ]);
-        console.log(rankedList)//it replies [] why?
 
         // Stage 4: Find the index (position) of our target student in the sorted list
         const studentRank = rankedList.findIndex(
