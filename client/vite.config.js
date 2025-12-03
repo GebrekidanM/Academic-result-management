@@ -25,20 +25,35 @@ export default defineConfig({
         ]
       },
       workbox: {
+  skipWaiting: true,
+  clientsClaim: true,
 
-        skipWaiting: true,
-        clientsClaim: true,
+  globPatterns: ['**/*.{js,css,png,svg,ico,json}'],
 
-        globPatterns: ['**/*.{js,css,png,svg,ico,json}'],
-        runtimeCaching: [
-          { urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i, handler: 'CacheFirst', options: { cacheName: 'google-fonts' } },
-          { urlPattern: /.*\.html$/i, handler: 'NetworkFirst', options: { cacheName: 'pages-cache' } },
-          { urlPattern: /.*\.(?:js|css)$/i, handler: 'StaleWhileRevalidate', options: { cacheName: 'assets-cache' } },
-          { urlPattern: /\/api\/.*$/, handler: 'NetworkFirst', options: { cacheName: 'api-cache' } },
-          { urlPattern: /.*\.(?:png|jpg|jpeg|svg|gif|ico)$/i, handler: 'CacheFirst', options: { cacheName: 'images-cache' } }
-        ]
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
+      handler: 'CacheFirst',
+      options: { cacheName: 'google-fonts' }
+    },
+    {
+      urlPattern: /.*\.(?:js|css)$/i,
+      handler: 'StaleWhileRevalidate',
+      options: { cacheName: 'assets-cache' }
+    },
+    {
+      urlPattern: /\/api\/.*$/,
+      handler: 'NetworkFirst',
+      options: { cacheName: 'api-cache' }
+    },
+    {
+      urlPattern: /.*\.(?:png|jpg|jpeg|svg|gif|ico)$/i,
+      handler: 'CacheFirst',
+      options: { cacheName: 'images-cache' }
+    }
+  ]
+}
 
-      }
     })
   ]
 });
