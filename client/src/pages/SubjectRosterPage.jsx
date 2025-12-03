@@ -135,13 +135,14 @@ const SubjectRosterPage = () => {
                             {rosterData && <button type="button" onClick={handlePrint} className={buttonSecondary}>Print</button>}
                         </div>
                     </form>
-                    <Link 
+                    
+                    {currentUser && <Link 
                         to={"/manage-assessments"}
                         state={{ subject: gradeLevel }}
                         className="text-sm text-gray-600 mt-2 p-2 hover:text-pink-500 inline-block"
                     >
                         &rarr; Go to Manage Assessments
-                    </Link>
+                    </Link>}
                 </div>
 
                 {error && <p className="text-red-500 text-center mt-4">{error}</p>}

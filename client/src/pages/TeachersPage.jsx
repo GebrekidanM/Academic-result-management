@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import userService from '../services/userService';
+import { Link } from 'react-router-dom';
 
 function TeachersPage() {
     const [teachers, setTeachers] = useState(null);
@@ -41,17 +42,26 @@ function TeachersPage() {
 
                         {/* Subjects */}
                         {teacher.subjectsTaught && teacher.subjectsTaught.length > 0 && (
-                            <div className="mt-3">
-                                <h3 className="text-gray-700 font-medium mb-1">Subjects Taught:</h3>
-                                <ul className="list-disc list-inside space-y-1">
-                                    {teacher.subjectsTaught.map(subject => (
-                                        <li key={subject.subject._id} className="text-gray-600">
-                                            {subject.subject.name}
-                                        </li>
-                                    ))}
-                                </ul>
+                        <div className="mt-4">
+                            <h3 className="text-gray-700 font-medium mb-2">Subjects Taught:</h3>
+                            
+                            <div className="flex flex-wrap gap-2">
+                                {teacher.subjectsTaught.map((item) => (
+                                    // Only render if subject exists
+                                    item.subject ? (
+                                        <Link 
+                                            to={'/subject-roster'}
+                                            state={{ subjectId: item.subject._id }}
+                                            key={item.subject._id} 
+                                            className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium"
+                                        >
+                                            {item.subject.name}
+                                        </Link>
+                                    ) : null
+                                ))}
                             </div>
-                        )}
+                        </div>
+                    )}
                     </div>
                 ))}
 

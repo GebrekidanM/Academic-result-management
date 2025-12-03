@@ -164,6 +164,12 @@ exports.getGradeSheet = async (req, res) => {
 exports.saveGradeSheet = async (req, res) => {
   const { assessmentTypeId, subjectId, semester, academicYear, scores } = req.body;
 
+  const ethiopianYear = parseInt(new Intl.DateTimeFormat('en-US', { calendar: 'ethiopic', year: 'numeric' }).format(new Date()).replace(/\D/g, ''));
+
+  if(academicYear > ethiopianYear){
+    return res.status(400).json({message: "You did not inter the correct year."})
+  }
+
   if (!assessmentTypeId || !subjectId || !Array.isArray(scores)) {
     return res.status(400).json({ message: 'Missing required data.' });
   }

@@ -11,6 +11,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
+        
         name: 'Freedom SMS',
         short_name: 'Freedom',
         description: 'School management system',
@@ -24,7 +25,11 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,ico,json}'],
+
+        skipWaiting: true,
+        clientsClaim: true,
+
+        globPatterns: ['**/*.{js,css,png,svg,ico,json}'],
         runtimeCaching: [
           { urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i, handler: 'CacheFirst', options: { cacheName: 'google-fonts' } },
           { urlPattern: /.*\.html$/i, handler: 'NetworkFirst', options: { cacheName: 'pages-cache' } },

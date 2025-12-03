@@ -33,6 +33,12 @@ exports.createAssessmentType = async (req, res) => {
     // 1. Add 'semester' to the destructured body
     const { name, totalMarks, subjectId, gradeLevel, month, semester, year } = req.body;
     try {
+        
+        const ethiopianYear = parseInt(new Intl.DateTimeFormat('en-US', { calendar: 'ethiopic', year: 'numeric' }).format(new Date()).replace(/\D/g, ''));
+        if(year > ethiopianYear){
+            return res.status(400).json({message: "You did not inter the correct year."})
+        }
+        
         const subject = await Subject.findById(subjectId);
         if (!subject) return res.status(404).json({ message: 'Subject not found' });
         
