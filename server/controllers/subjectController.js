@@ -1,6 +1,7 @@
 const Subject = require('../models/Subject');
 const xlsx = require('xlsx');
 const fs = require('fs'); 
+const Grade = require('../models/Grade');
 
 // @desc    Create a new subject
 // @route   POST /api/subjects
@@ -65,9 +66,12 @@ exports.deleteSubject = async (req, res) => {
         if (!subject) {
             return res.status(404).json({ success: false, message: 'Subject not found' });
         }
-        await subject.deleteOne();
-        res.status(200).json({ success: true, message: 'Subject deleted successfully' });
+         await subject.deleteOne()
+         await Grade.deleteMany({ subject: req.params.id });
+
+        res.status(200).json({ success: true, message: 'Subject and associated grades deleted successfully' });
     } catch (error) {
+        console.log(error)
         res.status(500).json({ success: false, message: error.message });
     }
 };

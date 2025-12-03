@@ -33,8 +33,8 @@ exports.generateRoster = async (req, res) => {
             const subjectAverages = {};
 
             subjects.forEach(subject => {
-                const grade1st = grades.find(g => g.student.equals(student._id) && g.subject._id.equals(subject._id) && g.semester === 'First Semester');
-                const grade2nd = grades.find(g => g.student.equals(student._id) && g.subject._id.equals(subject._id) && g.semester === 'Second Semester');
+                const grade1st = grades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject?._id) && g.semester === 'First Semester');
+                const grade2nd = grades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject?._id) && g.semester === 'Second Semester');
                 
                 const score1 = grade1st ? grade1st.finalScore : null;
                 const score2 = grade2nd ? grade2nd.finalScore : null;
@@ -159,6 +159,7 @@ exports.generateRoster = async (req, res) => {
             }
         );
     } catch (error) {
+        console.log(error)
         res.status(500).json({ message: 'Server error while generating roster' });
     }
 };
