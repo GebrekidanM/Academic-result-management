@@ -193,20 +193,26 @@ const ParentDashboardPage = () => {
                                                                     )}
 
                                                                     {/* Show Month once per month group */}
-                                                                    {index === 0 && (
-                                                                        <td
-                                                                            className={`${tableCell} text-gray-500`}
-                                                                            rowSpan={monthAssessments.length}
-                                                                        >
-                                                                            {month}
-                                                                        </td>
+                                                                    {month && (
+                                                                        <>
+                                                                            {index === 0 && (
+                                                                            <td
+                                                                                className={`${tableCell} text-gray-500`}
+                                                                                rowSpan={monthAssessments.length}
+                                                                            >
+                                                                                {month}
+                                                                            </td>
+                                                                            )}
+
+                                                                            {/* Assessment name */}
+                                                                            <td className={tableCell}>{assess.assessmentType?.name}</td>
+
+                                                                            {/* Student Score */}
+                                                                            <td className={tableCell}>
+                                                                            {assess.score}/{assess.assessmentType?.totalMarks}
+                                                                            </td>
+                                                                        </>
                                                                     )}
-
-                                                                    {/* Assessment name */}
-                                                                    {<td className={tableCell}>{assess.assessmentType?.name}</td>}
-
-                                                                    {/* Student Score */}
-                                                                    <td className={tableCell}>{assess.score}/{assess.assessmentType?.totalMarks}</td>
 
                                                                     {monthIndex === 0 && index === 0 && (
                                                                         <td
