@@ -246,8 +246,7 @@ exports.aGradeAnalysis = async(req,res)=>{
 }
 
 // Remove null assessmentTypes and recalc finalScore
-// @desc Clean broken assessments (assessmentType = null) and recalc finalScore
-// @route POST /api/grades/clean
+// @route GET /api/grades/clean
 exports.cleanBrokenAssessments = async (req, res) => {
   try {
     // Find all grades where any assessmentType is null
