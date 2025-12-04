@@ -40,18 +40,15 @@ exports.getGradesByStudent = async (req, res) => {
 
     if (!grades.length) return res.status(200).json({ success: true, data: [] });
 
-    // --- FIX START: Filter out "Ghost" Assessments ---
-    // If assessmentType is null (because it was deleted), remove that entry from the list
-    // so the frontend doesn't crash trying to read '.name' of null.
-    grades = grades.map(grade => {
-      // We convert toObject() to modify the return data safely without saving to DB yet
-      const gradeObj = grade.toObject(); 
-      if (gradeObj.assessments) {
-        gradeObj.assessments = gradeObj.assessments.filter(a => a.assessmentType !== null);
-      }
-      return gradeObj;
-    });
-    // --- FIX END ---
+    grades = grades
+      .filter(g => g.subject !== null)
+      .map(grade => {
+        const gradeObj = grade.toObject();
+        if (gradeObj.assessments) {
+          gradeObj.assessments = gradeObj.assessments.filter(a => a.assessmentType !== null);
+        }
+        return gradeObj;
+      });
 
     // Role-based filtering
     if (req.user?.role === 'teacher' && req.user.subjectsTaught) {
@@ -259,62 +256,60 @@ exports.aGradeAnalysis = async(req,res)=>{
     res.status(200).json()
 }
 
-// Remove null assessmentTypes (Ghost IDs) and recalc finalScore
 // @route GET /api/grades/clean
 exports.cleanBrokenAssessments = async (req, res) => {
   try {
-    console.log("Starting Grade Cleanup...");
+    console.log("Starting System Cleanup...");
     
-    // 1. We must fetch ALL grades. We cannot filter by null in the query 
-    // because the DB still has the old ObjectId.
-    const allGrades = await Grade.find().populate('assessments.assessmentType');
+    // 1. Fetch ALL grades and populate BOTH subject and assessments
+    const allGrades = await Grade.find()
+      .populate('assessments.assessmentType')
+      .populate('subject'); // <--- Essential to detect null subjects
 
-    let cleanedCount = 0;
+    let gradesDeleted = 0;
+    let gradesFixed = 0;
 
     for (const grade of allGrades) {
-      const originalCount = grade.assessments.length;
+      // --- CASE 1: The Subject is Deleted (Fixes your new problem) ---
+      if (!grade.subject) {
+        console.log(`CRITICAL: Grade ${grade._id} has no subject. Deleting entire document.`);
+        await grade.deleteOne(); 
+        gradesDeleted++;
+        continue; // Skip the rest, this document is gone
+      }
 
-      // 2. Filter: Keep only assessments where assessmentType is NOT null
-      // (Mongoose sets it to null if the populated ID is missing in the other collection)
+      // --- CASE 2: An Assessment is Deleted (Fixes the previous problem) ---
+      const originalCount = grade.assessments.length;
+      
+      // Keep only assessments where assessmentType is NOT null
       const validAssessments = grade.assessments.filter(a => a.assessmentType !== null);
 
-      // 3. If we found ghost data (length changed)
       if (validAssessments.length < originalCount) {
-        
         grade.assessments = validAssessments;
 
-        // 4. Recalculate Final Score safely
-        const totalScore = grade.assessments.reduce(
+        // Recalculate Final Score
+        grade.finalScore = grade.assessments.reduce(
           (sum, a) => sum + (a.score || 0),
           0
         );
-        grade.finalScore = totalScore;
 
-        // 5. Save the corrected document
         await grade.save();
-        cleanedCount++;
-        console.log(`Fixed Grade ID: ${grade._id} | New Score: ${totalScore}`);
+        gradesFixed++;
+        console.log(`Fixed Grade ${grade._id}: Removed broken assessments.`);
       }
     }
 
-    if (cleanedCount === 0) {
-      return res.status(200).json({
-        success: true,
-        message: "System scanned: No broken assessments found."
-      });
+    if (gradesDeleted === 0 && gradesFixed === 0) {
+      return res.status(200).json({ success: true, message: "System is clean. No errors found." });
     }
 
     res.status(200).json({
       success: true,
-      cleaned: cleanedCount,
-      message: `Successfully cleaned ${cleanedCount} grade sheets.`
+      message: `Cleanup Complete: Deleted ${gradesDeleted} invalid grade sheets (missing subjects) and fixed ${gradesFixed} grade sheets (missing assessments).`
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    console.error("Cleanup Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
