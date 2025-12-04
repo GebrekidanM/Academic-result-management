@@ -245,3 +245,44 @@ exports.aGradeAnalysis = async(req,res)=>{
     res.status(200).json()
 }
 
+// Remove null assessmentTypes and recalc finalScore
+exports.cleanBrokenAssessments = async (req, res) => {
+  try {
+    // 1. Find all Grades where assessmentType is null
+    const grades = await Grade.find({
+      "assessments.assessmentType": null
+    });
+
+    if (grades.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No broken assessments found."
+      });
+    }
+
+    for (let grade of grades) {
+      // 2. Remove all broken assessments
+      grade.assessments = grade.assessments.filter(a => a.assessmentType !== null);
+
+      // 3. Recalculate finalScore after removal
+      const totalScore = grade.assessments.reduce(
+        (sum, a) => sum + (a.score || 0),
+        0
+      );
+
+      grade.finalScore = totalScore;
+
+      // 4. Save updated grade
+      await grade.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Broken assessments removed and final scores recalculated.",
+      cleanedRecords: grades.length
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
