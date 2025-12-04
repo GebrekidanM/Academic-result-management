@@ -34,11 +34,25 @@ exports.getGradesByStudent = async (req, res) => {
   try {
     const studentId = req.params.id || req.params.studentId;
 
-    const grades = await Grade.find({ student: studentId })
+    let grades = await Grade.find({ student: studentId })
       .populate('subject', 'name gradeLevel')
       .populate('assessments.assessmentType', 'name totalMarks month');
 
     if (!grades.length) return res.status(200).json({ success: true, data: [] });
+
+    // --- FIX START: Filter out "Ghost" Assessments ---
+    // If assessmentType is null (because it was deleted), remove that entry from the list
+    // so the frontend doesn't crash trying to read '.name' of null.
+    grades = grades.map(grade => {
+      // We convert toObject() to modify the return data safely without saving to DB yet
+      const gradeObj = grade.toObject(); 
+      if (gradeObj.assessments) {
+        gradeObj.assessments = gradeObj.assessments.filter(a => a.assessmentType !== null);
+      }
+      return gradeObj;
+    });
+    // --- FIX END ---
+
     // Role-based filtering
     if (req.user?.role === 'teacher' && req.user.subjectsTaught) {
       const teacherSubjectIds = new Set(
@@ -245,49 +259,59 @@ exports.aGradeAnalysis = async(req,res)=>{
     res.status(200).json()
 }
 
-// Remove null assessmentTypes and recalc finalScore
+// Remove null assessmentTypes (Ghost IDs) and recalc finalScore
 // @route GET /api/grades/clean
 exports.cleanBrokenAssessments = async (req, res) => {
   try {
-    // Find all grades where any assessmentType is null
-    const brokenGrades = await Grade.find({
-      "assessments.assessmentType": null
-    });
-
-    console.log(brokenGrades)
-    if (brokenGrades.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: "No broken assessments found."
-      });
-    }
+    console.log("Starting Grade Cleanup...");
+    
+    // 1. We must fetch ALL grades. We cannot filter by null in the query 
+    // because the DB still has the old ObjectId.
+    const allGrades = await Grade.find().populate('assessments.assessmentType');
 
     let cleanedCount = 0;
 
-    for (const grade of brokenGrades) {
-      // Remove assessments with null assessmentType
-      grade.assessments = grade.assessments.filter(a => a.assessmentType !== null);
+    for (const grade of allGrades) {
+      const originalCount = grade.assessments.length;
 
-      // Recalculate finalScore
-      const totalScore = grade.assessments.reduce(
-        (sum, a) => sum + (a.score || 0),
-        0
-      );
+      // 2. Filter: Keep only assessments where assessmentType is NOT null
+      // (Mongoose sets it to null if the populated ID is missing in the other collection)
+      const validAssessments = grade.assessments.filter(a => a.assessmentType !== null);
 
-      grade.finalScore = totalScore;
+      // 3. If we found ghost data (length changed)
+      if (validAssessments.length < originalCount) {
+        
+        grade.assessments = validAssessments;
 
-      await grade.save();
-      cleanedCount++;
+        // 4. Recalculate Final Score safely
+        const totalScore = grade.assessments.reduce(
+          (sum, a) => sum + (a.score || 0),
+          0
+        );
+        grade.finalScore = totalScore;
+
+        // 5. Save the corrected document
+        await grade.save();
+        cleanedCount++;
+        console.log(`Fixed Grade ID: ${grade._id} | New Score: ${totalScore}`);
+      }
+    }
+
+    if (cleanedCount === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "System scanned: No broken assessments found."
+      });
     }
 
     res.status(200).json({
       success: true,
       cleaned: cleanedCount,
-      message: `${cleanedCount} grades cleaned successfully.`
+      message: `Successfully cleaned ${cleanedCount} grade sheets.`
     });
 
   } catch (error) {
-    console.log(error)
+    console.error(error);
     res.status(500).json({
       success: false,
       message: error.message
