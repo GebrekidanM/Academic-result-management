@@ -109,10 +109,6 @@ const LoginPage = () => {
                             {loading ? 'Logging in...' : 'Login'}
                         </button>
                     </div>
-                    <div className='text-center mt-3 text-neutral-900'>
-                        Are you a parent or student? <Link to="/parent-login" className='font-bold text-blue-500'>Login here</Link>
-                    </div>
-
                 </form>
             </div>
         </div>

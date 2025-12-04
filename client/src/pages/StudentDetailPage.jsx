@@ -78,6 +78,18 @@ const StudentDetailPage = () => {
         }
     };
 
+    const handleResetPassword = async (studentId) => {
+        try {
+            setError(null)
+            const res = await studentService.resetPassword(studentId);
+            alert(`${res.data.message}`)
+
+        } catch (error) {
+            setError(error.message)
+            
+        }
+    }
+
     if (loading) return <p className="text-center text-lg mt-8">Loading full student report...</p>;
     if (error) return <p className="text-center text-red-500 mt-8">{error}</p>;
     if (!student) return <p className="text-center text-lg mt-8">Student not found.</p>;
@@ -117,9 +129,10 @@ const StudentDetailPage = () => {
                         </div>
                     </div>
                     {(isAdmin || isHomeroomTeacher) && (
-                        <div className="flex gap-2 mt-4 sm:mt-0">
+                        <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap">
                             <Link to={`/students/edit/${student._id}`} className={yellowButton}>Edit Info</Link>
                             <button onClick={handleStudentDelete} className={redButton}>Delete Student</button>
+                            <button onClick={()=> handleResetPassword(student._id)} className={redButton} >Reset Password</button>
                         </div>
                     )}
                 </div>
@@ -150,7 +163,7 @@ const StudentDetailPage = () => {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {grades.map(grade => (
                                     <tr key={grade._id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-medium text-gray-900">{grade.subject.name}</td>
+                                        <td className="px-6 py-4 font-medium text-gray-900">{grade.subject?.name}</td>
                                         <td className="px-6 py-4 text-gray-500">{grade.semester}</td>
                                         <td className="px-6 py-4 text-gray-500">{grade.academicYear}</td>
                                         <td className="px-6 py-4 font-bold text-gray-800">{grade.finalScore}</td>

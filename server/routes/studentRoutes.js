@@ -5,7 +5,7 @@ const router = express.Router();
 const { 
     createStudent, getStudents, getStudentById,
     updateStudent, deleteStudent, bulkCreateStudents, 
-    uploadProfilePhoto
+    uploadProfilePhoto, resetPassword
 } = require('../controllers/studentController');
 
 
@@ -13,6 +13,8 @@ const { protect, authorize, canViewStudentData } = require('../middleware/authMi
 
 // Import the main multer instance we just created
 const upload = require('../middleware/upload');
+
+router.get('/resetpassword/:studentId',protect, resetPassword)
 
 // Standard JSON routes
 router.route('/')

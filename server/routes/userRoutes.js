@@ -11,7 +11,6 @@ router.route('/profile')
     .get(protect, getUserProfile)
     .put(protect, authorize('admin','staff'), updateUserProfile);
 router.get("/teachers",protect,authorize('admin','staff'),getTeachers)
-    
 router.put('/otherprofile/:id',protect,authorize('admin','staff'),updateOtherUserProfile)
 router.get('/', protect, authorize('admin','staff'), getUsers);
 router.put('/:id', protect, authorize('admin','staff'), updateUser);

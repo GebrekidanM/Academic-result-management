@@ -449,3 +449,49 @@ exports.bulkCreateStudents = async (req, res) => {
     }
 };
 
+exports.resetPassword = async (req,res)=>{
+        const _id = req.params.studentId;
+
+    try {
+        const student = await Student.findById(_id).select('+password');
+        if(!student){
+            return res.status(404).json({message:"No Student found with this ID"});
+        }
+        
+        const currentUser = req.user;
+
+        // Permission check
+        if (currentUser.role === 'teacher') {
+            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+                return res.status(403).json({ message: 'You are not authorized to reset this student\'s password.' });
+            }
+        } else if (currentUser.role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to reset student passwords.' });
+        }
+
+        
+        
+        // get the first name from the student
+        const firstName = getFirstName(student.fullName);
+        const today = new Date();
+        const gregorianYear = today.getFullYear();
+        const gregorianMonth = today.getMonth() + 1;
+        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
+        const password = `${firstName}@${currentYear}`
+        
+        if (!password || typeof password !== 'string' || password.trim().length < 6) {
+            return res.status(400).json({ message: 'Password is required and must be at least 6 characters long.' });
+        }
+
+        student.password = password;
+        student.isInitialPassword = true;
+
+
+        await student.save();
+
+        res.status(200).json({ success: true, message: 'Password reset successfully.' });
+        
+    } catch (error) {
+        res.status(500).json({message: error.message})
+    }
+}

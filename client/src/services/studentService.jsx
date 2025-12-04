@@ -56,8 +56,13 @@ const uploadPhoto = (studentId, file) => {
     });
 };
 
+const resetPassword = (studentId) => {
+    return api.get(`${API_URL}/resetpassword/${studentId}`)
+}
+
 // --- The final, complete export block ---
 export default {
+    resetPassword,
     getAllStudents,
     getStudentById,
     createStudent,
