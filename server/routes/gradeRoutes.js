@@ -19,5 +19,5 @@ router.route('/:id')
     .delete(protect, deleteGrade);
 router.get('/aGradeAnalysis/:assessment',aGradeAnalysis)
 
-router.post('/clean',cleanBrokenAssessments)
+router.get('/clean',cleanBrokenAssessments)
 module.exports = router;
