@@ -246,25 +246,29 @@ exports.aGradeAnalysis = async(req,res)=>{
 }
 
 // Remove null assessmentTypes and recalc finalScore
+// @desc Clean broken assessments (assessmentType = null) and recalc finalScore
+// @route POST /api/grades/clean
 exports.cleanBrokenAssessments = async (req, res) => {
   try {
-    // 1. Find all Grades where assessmentType is null
-    const grades = await Grade.find({
+    // Find all grades where any assessmentType is null
+    const brokenGrades = await Grade.find({
       "assessments.assessmentType": null
     });
 
-    if (grades.length === 0) {
+    if (brokenGrades.length === 0) {
       return res.status(200).json({
         success: true,
         message: "No broken assessments found."
       });
     }
 
-    for (let grade of grades) {
-      // 2. Remove all broken assessments
+    let cleanedCount = 0;
+
+    for (const grade of brokenGrades) {
+      // Remove assessments with null assessmentType
       grade.assessments = grade.assessments.filter(a => a.assessmentType !== null);
 
-      // 3. Recalculate finalScore after removal
+      // Recalculate finalScore
       const totalScore = grade.assessments.reduce(
         (sum, a) => sum + (a.score || 0),
         0
@@ -272,17 +276,20 @@ exports.cleanBrokenAssessments = async (req, res) => {
 
       grade.finalScore = totalScore;
 
-      // 4. Save updated grade
       await grade.save();
+      cleanedCount++;
     }
 
     res.status(200).json({
       success: true,
-      message: "Broken assessments removed and final scores recalculated.",
-      cleanedRecords: grades.length
+      cleaned: cleanedCount,
+      message: `${cleanedCount} grades cleaned successfully.`
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
