@@ -166,7 +166,7 @@ const ParentDashboardPage = () => {
                                                     
                                                     // Group assessments by month
                                                     const assessmentsByMonth = grade.assessments.reduce((acc, assess) => {
-                                                        const month = assess.assessmentType.month;
+                                                        const month = assess.assessmentType?.month;
                                                         acc[month] = acc[month] || [];
                                                         acc[month].push(assess);
                                                         return acc;
@@ -203,7 +203,7 @@ const ParentDashboardPage = () => {
                                                                     )}
 
                                                                     {/* Assessment name */}
-                                                                    <td className={tableCell}>{assess.assessmentType.name}</td>
+                                                                    {<td className={tableCell}>{assess.assessmentType?.name}</td>}
 
                                                                     {/* Student Score */}
                                                                     <td className={tableCell}>{assess.score}/{assess.assessmentType?.totalMarks}</td>
