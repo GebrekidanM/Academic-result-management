@@ -254,6 +254,7 @@ exports.cleanBrokenAssessments = async (req, res) => {
       "assessments.assessmentType": null
     });
 
+    console.log(brokenGrades)
     if (brokenGrades.length === 0) {
       return res.status(200).json({
         success: true,
@@ -286,6 +287,7 @@ exports.cleanBrokenAssessments = async (req, res) => {
     });
 
   } catch (error) {
+    console.log(error)
     res.status(500).json({
       success: false,
       message: error.message

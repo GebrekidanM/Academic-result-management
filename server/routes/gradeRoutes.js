@@ -4,6 +4,8 @@ const router = express.Router();
 const {getGradesByStudent, getGradeById,cleanBrokenAssessments , updateGrade, deleteGrade, getGradeSheet, saveGradeSheet, getGradeDetails ,aGradeAnalysis} = require('../controllers/gradeController');
 const { protect, canViewStudentData} = require('../middleware/authMiddleware');
 
+router.get('/clean',cleanBrokenAssessments)
+
 
 // THIS IS THE CRITICAL ROUTE. Make sure the path is correct.
 // Route to get all grades for a specific student. Any logged-in user can view this.
@@ -19,5 +21,4 @@ router.route('/:id')
     .delete(protect, deleteGrade);
 router.get('/aGradeAnalysis/:assessment',aGradeAnalysis)
 
-router.get('/clean',cleanBrokenAssessments)
 module.exports = router;
