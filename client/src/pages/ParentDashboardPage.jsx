@@ -137,7 +137,7 @@ const ParentDashboardPage = () => {
                             );
 
                             const totalMarksPossible = semesterGrades.reduce(
-                                (sum, g) => sum + g.assessments.reduce((s, a) => s + a.assessmentType.totalMarks, 0), 0
+                                (sum, g) => sum + g.assessments.reduce((s, a) => s + a.assessmentType?.totalMarks, 0), 0
                             );
 
                             const avg = ((total / totalMarksPossible) * 100).toFixed(2);
@@ -173,7 +173,7 @@ const ParentDashboardPage = () => {
                                                     }, {});
                                                     
                                                     const sumOutOf = grade.assessments.reduce((sum,asses)=>{
-                                                        return sum + asses.assessmentType.totalMarks
+                                                        return sum + asses.assessmentType?.totalMarks
                                                     },0)
                                                                                                        
 
@@ -206,7 +206,7 @@ const ParentDashboardPage = () => {
                                                                     <td className={tableCell}>{assess.assessmentType.name}</td>
 
                                                                     {/* Student Score */}
-                                                                    <td className={tableCell}>{assess.score}/{assess.assessmentType.totalMarks}</td>
+                                                                    <td className={tableCell}>{assess.score}/{assess.assessmentType?.totalMarks}</td>
 
                                                                     {monthIndex === 0 && index === 0 && (
                                                                         <td
