@@ -112,8 +112,9 @@ exports.deleteAssessmentType = async (req, res) => {
 
         // --- PERMISSION CHECK ---
         const isAdmin = req.user.role === 'admin';
-        const isAssignedTeacher = req.user.subjectsTaught.some(
-            assignment => assignment.subject.equals(assessmentType.subject)
+        // Check if user object and subjectsTaught exist to prevent crash
+        const isAssignedTeacher = req.user.subjectsTaught && req.user.subjectsTaught.some(
+            assignment => assignment.subject && assignment.subject.equals(assessmentType.subject)
         );
 
         if (!isAdmin && !isAssignedTeacher) {
@@ -123,45 +124,44 @@ exports.deleteAssessmentType = async (req, res) => {
         }
         // --- END PERMISSION CHECK ---
 
+        console.log(`Deleting Assessment Type: ${assessmentType.name} (${assessmentType._id})`);
 
-        // 1️⃣ Find all grades that HAVE this assessment type BEFORE deleting it
+        // 1️⃣ Find all grades that contain this assessment type
         const affectedGrades = await Grade.find({
             "assessments.assessmentType": assessmentType._id
         });
 
-
-        // 2️⃣ Remove the assessment type from all grades
-        await Grade.updateMany(
-            { "assessments.assessmentType": assessmentType._id },
-            { $pull: { assessments: { assessmentType: assessmentType._id } } }
-        );
-
-
-        // 3️⃣ Recalculate finalScore for each affected grade
+        // 2️⃣ Iterate, Remove, and Recalculate (No need for updateMany)
+        let gradesUpdated = 0;
+        
         for (const grade of affectedGrades) {
+            const originalLength = grade.assessments.length;
 
-            // Remove from grade object
+            // Secure Filter: Check if 'a.assessmentType' exists before calling .equals()
+            // This prevents crashes if you have "ghost" data (nulls) mixed in
             grade.assessments = grade.assessments.filter(
-                (a) => !a.assessmentType.equals(assessmentType._id)
+                (a) => a.assessmentType && !a.assessmentType.equals(assessmentType._id)
             );
 
-            // Recalculate final score
-            grade.finalScore = grade.assessments.reduce(
-                (sum, a) => sum + a.score,
-                0
-            );
+            // Only save if we actually removed something
+            if (grade.assessments.length < originalLength) {
+                // Recalculate final score based on remaining assessments
+                grade.finalScore = grade.assessments.reduce(
+                    (sum, a) => sum + (a.score || 0), // Handle missing scores safely
+                    0
+                );
 
-            await grade.save();
+                await grade.save();
+                gradesUpdated++;
+            }
         }
 
-
-        // 4️⃣ Delete the assessment type itself
+        // 3️⃣ Delete the assessment type itself
         await assessmentType.deleteOne();
-
 
         res.status(200).json({
             success: true,
-            message: 'Assessment type deleted and grades updated successfully'
+            message: `Assessment type deleted. Updated ${gradesUpdated} student grade sheets.`
         });
 
     } catch (error) {
@@ -169,4 +169,3 @@ exports.deleteAssessmentType = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
-

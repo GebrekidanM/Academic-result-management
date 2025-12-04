@@ -2,7 +2,7 @@ const Subject = require('../models/Subject');
 const xlsx = require('xlsx');
 const fs = require('fs'); 
 const Grade = require('../models/Grade');
-
+const AssessmentType = require('../models/AssessmentType')
 // @desc    Create a new subject
 // @route   POST /api/subjects
 exports.createSubject = async (req, res) => {
@@ -58,18 +58,34 @@ exports.updateSubject = async (req, res) => {
     }
 };
 
-// @desc    Delete a subject
+/// @desc    Delete a subject
 // @route   DELETE /api/subjects/:id
 exports.deleteSubject = async (req, res) => {
     try {
         const subject = await Subject.findById(req.params.id);
+        
         if (!subject) {
             return res.status(404).json({ success: false, message: 'Subject not found' });
         }
-         await subject.deleteOne()
-         await Grade.deleteMany({ subject: req.params.id });
 
-        res.status(200).json({ success: true, message: 'Subject and associated grades deleted successfully' });
+        // --- START OF CLEANUP ---
+        
+        // 1. Delete all Assessment Types for this subject
+        await AssessmentType.deleteMany({ subject: req.params.id });
+
+        // 2. Delete all Grades for this subject
+        await Grade.deleteMany({ subject: req.params.id });
+
+        // 3. Finally, delete the subject itself
+        await subject.deleteOne();
+        
+        // --- END OF CLEANUP ---
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Subject, associated Assessment Types, and Grades deleted successfully' 
+        });
+
     } catch (error) {
         console.log(error)
         res.status(500).json({ success: false, message: error.message });

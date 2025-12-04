@@ -138,8 +138,7 @@ exports.updateGrade = async (req, res) => {
   }
 };
 
-// @desc    Get grade sheet (students + scores for one assessment type)
-// @route   GET /api/grades/sheet?assessmentTypeId=
+// @desc    Get grade sheet
 exports.getGradeSheet = async (req, res) => {
   const { assessmentTypeId } = req.query;
   if (!assessmentTypeId) return res.status(400).json({ message: 'Assessment Type ID is required.' });
@@ -152,14 +151,20 @@ exports.getGradeSheet = async (req, res) => {
       .sort({ fullName: 1 })
       .select('fullName');
 
+    // Populate assessmentType to ensure we don't work with raw IDs causing type mismatches
     const grades = await Grade.find({
       student: { $in: students.map(s => s._id) },
       'assessments.assessmentType': assessmentTypeId
-    });
+    }).populate('assessments.assessmentType'); // <--- ADD POPULATE FOR SAFETY
 
     const result = students.map(student => {
       const grade = grades.find(g => g.student.equals(student._id));
-      const score = grade?.assessments.find(a => a.assessmentType.equals(assessmentTypeId))?.score ?? null;
+      
+      // --- FIX: Add Safe Check (a.assessmentType && ...) ---
+      const score = grade?.assessments.find(a => 
+          a.assessmentType && a.assessmentType._id.equals(assessmentTypeId)
+      )?.score ?? null;
+      
       return { _id: student._id, fullName: student.fullName, score };
     });
 
@@ -169,7 +174,6 @@ exports.getGradeSheet = async (req, res) => {
     res.status(500).json({ message: 'Server error fetching grade sheet.' });
   }
 };
-
 // @desc    Save or update multiple grades for one assessment
 // @route   POST /api/grades/sheet
 exports.saveGradeSheet = async (req, res) => {
