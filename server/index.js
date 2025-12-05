@@ -124,7 +124,7 @@ const startServer = async () => {
         await connectDB();
 
         // 2. Run Cleanup (Wait for it to finish!)
-        await fixDuplicatesSafely();
+        //await fixDuplicatesSafely();
 
         // 3. Seed Admin
         await seedAdminUser();

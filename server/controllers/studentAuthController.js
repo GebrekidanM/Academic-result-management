@@ -16,7 +16,6 @@ exports.loginStudent = async (req, res) => {
 
     try {
         const student = await Student.findOne({ studentId }).select('+password');
-        console.log(student)
 
         if (!student) {
             return res.status(401).json({ message: 'Invalid Student ID or password.' });
