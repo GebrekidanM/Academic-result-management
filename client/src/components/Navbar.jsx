@@ -38,7 +38,7 @@ const Navbar = ({isOpen, setIsOpen}) => {
     `${linkClasses} ${isActive ? activeLinkClasses : 'hover:bg-gray-700'}`;
 
   return (
-    <nav className="bg-gray-800 p-1 shadow-md sticky top-0 z-50">
+    <nav className="bg-gray-800 h-[5rem] p-1 shadow-md sticky top-0 z-50">
       <div className="container mx-auto flex items-center justify-between flex-wrap">
         
         {/* Logo */}

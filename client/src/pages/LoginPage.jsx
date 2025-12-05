@@ -1,6 +1,6 @@
 // src/pages/LoginPage.js
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate} from 'react-router-dom';
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService';
 
@@ -53,7 +53,7 @@ const LoginPage = () => {
     };
 
     // --- Tailwind CSS class strings for reusability ---
-    const cardContainer = "min-h-screen flex items-center justify-center bg-gray-100";
+    const cardContainer = "min-h-[100vh-5rem] flex items-center justify-center bg-gray-100";
     const formCard = "bg-white p-8 rounded-xl shadow-lg w-full max-w-md";
     const formTitle = "text-3xl font-bold text-center text-gray-800 mb-6";
     const inputGroup = "mb-4";
