@@ -55,76 +55,12 @@ const seedAdminUser = async () => {
   }
 };
 
-// --- DUPLICATE FIXER FUNCTION (Safe Version) ---
-const fixDuplicatesSafely = async () => {
-    try {
-        console.log("🔍 Checking for Student ID duplicates...");
-
-        // 1. Find duplicates
-        const duplicates = await Student.aggregate([
-            { $group: { _id: "$studentId", count: { $sum: 1 }, ids: { $push: "$_id" } } },
-            { $match: { count: { $gt: 1 } } }
-        ]);
-
-        if (duplicates.length === 0) {
-            console.log("🎉 Data is clean. No duplicates found.");
-            return; // Just return, DO NOT process.exit()
-        }
-
-        console.log(`⚠️ Found ${duplicates.length} IDs with duplicates. Fixing...`);
-
-        // 2. Ethiopian Year Calculation
-        const today = new Date();
-        const gregorianYear = today.getFullYear();
-        const gregorianMonth = today.getMonth() + 1;
-        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
-
-        // 3. Find Max Sequence
-        const lastStudent = await Student.findOne({
-            studentId: new RegExp(`^FKS-${currentYear}`)
-        }).sort({ studentId: -1 });
-
-        let nextSequence = 0;
-        if (lastStudent && lastStudent.studentId) {
-            const parts = lastStudent.studentId.split('-');
-            if(parts.length === 3) nextSequence = parseInt(parts[2], 10);
-        }
-
-        // 4. Fix Loop
-        for (const group of duplicates) {
-            const duplicateIds = group.ids;
-            const students = await Student.find({ _id: { $in: duplicateIds } }).sort({ createdAt: 1 });
-
-            // Skip index 0 (keep original), fix the rest
-            for (let i = 1; i < students.length; i++) {
-                const studentToFix = students[i];
-                nextSequence++;
-                const newId = `FKS-${currentYear}-${String(nextSequence).padStart(3, '0')}`;
-
-                console.log(`🛠 Fixing ${studentToFix.fullName}: ${studentToFix.studentId} -> ${newId}`);
-
-                await Student.updateOne(
-                    { _id: studentToFix._id },
-                    { $set: { studentId: newId } }
-                );
-            }
-        }
-        console.log('✅ All duplicates fixed successfully.');
-        
-    } catch (error) {
-        console.error('❌ Error in duplicate fixer:', error);
-        // We don't exit here either, so the server can still try to run
-    }
-};
 
 // --- STARTUP SEQUENCE ---
 const startServer = async () => {
     try {
         // 1. Connect to DB
         await connectDB();
-
-        // 2. Run Cleanup (Wait for it to finish!)
-        //await fixDuplicatesSafely();
 
         // 3. Seed Admin
         await seedAdminUser();
