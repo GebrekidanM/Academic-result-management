@@ -133,6 +133,137 @@ exports.getAssessmentAnalysis = async (req, res) => {
   }
 };
 
+// @desc    Get Class Analysis (Gender, Ranges, Participation) for an Assessment Name across all Subjects
+// @route   GET /api/grades/analysis/class-analytics
+// @query   gradeLevel, assessmentName, semester, academicYear
+exports.getClassAnalytics = async (req, res) => {
+    const { gradeLevel, assessmentName, semester, academicYear } = req.query;
+
+    if (!gradeLevel || !assessmentName || !semester || !academicYear) {
+        return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    try {
+        // 1. Fetch ALL Active Students in this Grade (to know Gender and Total Count)
+        const students = await Student.find({ gradeLevel, status: 'Active' });
+        
+        // Create a fast lookup map for Student Gender: { "studentId": "Male", ... }
+        const studentMap = {};
+        let totalMalesInClass = 0;
+        let totalFemalesInClass = 0;
+
+        students.forEach(s => {
+            studentMap[s._id.toString()] = s.gender; // Assuming 'gender' is 'Male'/'Female' in Student model
+            if (s.gender === 'Male') totalMalesInClass++;
+            else totalFemalesInClass++;
+        });
+
+        const totalStudentsInClass = students.length;
+
+        // 2. Find the Assessment Types (The Subjects) that match the name (e.g., "Test 1")
+        const assessmentTypes = await AssessmentType.find({
+            gradeLevel,
+            name: assessmentName,
+            semester,
+            // year: academicYear // Uncomment if you store year in AssessmentType
+        }).populate('subject', 'name');
+
+        if (assessmentTypes.length === 0) {
+            return res.status(404).json({ message: `No assessments found with name '${assessmentName}' for ${gradeLevel}.` });
+        }
+
+        // 3. Prepare the Analysis Array
+        const analysisResults = [];
+
+        // 4. Iterate through each Subject (AssessmentType)
+        for (const type of assessmentTypes) {
+            const subjectName = type.subject ? type.subject.name : "Unknown Subject";
+            const totalMarks = type.totalMarks;
+
+            // Fetch all grades for this specific assessment type
+            const grades = await Grade.find({
+                "assessments.assessmentType": type._id,
+                student: { $in: students.map(s => s._id) } // Only active students
+            });
+
+            // Initialize Counters
+            const stats = {
+                subject: subjectName,
+                totalMarks: totalMarks,
+                students: {
+                    total: totalStudentsInClass,
+                    male: totalMalesInClass,
+                    female: totalFemalesInClass
+                },
+                attended: { total: 0, male: 0, female: 0 },
+                missed: { total: 0, male: 0, female: 0 },
+                below50: { total: 0, male: 0, female: 0 }, // < 50%
+                below75: { total: 0, male: 0, female: 0 }, // 50% - 74%
+                below90: { total: 0, male: 0, female: 0 }, // 75% - 89%
+                above90: { total: 0, male: 0, female: 0 }, // >= 90%
+            };
+
+            // Process Grades
+            grades.forEach(gradeDoc => {
+                // Find the specific score within the grade document
+                const assessmentData = gradeDoc.assessments.find(a => 
+                    a.assessmentType && a.assessmentType.toString() === type._id.toString()
+                );
+
+                const studentGender = studentMap[gradeDoc.student.toString()] || 'Male'; // Default to Male if unknown
+                const genderKey = studentGender.toLowerCase(); // 'male' or 'female'
+
+                // Check if student attended (score exists and is not null)
+                if (assessmentData && assessmentData.score !== null && assessmentData.score !== undefined) {
+                    const score = assessmentData.score;
+                    const percentage = (score / totalMarks) * 100;
+
+                    // Increment Attended
+                    stats.attended.total++;
+                    stats.attended[genderKey]++;
+
+                    // Classify into ranges
+                    if (percentage < 50) {
+                        stats.below50.total++;
+                        stats.below50[genderKey]++;
+                    } else if (percentage < 75) {
+                        stats.below75.total++;
+                        stats.below75[genderKey]++;
+                    } else if (percentage < 90) {
+                        stats.below90.total++;
+                        stats.below90[genderKey]++;
+                    } else {
+                        stats.above90.total++;
+                        stats.above90[genderKey]++;
+                    }
+                }
+            });
+
+            // Calculate Missed (Total Class - Attended)
+            stats.missed.total = stats.students.total - stats.attended.total;
+            stats.missed.male = stats.students.male - stats.attended.male;
+            stats.missed.female = stats.students.female - stats.attended.female;
+
+            analysisResults.push(stats);
+        }
+
+        res.status(200).json({
+            success: true,
+            meta: {
+                gradeLevel,
+                assessmentName,
+                semester,
+                academicYear
+            },
+            data: analysisResults
+        });
+
+    } catch (error) {
+        console.error("Class Analytics Error:", error);
+        res.status(500).json({ message: "Server error generating analytics." });
+    }
+};
+
     
 exports.aGradeAnalysis = async (req,res)=>{
   const {assessment} = req.params;
