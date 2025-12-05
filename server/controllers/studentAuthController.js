@@ -7,6 +7,7 @@ const generateStudentToken = (id) => {
 
 exports.loginStudent = async (req, res) => {
     const { studentId, password } = req.body;
+    console.log(studentId,password)
 
 
     if (!studentId || !password) {

@@ -11,7 +11,21 @@ const aGradeAnalysis = ({assessment,academicYear}) =>{
     })
 }
 
+const getClassAnalytics = (filters)=>{
+    return api.get(`analytics/class-analytics`,{
+        params:{
+            gradeLevel: filters.gradeLevel,
+            assessmentName: filters.assessmentName,
+            semester: filters.semester,
+            academicYear: filters.academicYear
+        }
+    })
+
+}
+
+
 export default {
     getAnalysis,
-    aGradeAnalysis
+    aGradeAnalysis,
+    getClassAnalytics
 };

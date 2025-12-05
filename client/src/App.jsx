@@ -48,7 +48,7 @@ import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
 import UserProfileEditPage from './pages/UserProfileEditPage';
-import SubjectAnalysisForm from './pages/SubjectAnalysisForm';
+import ClassAnalytics from './pages/ClassAnalytics';
 import SubjectAnalysisDetail from './pages/SubjectAnalysisDetail';
 import TeachersPage from './pages/TeachersPage';
 
@@ -95,7 +95,7 @@ function App() {
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
-              <Route path="/allsubjectAnalysis" element={<SubjectAnalysisForm/>}/>
+              <Route path="/allsubjectAnalysis" element={<ClassAnalytics/>}/>
               <Route path='/otherprofile' element={<UserProfileEditPage/>}/>
               <Route path="/subjects" element={<SubjectListPage />} />
               <Route path="/subjects/add" element={<AddSubjectPage />} />

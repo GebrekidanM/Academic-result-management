@@ -153,7 +153,7 @@ exports.getClassAnalytics = async (req, res) => {
         let totalFemalesInClass = 0;
 
         students.forEach(s => {
-            studentMap[s._id.toString()] = s.gender; // Assuming 'gender' is 'Male'/'Female' in Student model
+            studentMap[s._id.toString()] = s.gender;
             if (s.gender === 'Male') totalMalesInClass++;
             else totalFemalesInClass++;
         });
@@ -165,7 +165,7 @@ exports.getClassAnalytics = async (req, res) => {
             gradeLevel,
             name: assessmentName,
             semester,
-            // year: academicYear // Uncomment if you store year in AssessmentType
+            year: academicYear
         }).populate('subject', 'name');
 
         if (assessmentTypes.length === 0) {
