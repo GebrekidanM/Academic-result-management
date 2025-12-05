@@ -9,14 +9,13 @@ exports.loginStudent = async (req, res) => {
     const { studentId, password } = req.body;
     console.log(studentId,password)
 
-
     if (!studentId || !password) {
         return res.status(400).json({ message: 'Student ID and password are required.' });
     }
 
 
     try {
-        const student = await Student.findOne({ studentId }).select('+password');
+        const student = await Student.find({ studentId }).select('+password');
         console.log(student)
 
         if (!student) {
