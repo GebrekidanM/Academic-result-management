@@ -15,7 +15,7 @@ exports.loginStudent = async (req, res) => {
 
 
     try {
-        const student = await Student.find({ studentId }).select('+password');
+        const student = await Student.findOne({ studentId }).select('+password');
         console.log(student)
 
         if (!student) {
