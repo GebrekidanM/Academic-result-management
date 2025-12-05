@@ -482,7 +482,7 @@ exports.resetPassword = async (req,res)=>{
         if (!password || typeof password !== 'string' || password.trim().length < 6) {
             return res.status(400).json({ message: 'Password is required and must be at least 6 characters long.' });
         }
-
+        console.log(password)
         student.password = password;
         student.isInitialPassword = true;
 
