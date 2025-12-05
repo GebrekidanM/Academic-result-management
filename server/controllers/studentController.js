@@ -1,10 +1,7 @@
-// backend/controllers/studentController.js
 const xlsx = require('xlsx');
 const fs = require('fs');
 const Student = require('../models/Student');
 const Grade = require('../models/Grade');
-const { parseExcelDate } = require('../utils/parseExcelDate');
-const { toGregorian } = require('ethiopian-date');
 
 // --- HELPER FUNCTIONS ---
 const capitalizeName = (name) => {
@@ -17,6 +14,14 @@ const getFirstName = (fullName) => {
     const names = fullName.trim().split(/\s+/);
     const firstName = names[0];
     return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+};
+
+// Helper to get Ethiopian Year (used for Password generation only now)
+const getEthiopianYear = () => {
+    const today = new Date();
+    const gregorianYear = today.getFullYear();
+    const gregorianMonth = today.getMonth() + 1;
+    return gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
 };
 
 // @desc Get all students or by grade
@@ -35,7 +40,7 @@ exports.getStudents = async (req, res) => {
     }
 };
 
-// @desc    Get single student by ID with calculated data
+// @desc    Get single student by ID
 // @route   GET /api/students/:id
 exports.getStudentById = async (req, res) => {
     try {
@@ -63,21 +68,17 @@ exports.getStudentById = async (req, res) => {
 };
 
 
-// @desc    Create a single new student with auto-generated ID and password
+// @desc    Create a single new student
 // @route   POST /api/students
-// controllers/studentController.js
-// @access  Admin or Homeroom Teacher
 exports.createStudent = async (req, res) => {
-    const currentUser = req.user; // from protect middleware
+    const currentUser = req.user; 
     const { fullName, gender, dateOfBirth, gradeLevel, motherName, motherContact, fatherContact, healthStatus } = req.body;
 
     try {
         // 🔹 Permission check
         if (currentUser.role === 'teacher') {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== gradeLevel) {
-                return res.status(403).json({ 
-                    message: 'You can only create students in your homeroom grade.' 
-                });
+                return res.status(403).json({ message: 'You can only create students in your homeroom grade.' });
             }
         } else if (currentUser.role !== 'admin') {
             return res.status(403).json({ message: 'You are not authorized to create students.' });
@@ -86,25 +87,16 @@ exports.createStudent = async (req, res) => {
         // 🔹 Capitalize full name
         const capitalizedFullName = capitalizeName(fullName);
 
-        // 🔹 Ethiopian year calculation
-        const today = new Date();
-        const gregorianYear = today.getFullYear();
-        const gregorianMonth = today.getMonth() + 1;
-        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
-
-        // 🔹 Generate unique student ID
-        const lastStudent = await Student.findOne({ studentId: new RegExp(`^FKS-${currentYear}`) })
-                                         .sort({ studentId: -1 });
-        let lastSequence = lastStudent ? parseInt(lastStudent.studentId.split('-')[2], 10) : 0;
-        const newStudentId = `FKS-${currentYear}-${String(lastSequence + 1).padStart(3, '0')}`;
+        // 🔹 Calculate Year ONLY for Password (ID is handled by Model now)
+        const currentYear = getEthiopianYear();
 
         // 🔹 Generate initial password
         const middleName = getFirstName(capitalizedFullName);
         const initialPassword = `${middleName}@${currentYear}`;
 
-        // 🔹 Create student
+        // 🔹 Create student (NO studentId passed here)
         const student = new Student({
-            studentId: newStudentId,
+            // studentId: REMOVED (Handled by Mongoose Pre-Save Hook)
             fullName: capitalizedFullName,
             gender,
             dateOfBirth,
@@ -116,7 +108,8 @@ exports.createStudent = async (req, res) => {
             healthStatus
         });
 
-        await student.save();
+        // The save() method triggers the Hook in Student.js which generates the ID
+        await student.save(); 
 
         const responseData = student.toObject();
         responseData.initialPassword = initialPassword;
@@ -125,16 +118,16 @@ exports.createStudent = async (req, res) => {
         res.status(201).json({ success: true, data: responseData });
 
     } catch (error) {
-        // 🔹 Handle duplicates
         if (error.code === 11000) {
+            // Check if error is related to FullName+MotherName index or the StudentId
+            if (error.keyPattern && error.keyPattern.studentId) {
+                return res.status(500).json({ message: 'Error generating ID. Please try again.' });
+            }
             if (error.keyPattern && error.keyPattern.fullName && error.keyPattern.motherName) {
-                return res.status(400).json({
-                    message: 'A student with the same name and mother name already exists.'
-                });
+                return res.status(400).json({ message: 'A student with the same name and mother name already exists.' });
             }
             return res.status(400).json({ message: 'Duplicate entry detected.' });
         }
-
         res.status(500).json({ message: 'Server Error', details: error.message });
     }
 };
@@ -142,16 +135,12 @@ exports.createStudent = async (req, res) => {
 
 // @desc    Update a student's profile
 // @route   PUT /api/students/:id
-// controllers/studentController.js
-
-// @access  Admin or Homeroom Teacher (only for their grade)
 exports.updateStudent = async (req, res) => {
     try {
         const currentUser = req.user;
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-        // 🔹 Permission check
         if (currentUser.role === 'teacher') {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
                 return res.status(403).json({ message: 'You are not authorized to update this student.' });
@@ -166,6 +155,8 @@ exports.updateStudent = async (req, res) => {
             updateData.fullName = capitalizeName(fullName);
         }
 
+        // We use findByIdAndUpdate, so the 'pre save' hook (ID generator) DOES NOT fire
+        // This is good, because we don't want to change the ID on update.
         const updatedStudent = await Student.findByIdAndUpdate(
             req.params.id,
             updateData,
@@ -181,14 +172,12 @@ exports.updateStudent = async (req, res) => {
 
 // @desc    Delete a student
 // @route   DELETE /api/students/:id
-// @access  Admin or Homeroom Teacher (only for their grade)
 exports.deleteStudent = async (req, res) => {
     try {
         const currentUser = req.user;
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found' });
 
-        // 🔹 Permission check
         if (currentUser.role === 'teacher') {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
                 return res.status(403).json({ message: 'You are not authorized to delete this student.' });
@@ -205,20 +194,16 @@ exports.deleteStudent = async (req, res) => {
     }
 };
 
-// @desc    Upload student profile photo to Cloudinary
+// @desc    Upload student profile photo
 // @route   POST /api/students/:id/photo
-// @access  Admin or Homeroom Teacher (only for their grade)
 exports.uploadProfilePhoto = async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file was uploaded.' });
-        }
+        if (!req.file) return res.status(400).json({ message: 'No file was uploaded.' });
 
         const currentUser = req.user;
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-        // 🔹 Permission check
         if (currentUser.role === 'teacher') {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
                 return res.status(403).json({ message: 'You are not authorized to update this student.' });
@@ -227,29 +212,21 @@ exports.uploadProfilePhoto = async (req, res) => {
             return res.status(403).json({ message: 'You are not authorized to update students.' });
         }
 
-        student.imageUrl = req.file.path; // Cloudinary URL
-        student.imagePublicId = req.file.filename; // optional for future deletions
-        await student.save({ validateBeforeSave: false });
+        student.imageUrl = req.file.path; 
+        student.imagePublicId = req.file.filename; 
+        await student.save({ validateBeforeSave: false }); // Validations skipped, but pre-save hooks run (checked by isNew)
 
-        res.status(200).json({
-            message: 'Profile photo updated successfully',
-            imageUrl: student.imageUrl
-        });
+        res.status(200).json({ message: 'Profile photo updated successfully', imageUrl: student.imageUrl });
 
     } catch (error) {
-        res.status(500).json({
-            message: 'Error uploading photo',
-            details: error.message
-        });
+        res.status(500).json({ message: 'Error uploading photo', details: error.message });
     }
 };
 
-// @desc    Create multiple students from an uploaded Excel file (supports Ethiopian DD-MM-YYYY dates)
+// @desc    Create multiple students from Excel
 // @route   POST /api/students/upload
 exports.bulkCreateStudents = async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: 'No file uploaded.' });
-    }
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
 
     const filePath = req.file.path;
 
@@ -264,46 +241,31 @@ exports.bulkCreateStudents = async (req, res) => {
             return res.status(400).json({ message: 'The Excel file is empty.' });
         }
 
-        // Required columns
         const requiredColumns = ['Full Name', 'Gender', 'Grade Level'];
         const missing = requiredColumns.filter(c => !Object.keys(rows[0]).includes(c));
 
         if (missing.length) {
             fs.unlinkSync(filePath);
-            return res.status(400).json({
-                message: `Missing required columns: ${missing.join(', ')}`,
-                hint: "Required columns must match the exact names."
-            });
+            return res.status(400).json({ message: `Missing required columns: ${missing.join(', ')}` });
         }
 
-        // Determine Academic Year (Ethiopian)
-        const today = new Date();
-        const gYear = today.getFullYear();
-        const gMonth = today.getMonth() + 1;
-        const currentYear = gMonth > 8 ? gYear - 7 : gYear - 8;
+        // Get Year for PASSWORDS only
+        const currentYear = getEthiopianYear();
 
-        const lastStudent = await Student.findOne({
-            studentId: new RegExp(`^FKS-${currentYear}`)
-        }).sort({ studentId: -1 });
-
-        let lastSeq = lastStudent ? parseInt(lastStudent.studentId.split('-')[2]) : 0;
+        // ❌ REMOVED: lastStudent and lastSeq calculation. 
+        // We will rely on newStudent.save() inside the loop.
 
         const createdStudents = [];
-        let rowNumber = 2; // Row 1 = header
+        let rowNumber = 2; 
 
-        // Date parsing helpers ...
-
-
-        // 📅 Convert Ethiopian date (YYYY, MM, DD) → Gregorian Date object
+        // Helper: Date parsing (Kept same as your code)
         function convertEthiopianToGregorian(ethYear, ethMonth, ethDay) {
-            const jd = Math.floor(1723856 + 365 + 365 * (ethYear - 1) + Math.floor(ethYear / 4)
-                + 30 * ethMonth + ethDay - 31);
+            const jd = Math.floor(1723856 + 365 + 365 * (ethYear - 1) + Math.floor(ethYear / 4) + 30 * ethMonth + ethDay - 31);
             const r = (jd - 1721426) % 1461;
             const n = Math.floor(r / 365) - Math.floor(r / 1460);
             const gYear = Math.floor((jd - 1721426 - r) / 365.25) + n + 1;
             const s = jd - Math.floor((gYear - 1) * 365.25) - 1721426;
             let gMonth, gDay;
-
             if (s <= 31) { gMonth = 1; gDay = s; }
             else if (s <= 59) { gMonth = 2; gDay = s - 31; }
             else if (s <= 90) { gMonth = 3; gDay = s - 59; }
@@ -316,42 +278,24 @@ exports.bulkCreateStudents = async (req, res) => {
             else if (s <= 304) { gMonth = 10; gDay = s - 273; }
             else if (s <= 334) { gMonth = 11; gDay = s - 304; }
             else { gMonth = 12; gDay = s - 334; }
-
             return new Date(`${gYear}-${String(gMonth).padStart(2, '0')}-${String(gDay).padStart(2, '0')}`);
         }
 
-        // 🧩 Parse Excel date (supports DD-MM-YYYY Ethiopian format)
         function parseExcelDate(value) {
             if (!value) return null;
-
-            // Excel serial number
             if (!isNaN(value)) {
                 const excelEpoch = new Date(1899, 11, 30);
                 return new Date(excelEpoch.getTime() + value * 86400000);
             }
-
-            // Ethiopian calendar in DD-MM-YYYY or DD/MM/YYYY format
             const parts = value.toString().split(/[-/]/);
             if (parts.length === 3) {
                 let [day, month, year] = parts.map(Number);
-
-                // Fix if year appears first
-                if (year < 1800 && day > 1900) {
-                    [year, month, day] = [day, month, year];
-                }
-
-                // Ethiopian years are typically < 1800
-                if (year < 1800) {
-                    return convertEthiopianToGregorian(year, month, day);
-                } else {
-                    // Gregorian fallback
-                    return new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-                }
+                if (year < 1800 && day > 1900) { [year, month, day] = [day, month, year]; }
+                if (year < 1800) { return convertEthiopianToGregorian(year, month, day); } 
+                else { return new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`); }
             }
-
             return null;
         }
-
 
         // ------------------------
         //   PROCESS EACH STUDENT
@@ -359,8 +303,7 @@ exports.bulkCreateStudents = async (req, res) => {
 
         for (const row of rows) {
             try {
-                const sequence = ++lastSeq;
-                const studentId = `FKS-${currentYear}-${String(sequence).padStart(3, '0')}`;
+                // ❌ REMOVED: studentId generation here.
 
                 const fullName = capitalizeName(row['Full Name']);
                 const motherName = row['Mother Name'] || '';
@@ -369,22 +312,16 @@ exports.bulkCreateStudents = async (req, res) => {
                 // Check duplicate
                 const exists = await Student.findOne({ fullName, motherName, gradeLevel });
                 if (exists) {
-                    createdStudents.push({
-                        status: "skipped",
-                        row: rowNumber,
-                        fullName,
-                        reason: "Duplicate student"
-                    });
+                    createdStudents.push({ status: "skipped", row: rowNumber, fullName, reason: "Duplicate student" });
                     rowNumber++;
                     continue;
                 }
 
                 const parsedDOB = parseExcelDate(row['Date of Birth']);
-
                 const initialPassword = `${getFirstName(fullName)}@${currentYear}`;
 
                 const newStudent = new Student({
-                    studentId,
+                    // studentId: REMOVED (Handled by Model)
                     fullName,
                     gender: row['Gender'],
                     dateOfBirth: parsedDOB || null,
@@ -396,25 +333,21 @@ exports.bulkCreateStudents = async (req, res) => {
                     healthStatus: row['Health Status'] || 'No known conditions'
                 });
 
+                // ⚠️ IMPORTANT: Saving inside the loop ensures the Atomic Counter hook
+                // runs for each student one by one, preventing duplicates.
                 await newStudent.save();
 
                 createdStudents.push({
                     status: "created",
                     row: rowNumber,
-                    studentId,
+                    studentId: newStudent.studentId, // Access the auto-generated ID
                     fullName,
                     initialPassword
                 });
 
             } catch (rowErr) {
-                createdStudents.push({
-                    status: "error",
-                    row: rowNumber,
-                    fullName: row['Full Name'],
-                    reason: rowErr.message
-                });
+                createdStudents.push({ status: "error", row: rowNumber, fullName: row['Full Name'], reason: rowErr.message });
             }
-
             rowNumber++;
         }
 
@@ -431,36 +364,19 @@ exports.bulkCreateStudents = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Bulk Import Error:", err);
-
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-
-        if (err.code === 11000) {
-            return res.status(400).json({
-                message: "Duplicate student found in database.",
-                details: err.keyValue
-            });
-        }
-
-        return res.status(500).json({
-            message: "Server error processing the file.",
-            details: err.message
-        });
+        return res.status(500).json({ message: "Server error processing the file.", details: err.message });
     }
 };
 
 exports.resetPassword = async (req,res)=>{
-        const _id = req.params.studentId;
+    const _id = req.params.studentId;
 
     try {
         const student = await Student.findById(_id).select('+password');
-        if(!student){
-            return res.status(404).json({message:"No Student found with this ID"});
-        }
+        if(!student) return res.status(404).json({message:"No Student found with this ID"});
         
         const currentUser = req.user;
-
-        // Permission check
         if (currentUser.role === 'teacher') {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
                 return res.status(403).json({ message: 'You are not authorized to reset this student\'s password.' });
@@ -468,26 +384,15 @@ exports.resetPassword = async (req,res)=>{
         } else if (currentUser.role !== 'admin') {
             return res.status(403).json({ message: 'You are not authorized to reset student passwords.' });
         }
-
         
-        
-        // get the first name from the student
         const firstName = getFirstName(student.fullName);
-        const today = new Date();
-        const gregorianYear = today.getFullYear();
-        const gregorianMonth = today.getMonth() + 1;
-        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
+        const currentYear = getEthiopianYear();
         const password = `${firstName}@${currentYear}`
         
-        if (!password || typeof password !== 'string' || password.trim().length < 6) {
-            return res.status(400).json({ message: 'Password is required and must be at least 6 characters long.' });
-        }
-        console.log(password)
         student.password = password;
         student.isInitialPassword = true;
 
-
-        await student.save();
+        await student.save(); // This is NOT 'new', so ID generator hook will be skipped. Good.
 
         res.status(200).json({ success: true, message: 'Password reset successfully.' });
         

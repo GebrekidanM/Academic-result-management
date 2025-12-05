@@ -4,9 +4,11 @@ const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
 const User = require('./models/User');
+const Student = require('./models/Student'); // Import Student
 
 // --- Connect to MongoDB ---
-connectDB();
+// We will connect inside the start function now
+// connectDB(); 
 
 const app = express();
 
@@ -34,16 +36,11 @@ app.use('/api/delete-password', require('./deletePassword'));
 const Grade = require('./models/Grade');
 const AssessmentType = require('./models/AssessmentType');
 
-
 // --- Default admin seeding ---
 const seedAdminUser = async () => {
   try {
     const adminExists = await User.findOne({ role: 'admin' });
-
-    if (adminExists) {
-      console.log('✅ Admin user already exists.');
-      return;
-    }
+    if (adminExists) return;
 
     console.log('⚙️ No admin user found. Creating default admin...');
     await User.create({
@@ -52,66 +49,97 @@ const seedAdminUser = async () => {
       password: process.env.ADMIN_PASSWORD || 'admin@123',
       role: 'admin'
     });
-
     console.log('✅ Default admin user created successfully!');
   } catch (error) {
     console.error('❌ Error during admin user seeding:', error);
   }
 };
 
-//get grades with final score above 40
-app.get('/api/admin/grades-no-assessments', async (req, res) => {
-  try {
-    const grades = await Grade.find({ finalScore: { $gt: 40 } });
-    res.json(grades);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error fetching grades.' });
-  }
-});
-
-
-app.post('/api/admin/recalculate', async (req, res) => {
+// --- DUPLICATE FIXER FUNCTION (Safe Version) ---
+const fixDuplicatesSafely = async () => {
     try {
-        const grades = await Grade.find();  // include everything
+        console.log("🔍 Checking for Student ID duplicates...");
 
-        console.log(`Found ${grades.length} grades.`);
+        // 1. Find duplicates
+        const duplicates = await Student.aggregate([
+            { $group: { _id: "$studentId", count: { $sum: 1 }, ids: { $push: "$_id" } } },
+            { $match: { count: { $gt: 1 } } }
+        ]);
 
-        let updatedCount = 0;
-
-        for (const grade of grades) {
-
-            const assessments = grade.assessments || [];
-
-            const newFinal = assessments.reduce(
-                (sum, a) => sum + (a.score || 0),
-                0
-            );
-
-            grade.finalScore = newFinal;
-            await grade.save();
-
-            updatedCount++;
+        if (duplicates.length === 0) {
+            console.log("🎉 Data is clean. No duplicates found.");
+            return; // Just return, DO NOT process.exit()
         }
 
-        return res.status(200).json({
-            success: true,
-            message: "All grades recalculated successfully.",
-            updated: updatedCount
-        });
+        console.log(`⚠️ Found ${duplicates.length} IDs with duplicates. Fixing...`);
 
-    } catch (err) {
-        console.error("Recalculation failed:", err);
-        return res.status(500).json({
-            success: false,
-            message: "Server error during recalculation."
-        });
+        // 2. Ethiopian Year Calculation
+        const today = new Date();
+        const gregorianYear = today.getFullYear();
+        const gregorianMonth = today.getMonth() + 1;
+        const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
+
+        // 3. Find Max Sequence
+        const lastStudent = await Student.findOne({
+            studentId: new RegExp(`^FKS-${currentYear}`)
+        }).sort({ studentId: -1 });
+
+        let nextSequence = 0;
+        if (lastStudent && lastStudent.studentId) {
+            const parts = lastStudent.studentId.split('-');
+            if(parts.length === 3) nextSequence = parseInt(parts[2], 10);
+        }
+
+        // 4. Fix Loop
+        for (const group of duplicates) {
+            const duplicateIds = group.ids;
+            const students = await Student.find({ _id: { $in: duplicateIds } }).sort({ createdAt: 1 });
+
+            // Skip index 0 (keep original), fix the rest
+            for (let i = 1; i < students.length; i++) {
+                const studentToFix = students[i];
+                nextSequence++;
+                const newId = `FKS-${currentYear}-${String(nextSequence).padStart(3, '0')}`;
+
+                console.log(`🛠 Fixing ${studentToFix.fullName}: ${studentToFix.studentId} -> ${newId}`);
+
+                await Student.updateOne(
+                    { _id: studentToFix._id },
+                    { $set: { studentId: newId } }
+                );
+            }
+        }
+        console.log('✅ All duplicates fixed successfully.');
+        
+    } catch (error) {
+        console.error('❌ Error in duplicate fixer:', error);
+        // We don't exit here either, so the server can still try to run
     }
-});
+};
 
-// --- Server start ---
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  seedAdminUser();
-});
+// --- STARTUP SEQUENCE ---
+const startServer = async () => {
+    try {
+        // 1. Connect to DB
+        await connectDB();
+
+        // 2. Run Cleanup (Wait for it to finish!)
+        await fixDuplicatesSafely();
+
+        // 3. Seed Admin
+        await seedAdminUser();
+
+        // 4. Start Server
+        const PORT = process.env.PORT || 5001;
+        app.listen(PORT, () => {
+            console.log(`🚀 Server running on port ${PORT}`);
+        });
+
+    } catch (error) {
+        console.error("Failed to start server:", error);
+        process.exit(1); // Only exit if DB connection fails completely
+    }
+};
+
+// Execute the startup
+startServer();
