@@ -47,7 +47,6 @@ const LoginPage = () => {
             }
             
         } catch (err) {
-            console.log("here",err)
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
             setLoading(false);
         }
