@@ -1,0 +1,47 @@
+@media print {
+  /* 1. Hide everything that isn't the report */
+  .no-print, 
+  button, 
+  input, 
+  select, 
+  label, 
+  nav, 
+  .sidebar { 
+    display: none !important; 
+  }
+
+  /* 2. Make the table look good on paper */
+  body, .bg-gray-50, .min-h-screen {
+    background-color: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .shadow-md, .shadow-lg, .border {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* 3. Ensure the table fits */
+  table {
+    width: 100% !important;
+    font-size: 10px !important; /* Smaller text for printing */
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid black !important; /* Sharp borders for printers */
+    color: black !important;
+  }
+
+  /* 4. Keep colors for the <50% and >90% cells if the user enables "Background Graphics" */
+  .bg-red-100 { background-color: #fee2e2 !important; -webkit-print-color-adjust: exact; }
+  .bg-green-50 { background-color: #f0fdf4 !important; -webkit-print-color-adjust: exact; }
+  
+  /* 5. Header for the Printout */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+}

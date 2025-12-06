@@ -4,6 +4,7 @@ import authService from '../services/authService';
 import subjectService from '../services/subjectService';
 import userService from '../services/userService';
 import { Link } from 'react-router-dom';
+import './AllSubjectAnalytics.css'
 
 const AllSubjectAnalytics = () => {
   const [currentUser] = useState(authService.getCurrentUser());
@@ -110,63 +111,73 @@ const AllSubjectAnalytics = () => {
       </div>
 
       {/* --- Filter Controls --- */}
-      <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-5 gap-4 items-end mb-6">
-        
+      <div className="flex-col mb-4">
         {/* Dynamic Grade Selector */}
-        <div>
-          <label className="font-bold block mb-1 text-xs uppercase text-gray-500">Grade Level</label>
-          <select
-            name="gradeLevel"
-            value={filters.gradeLevel}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md"
-          >
-            {availableGrades.length > 0 ? (
-              availableGrades.map(g => <option key={g} value={g}>{g}</option>)
-            ) : (
-              <option value="">No Grades Found</option>
-            )}
-          </select>
-        </div>
+        <div className='p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-5 gap-4 items-end mb-6'>
+            <div>
+            <label className="font-bold block mb-1 text-xs uppercase text-gray-500">Grade Level</label>
+            <select
+                name="gradeLevel"
+                value={filters.gradeLevel}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-md"
+            >
+                {availableGrades.length > 0 ? (
+                availableGrades.map(g => <option key={g} value={g}>{g}</option>)
+                ) : (
+                <option value="">No Grades Found</option>
+                )}
+            </select>
+            </div>
 
-        <div>
-          <label className="font-bold block mb-1 text-xs uppercase text-gray-500">Assessment Name</label>
-          <input
-            type="text"
-            name="assessmentName"
-            value={filters.assessmentName}
-            onChange={handleChange}
-            placeholder="e.g. Test 1"
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
+            <div>
+            <label className="font-bold block mb-1 text-xs uppercase text-gray-500">Assessment Name</label>
+            <input
+                type="text"
+                name="assessmentName"
+                value={filters.assessmentName}
+                onChange={handleChange}
+                placeholder="e.g. Test 1"
+                className="w-full p-2 border rounded-md"
+            />
+            </div>
 
-        <div>
-          <label className="font-bold block mb-1 text-xs uppercase text-gray-500">Semester</label>
-          <select name="semester" value={filters.semester} onChange={handleChange} className="w-full p-2 border rounded-md">
-            <option value="First Semester">First Semester</option>
-            <option value="Second Semester">Second Semester</option>
-          </select>
-        </div>
+            <div>
+            <label className="font-bold block mb-1 text-xs uppercase text-gray-500">Semester</label>
+            <select name="semester" value={filters.semester} onChange={handleChange} className="w-full p-2 border rounded-md">
+                <option value="First Semester">First Semester</option>
+                <option value="Second Semester">Second Semester</option>
+            </select>
+            </div>
 
-        <div>
-          <label className="font-bold block mb-1 text-xs uppercase text-gray-500">Year</label>
-          <input
-            type="text"
-            name="academicYear"
-            value={filters.academicYear}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md"
-          />
+            <div>
+            <label className="font-bold block mb-1 text-xs uppercase text-gray-500">Year</label>
+            <input
+                type="text"
+                name="academicYear"
+                value={filters.academicYear}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-md"
+            />
+            </div>
         </div>
-
-        <button
-          onClick={fetchAnalytics}
-          disabled={loading || !filters.gradeLevel}
-          className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-md disabled:bg-pink-300"
-        >
-          {loading ? 'Loading...' : 'Load Matrix'}
-        </button>
+        <div className='flex gap-6'>
+            <button
+                onClick={fetchAnalytics}
+                disabled={loading || !filters.gradeLevel}
+                className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-md disabled:bg-pink-300"
+                >
+                {loading ? 'Loading...' : 'Load Matrix'}
+            </button>
+            <button
+                onClick={() => window.print()}
+                disabled={data.length === 0}
+                className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-md disabled:bg-gray-400"
+                >
+                🖨️ Print Report
+            </button>
+        </div>
+        
       </div>
 
       {error && (
