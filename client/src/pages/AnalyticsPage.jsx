@@ -93,8 +93,11 @@ const AnalyticsPage = () => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
       <h2 className="text-2xl font-bold text-gray-800">Assessment Analysis</h2>
-      <Link to="/allsubjectAnalysis">Get One Grade Assessement in one</Link>
-
+      <div className='flex gap-6'>
+          <Link to="/allsubjectAnalysis" className='p-2 bg-pink-500 text-white border rounded-sm font-bold'>Assessement in one</Link>
+          <Link to="/subjectPerformance" className='p-2 bg-pink-500 text-white border rounded-sm font-bold'>Subject Performance</Link>
+      </div>
+    
       {/* Selection Controls */}
       <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
         <div>

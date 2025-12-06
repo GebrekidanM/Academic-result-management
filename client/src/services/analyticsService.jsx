@@ -5,11 +5,12 @@ const getAnalysis = (selectedAssessment,selectedGrade) => {
         params: { selectedAssessment ,selectedGrade }
     });
 };
-const aGradeAnalysis = ({assessment,academicYear}) =>{
-    return api.get(`analytics/aGradeAnalysis/${assessment}`,{
-        params:{academicYear}
+const getSubjectPerformance = (filters) =>{
+    return api.get(`analytics/aGradeAnalysis`,{
+        params: filters 
     })
 }
+
 
 const getClassAnalytics = (filters)=>{
     return api.get(`analytics/class-analytics`,{
@@ -26,6 +27,6 @@ const getClassAnalytics = (filters)=>{
 
 export default {
     getAnalysis,
-    aGradeAnalysis,
+    getSubjectPerformance,
     getClassAnalytics
 };

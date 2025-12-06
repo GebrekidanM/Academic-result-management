@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Grade = require('../models/Grade');
 const Student = require('../models/Student');
 const AssessmentType = require('../models/AssessmentType');
-
+const Subject = require('../models/Subject')
 // Controller to get assessment analysis
 
 exports.getAssessmentAnalysis = async (req, res) => {
@@ -265,16 +265,94 @@ exports.getClassAnalytics = async (req, res) => {
 };
 
     
-exports.aGradeAnalysis = async (req,res)=>{
-  const {assessment} = req.params;
-  try {
-    const grades = await Grade.find({})
-    grades.map(grade=>console.log(grade))
+// backend/controllers/gradeController.js
 
-  } catch (error) {
-    
-  }
-}
+exports.getSubjectPerformanceAnalysis = async (req, res) => {
+    const { gradeLevel, semester, academicYear } = req.query;
 
+    if (!gradeLevel || !semester || !academicYear) {
+        return res.status(400).json({ message: "Missing required fields." });
+    }
 
+    try {
+        const subjects = await Subject.find({ gradeLevel }).sort({ name: 1 });
+        const students = await Student.find({ gradeLevel, status: 'Active' }).select('_id');
+        const studentIds = students.map(s => s._id);
 
+        const analysis = [];
+
+        for (const subject of subjects) {
+            const grades = await Grade.find({
+                subject: subject._id,
+                student: { $in: studentIds },
+                semester,
+                academicYear
+            });
+
+            // Initialize Stats
+            let totalScore = 0;
+            let highest = 0;
+            let lowest = 100;
+            let passedCount = 0;
+            let count = 0;
+
+            // --- NEW COUNTERS ---
+            let ranges = {
+                below50: 0, // < 50
+                below75: 0, // 50 - 74.9
+                below90: 0, // 75 - 89.9
+                above90: 0  // >= 90
+            };
+
+            grades.forEach(g => {
+                if (g.finalScore !== undefined && g.finalScore !== null) {
+                    const score = g.finalScore;
+                    totalScore += score;
+                    if (score > highest) highest = score;
+                    if (score < lowest) lowest = score;
+                    if (score >= 50) passedCount++;
+                    count++;
+
+                    // --- NEW LOGIC: Classify Score ---
+                    if (score < 50) {
+                        ranges.below50++;
+                    } else if (score < 75) {
+                        ranges.below75++;
+                    } else if (score < 90) {
+                        ranges.below90++;
+                    } else {
+                        ranges.above90++;
+                    }
+                }
+            });
+
+            if (count === 0) lowest = 0;
+            const avg = count > 0 ? (totalScore / count).toFixed(2) : 0;
+            const passRate = count > 0 ? ((passedCount / count) * 100).toFixed(1) : 0;
+
+            analysis.push({
+                subjectName: subject.name,
+                subjectCode: subject.code,
+                submittedGrades: count,
+                averageScore: avg,
+                highestScore: highest,
+                lowestScore: lowest,
+                passRate: passRate + '%',
+                ranges: ranges // <--- Send the breakdown to frontend
+            });
+        }
+
+        // Sort by Average Score (Highest to Lowest)
+        analysis.sort((a, b) => b.averageScore - a.averageScore);
+
+        res.status(200).json({
+            success: true,
+            meta: { gradeLevel, semester, academicYear },
+            data: analysis
+        });
+
+    } catch (error) {
+        console.error("Subject Analysis Error:", error);
+        res.status(500).json({ message: "Server error generating report." });
+    }
+};
