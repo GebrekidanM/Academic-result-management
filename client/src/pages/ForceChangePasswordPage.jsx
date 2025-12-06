@@ -44,7 +44,7 @@ const ForceChangePasswordPage = () => {
     };
     
     // --- Reusable Tailwind CSS classes ---
-    const cardContainer = "min-h-screen flex items-center justify-center bg-gray-100";
+    const cardContainer = "min-h-[100vh-4rem] flex items-center justify-center bg-gray-100";
     const formCard = "bg-white p-8 rounded-xl shadow-lg w-full max-w-md";
     const formTitle = "text-3xl font-bold text-center text-gray-800 mb-2";
     const formSubtitle = "text-center text-gray-500 mb-6";

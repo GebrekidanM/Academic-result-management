@@ -1,64 +1,73 @@
 const Grade = require('../models/Grade');
 
-// @desc    Calculate a student's rank in their class for a semester
-// @route   GET /api/ranks/class-rank/:studentId?academicYear=...&semester=...
+// @desc    Calculate a student's rank based on TOTAL SCORE
+// @route   GET /api/ranks/class-rank/:studentId
 exports.getStudentRank = async (req, res) => {
     const { studentId } = req.params;
     const { academicYear, semester, gradeLevel } = req.query;
+
     if (!academicYear || !semester || !gradeLevel) {
         return res.status(400).json({ message: 'Year, semester, and grade level are required' });
     }
 
     try {
-        // This is a powerful MongoDB Aggregation Pipeline
         const rankedList = await Grade.aggregate([
-            // Stage 1: Match only the grades for the specific year, semester, and grade level
+            // 1. Join with Student data to check Grade Level & Status
             {
-                $lookup: {from: 'students', localField: 'student', foreignField: '_id', as: 'studentInfo'}
+                $lookup: {
+                    from: 'students',
+                    localField: 'student',
+                    foreignField: '_id',
+                    as: 'studentInfo'
+                }
             },
             { $unwind: '$studentInfo' },
+            
+            // 2. Filter: Match Grade, Semester, Year, AND Active Status
             {
                 $match: {
                     'studentInfo.gradeLevel': gradeLevel,
+                    'studentInfo.status': 'Active', // <--- IMPORTANT: Ignore inactive students
                     academicYear: academicYear,
                     semester: semester
                 }
             },
-            // Stage 2: Group grades by student and calculate their average score
+
+            // 3. Group by Student and Sum their Final Scores
             {
                 $group: {
-                    _id: '$student', // Group by student ID
-                    averageScore: { $avg: '$finalScore' }
+                    _id: '$student', 
+                    totalScore: { $sum: '$finalScore' } // <--- Changed from $avg to $sum
                 }
             },
-            // Stage 3: Sort the entire class by average score, descending
+
+            // 4. Sort by Total Score (Highest to Lowest)
             {
-                $sort: { averageScore: -1 }
+                $sort: { totalScore: -1 }
             }
         ]);
 
-        // Stage 4: Find the index (position) of our target student in the sorted list
-        const studentRank = rankedList.findIndex(
-            item => item._id.toString() === studentId
-        );
+        // 5. Find the index of the requested student
+        const index = rankedList.findIndex(item => item._id.toString() === studentId);
 
-        if (studentRank === -1) {
-            // This means the student has no grades for this semester
-            return res.status(200).json({ rank: 'N/A' });
+        if (index === -1) {
+            return res.status(200).json({ rank: '-' });
         }
 
-        // The rank is the index + 1
-        res.status(200).json({ rank: studentRank + 1 });
+        // 6. Return format "Rank / Total" (e.g., "5 / 30")
+        const rankStr = `${index + 1} / ${rankedList.length}`;
+        
+        res.status(200).json({ rank: rankStr });
 
     } catch (error) {
         console.error('Error calculating rank:', error);
-        res.status(500).json({ message: 'Server error while calculating rank' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
 
-// @desc    Calculate a student's overall rank for the year
-// @route   GET /api/ranks/overall-rank/:studentId?academicYear=...&gradeLevel=...
+// @desc    Calculate Overall Rank (Average of Sem 1 & Sem 2 Totals)
+// @route   GET /api/ranks/overall-rank/:studentId
 exports.getOverallRank = async (req, res) => {
     const { studentId } = req.params;
     const { academicYear, gradeLevel } = req.query;
@@ -69,44 +78,46 @@ exports.getOverallRank = async (req, res) => {
 
     try {
         const rankedList = await Grade.aggregate([
-            // Stage 1: Match grades for the specific year and grade level (both semesters)
             {
-                $lookup: { from: 'students', localField: 'student', foreignField: '_id', as: 'studentInfo' }
+                $lookup: {
+                    from: 'students',
+                    localField: 'student',
+                    foreignField: '_id',
+                    as: 'studentInfo'
+                }
             },
             { $unwind: '$studentInfo' },
             {
                 $match: {
                     'studentInfo.gradeLevel': gradeLevel,
+                    'studentInfo.status': 'Active',
                     academicYear: academicYear,
                 }
             },
-            // Stage 2: Group by student and calculate their OVERALL average from all subjects/semesters
             {
                 $group: {
-                    _id: '$student', // Group by student
-                    // This calculates the average of ALL finalScores for that student in the matched year
-                    overallAverage: { $avg: '$finalScore' } 
+                    _id: '$student', 
+                    // Calculate the Grand Total of all subjects across both semesters
+                    grandTotal: { $sum: '$finalScore' } 
                 }
             },
-            // Stage 3: Sort by the calculated overall average
             {
-                $sort: { overallAverage: -1 }
+                $sort: { grandTotal: -1 }
             }
         ]);
 
-        // Stage 4: Find the student's position in the sorted list
-        const studentRank = rankedList.findIndex(
-            item => item._id.toString() === studentId
-        );
+        const index = rankedList.findIndex(item => item._id.toString() === studentId);
 
-        if (studentRank === -1) {
-            return res.status(200).json({ rank: 'N/A' });
+        if (index === -1) {
+            return res.status(200).json({ rank: '-' });
         }
 
-        res.status(200).json({ rank: studentRank + 1 });
+        const rankStr = `${index + 1} / ${rankedList.length}`;
+
+        res.status(200).json({ rank: rankStr });
 
     } catch (error) {
         console.error('Error calculating overall rank:', error);
-        res.status(500).json({ message: 'Server error while calculating rank' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
