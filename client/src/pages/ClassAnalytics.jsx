@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import analyticsService from '../services/analyticsService';
+import authService from '../services/authService';
+import subjectService from '../services/subjectService';
 
 const ClassAnalytics = () => {
-  const [currentUser, setCurrentUser] = useState(null);
-
+  const [currentUser] = useState(authService.getCurrentUser());
+  const [availableGrades, setAvailableGrades] = useState([]);
+  
+  // State for filters
   const [filters, setFilters] = useState({
-    gradeLevel: 'Grade 4A',
+    gradeLevel: '',
     assessmentName: 'Test 1',
     semester: 'First Semester',
     academicYear: '2018'
@@ -15,17 +20,73 @@ const ClassAnalytics = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  console.log(availableGrades)
+  // --- EFFECT 1: Determine Available Grades based on Role ---
+  useEffect(() => {
+    const fetchGrades = async () => {
+      if (!currentUser) return;
+
+      // CASE A: TEACHER (Derive from their assigned subjects)
+      if (currentUser.role === 'teacher') {
+        if (currentUser.subjectsTaught && currentUser.subjectsTaught.length > 0) {
+          // We map over subjectsTaught. 
+          // Note: Ensure your login/loadUser response populates the 'subject' field!
+          const teacherGrades = currentUser.subjectsTaught
+            .map(s => s.subject?.gradeLevel) // Access populated Subject gradeLevel
+            .filter(g => g); // Remove null/undefined
+
+          const uniqueGrades = [...new Set(teacherGrades)].sort();
+          setAvailableGrades(uniqueGrades);
+          
+          // Set default filter to their first grade
+          if (uniqueGrades.length > 0) {
+            setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
+          }
+        }
+      } 
+      
+      // CASE B: ADMIN / STAFF (Fetch all existing grade levels from DB)
+      else if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
+        try {
+          const res = await subjectService.getAllSubjects();
+            console.log("res",res.data.data)
+
+          if (res.data) {
+            const subjects = res.data;
+            const allDbGrades = [...new Set(subjects.map(s => s.gradeLevel))].sort();
+            
+            setAvailableGrades(allDbGrades);
+            
+            if (allDbGrades.length > 0) {
+              setFilters(prev => ({ ...prev, gradeLevel: allDbGrades[0] }));
+            }
+          }
+        } catch (err) {
+          console.error("Could not fetch grade levels:", err);
+          setError("Failed to load grade levels.");
+        }
+      }
+    };
+
+    fetchGrades();
+  }, [currentUser]);
+
+
   const handleChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-
-
   const fetchAnalytics = async () => {
     setLoading(true);
     setError('');
+    
+    if(!filters.gradeLevel) {
+        setError("Please select a Grade Level.");
+        return;
+    }
+
     try {
-      const res = await analyticsService.getClassAnalytics(filters)
+      const res = await analyticsService.getClassAnalytics(filters);
       setData(res.data.data);
     } catch (err) {
       console.error(err);
@@ -36,7 +97,7 @@ const ClassAnalytics = () => {
     }
   };
 
-  // Helper component to render the M | F | T triplet cells
+  // Helper component for matrix cells
   const TripleCell = ({ stats, bgColor = '' }) => (
     <>
       <td className={`border px-2 py-2 text-center text-xs text-gray-500 ${bgColor}`}>
@@ -60,15 +121,22 @@ const ClassAnalytics = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Class Performance Matrix</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            
+            {/* --- DYNAMIC GRADE SELECTOR --- */}
             <select
               name="gradeLevel"
               value={filters.gradeLevel}
               onChange={handleChange}
+              disabled={availableGrades.length === 0}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
             >
-              {['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8'].map(g => (
-                <option key={g} value={g}>{g}</option>
-              ))}
+              {availableGrades.length > 0 ? (
+                availableGrades.map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))
+              ) : (
+                <option value="">{loading ? "Loading..." : "No Grades Found"}</option>
+              )}
             </select>
 
             <input
@@ -101,9 +169,9 @@ const ClassAnalytics = () => {
 
             <button
               onClick={fetchAnalytics}
-              disabled={loading}
+              disabled={loading || !filters.gradeLevel}
               className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-                ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                ${(loading || !filters.gradeLevel) ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
               {loading ? 'Analyzing...' : 'Load Report'}
             </button>

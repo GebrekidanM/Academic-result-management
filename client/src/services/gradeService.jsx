@@ -9,9 +9,6 @@ const getGradesByStudent = (studentId) => {
 
 /**
  * Fetches a single grade entry by its own ID.
- * Used in: EditGradePage (to load initial form data)
- * @param {string} gradeId - The ID of the grade entry.
- * @returns {Promise} Axios promise
  */
 const getGradeById = (gradeId) => {
     return api.get(`${API_URL}/${gradeId}`);

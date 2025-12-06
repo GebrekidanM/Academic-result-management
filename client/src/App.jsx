@@ -51,6 +51,7 @@ import UserProfileEditPage from './pages/UserProfileEditPage';
 import ClassAnalytics from './pages/ClassAnalytics';
 import SubjectAnalysisDetail from './pages/SubjectAnalysisDetail';
 import TeachersPage from './pages/TeachersPage';
+import AllSubjectAnalytics from './pages/AllSUbjectAnalytics';
 
 function App() {
   const [isOpen,setIsOpen] = useState(false)
@@ -95,7 +96,7 @@ function App() {
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
-              <Route path="/allsubjectAnalysis" element={<ClassAnalytics/>}/>
+              <Route path="/allsubjectAnalysis" element={<AllSubjectAnalytics/>}/>
               <Route path='/otherprofile' element={<UserProfileEditPage/>}/>
               <Route path="/subjects" element={<SubjectListPage />} />
               <Route path="/subjects/add" element={<AddSubjectPage />} />

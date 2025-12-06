@@ -3,7 +3,6 @@ const API_URL = '/subjects';
 
 // Get all subjects
 const getAllSubjects = (gradeLevel) => {
-    // የክፍል ደረጃ ከተሰጠ፣ በ query parameter እንልከዋለን
     const params = gradeLevel ? { gradeLevel } : {};
     return api.get(API_URL, { params });
 };
