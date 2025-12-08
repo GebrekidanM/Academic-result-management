@@ -282,6 +282,19 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
         const analysis = [];
 
         for (const subject of subjects) {
+            // --- 2. NEW: Calculate Total Possible Score for this Subject ---
+            // Find all assessments defined for this subject/semester (e.g. Quiz 1 + Mid + Final)
+            const assessmentTypes = await AssessmentType.find({
+                subject: subject._id,
+                gradeLevel: gradeLevel,
+                semester: semester,
+                // year: academicYear // Uncomment if you create specific assessment types per year
+            });
+
+            // Sum up the marks (e.g. 10 + 20 + 70 = 100)
+            const totalPossible = assessmentTypes.reduce((sum, a) => sum + a.totalMarks, 0);
+            // -------------------------------------------------------------
+
             const grades = await Grade.find({
                 subject: subject._id,
                 student: { $in: studentIds },
@@ -289,20 +302,13 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
                 academicYear
             });
 
-            // Initialize Stats
+            // ... (Keep your existing Stats logic for Highest/Lowest/Avg) ...
             let totalScore = 0;
             let highest = 0;
-            let lowest = 100;
+            let lowest = totalPossible || 100; // Use calculated total as default max
             let passedCount = 0;
             let count = 0;
-
-            // --- NEW COUNTERS ---
-            let ranges = {
-                below50: 0, // < 50
-                below75: 0, // 50 - 74.9
-                below90: 0, // 75 - 89.9
-                above90: 0  // >= 90
-            };
+            let ranges = { below50: 0, below75: 0, below90: 0, above90: 0 };
 
             grades.forEach(g => {
                 if (g.finalScore !== undefined && g.finalScore !== null) {
@@ -310,19 +316,21 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
                     totalScore += score;
                     if (score > highest) highest = score;
                     if (score < lowest) lowest = score;
-                    if (score >= 50) passedCount++;
+                    
+                    // Calculate pass based on 50% of the Total Possible Score
+                    const passMark = totalPossible / 2; 
+                    if (score >= passMark) passedCount++;
+                    
                     count++;
 
-                    // --- NEW LOGIC: Classify Score ---
-                    if (score < 50) {
-                        ranges.below50++;
-                    } else if (score < 75) {
-                        ranges.below75++;
-                    } else if (score < 90) {
-                        ranges.below90++;
-                    } else {
-                        ranges.above90++;
-                    }
+                    // Calculate Percentage for Range Distribution
+                    // (We convert score to percentage to keep ranges consistent)
+                    const percentage = totalPossible > 0 ? (score / totalPossible) * 100 : 0;
+
+                    if (percentage < 50) ranges.below50++;
+                    else if (percentage < 75) ranges.below75++;
+                    else if (percentage < 90) ranges.below90++;
+                    else ranges.above90++;
                 }
             });
 
@@ -338,11 +346,11 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
                 highestScore: highest,
                 lowestScore: lowest,
                 passRate: passRate + '%',
-                ranges: ranges // <--- Send the breakdown to frontend
+                ranges: ranges,
+                totalPossibleScore: totalPossible // <--- 3. Send this to frontend
             });
         }
 
-        // Sort by Average Score (Highest to Lowest)
         analysis.sort((a, b) => b.averageScore - a.averageScore);
 
         res.status(200).json({

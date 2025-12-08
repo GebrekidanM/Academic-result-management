@@ -135,22 +135,83 @@ const AllSubjectAnalytics = () => {
         
         {/* Header & Filters */}
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Class Performance Matrix</h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <select name="gradeLevel" value={filters.gradeLevel} onChange={handleChange} disabled={availableGrades.length === 0} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-              {availableGrades.length > 0 ? availableGrades.map(g => <option key={g} value={g}>{g}</option>) : <option value="">No Grades</option>}
+          <div className="flex justify-between items-center mb-4">
+             <h2 className="text-2xl font-bold text-gray-800">Class Performance Matrix</h2>
+          </div>
+          
+          {/* UPDATED: Changed grid-cols-5 to grid-cols-6 to fit the print button */}
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            
+            <select
+              name="gradeLevel"
+              value={filters.gradeLevel}
+              onChange={handleChange}
+              disabled={availableGrades.length === 0}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
+            >
+              {availableGrades.length > 0 ? (
+                availableGrades.map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))
+              ) : (
+                <option value="">{loading ? "Loading..." : "No Grades Found"}</option>
+              )}
             </select>
-            <input type="text" name="assessmentName" value={filters.assessmentName} onChange={handleChange} placeholder="Exam Name (e.g. Test 1)" className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-            <select name="semester" value={filters.semester} onChange={handleChange} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+
+            <input
+              type="text"
+              name="assessmentName"
+              value={filters.assessmentName}
+              onChange={handleChange}
+              placeholder="Exam Name"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
+            />
+
+            <select
+              name="semester"
+              value={filters.semester}
+              onChange={handleChange}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
+            >
               <option value="First Semester">First Semester</option>
               <option value="Second Semester">Second Semester</option>
             </select>
-            <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} placeholder="Year" className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-            <button onClick={fetchAnalytics} disabled={loading || !filters.gradeLevel} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">
-              {loading ? 'Analyzing...' : 'Load Report'}
+
+            <input
+              type="text"
+              name="academicYear"
+              value={filters.academicYear}
+              onChange={handleChange}
+              placeholder="Year"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
+            />
+
+            <button
+              onClick={fetchAnalytics}
+              disabled={loading || !filters.gradeLevel}
+              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
+                ${(loading || !filters.gradeLevel) ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+            >
+              {loading ? 'Loading...' : 'Load Report'}
             </button>
+
+            {/* --- HERE IS THE PRINT BUTTON --- */}
+            <button
+              onClick={() => window.print()}
+              disabled={data.length === 0}
+              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
+                 ${data.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-700 hover:bg-gray-800'}`}
+            >
+              🖨️ Print
+            </button>
+
           </div>
-          {error && <div className="mt-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded">{error}</div>}
+          
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* --- BEST PERFORMANCE HIGHLIGHT --- */}

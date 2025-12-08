@@ -126,7 +126,13 @@ const SubjectPerformance = () => {
               {data.map((subject, index) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-gray-500 font-bold border-r">#{index + 1}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900 border-r">{subject.subjectName}</td>
+                  
+                  <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 border-r">
+                    {subject.subjectName}
+                    <span className="text-gray-500 text-xs ml-1 font-bold">
+                        ({subject.totalPossibleScore})
+                    </span>
+                  </td>
                   
                   {/* Avg Score */}
                   <td className={`px-2 py-3 text-center font-bold border-r ${
