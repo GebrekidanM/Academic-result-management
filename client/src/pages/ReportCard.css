@@ -198,3 +198,37 @@ td {
     /* Ensure colors print */
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
+
+@media print {
+  /* 1. Hide EVERYTHING on the page */
+  body * {
+    visibility: hidden;
+  }
+
+  /* 2. Show ONLY the specific area we want */
+  #printable-area, #printable-area * {
+    visibility: visible;
+  }
+
+  /* 3. Position the printable area at the top-left of the paper */
+  #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px; /* Optional padding for the paper */
+  }
+
+  /* 4. Ensure specific elements marked 'no-print' are definitely gone */
+  .no-print {
+    display: none !important;
+  }
+
+  /* 5. Remove shadows and backgrounds to save ink and look clean */
+  .shadow-md, .bg-gray-50 {
+    box-shadow: none !important;
+    background: white !important;
+    border: none !important;
+  }
+}
