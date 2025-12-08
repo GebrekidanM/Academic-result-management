@@ -34,6 +34,9 @@ exports.getGradesByStudent = async (req, res) => {
   try {
     const studentId = req.params.id || req.params.studentId;
 
+    const studentObj = await Student.findById(studentId);
+    if (!studentObj) return res.status(404).json({ message: "Student not found" });
+    
     let grades = await Grade.find({ student: studentId })
       .populate('subject', 'name gradeLevel')
       .populate('assessments.assessmentType', 'name totalMarks month');
@@ -51,13 +54,18 @@ exports.getGradesByStudent = async (req, res) => {
       });
 
     // Role-based filtering
-    if (req.user?.role === 'teacher' && req.user.subjectsTaught) {
-      const teacherSubjectIds = new Set(
-        req.user.subjectsTaught.map(s => s.subject?._id?.toString())
-      );
-      const filtered = grades.filter(g => teacherSubjectIds.has(g.subject._id.toString()));
-      return res.status(200).json({ success: true, count: filtered.length, data: filtered });
+    if (req.user?.role === 'teacher') {
+        
+        const isHomeroom = req.user.homeroomGrade === studentObj.gradeLevel;
+
+        if (!isHomeroom) {
+            const teacherSubjectIds = new Set(
+                req.user.subjectsTaught.map(s => s.subject?._id?.toString())
+            );
+            grades = grades.filter(g => teacherSubjectIds.has(g.subject._id.toString()));
+        }
     }
+
 
     res.status(200).json({ success: true, count: grades.length, data: grades });
   } catch (error) {
@@ -247,18 +255,6 @@ exports.saveGradeSheet = async (req, res) => {
     res.status(500).json({ message: 'Server error saving grades.' });
   }
 };
-
-
-exports.aGradeAnalysis = async(req,res)=>{
-    const {assessment} = req.params
-    console.log(assessment)
-    try {
-      
-    } catch (error) {
-      
-    }
-    res.status(200).json()
-}
 
 // @route GET /api/grades/clean
 exports.cleanBrokenAssessments = async (req, res) => {

@@ -48,7 +48,6 @@ import ImportStudentsPage from './pages/ImportStudentsPage';
 import ImportUsersPage from './pages/ImportUsersPage';
 import ImportSubjectsPage from './pages/ImportSubjectsPage';
 import UserProfileEditPage from './pages/UserProfileEditPage';
-import ClassAnalytics from './pages/ClassAnalytics';
 import SubjectAnalysisDetail from './pages/SubjectAnalysisDetail';
 import TeachersPage from './pages/TeachersPage';
 import AllSubjectAnalytics from './pages/AllSUbjectAnalytics';
@@ -81,7 +80,7 @@ function App() {
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
             <Route path="/allsubjectAnalysis" element={<AllSubjectAnalytics/>}/>
-            <Route path='/subjectPerformance' element={<SubjectPerformance/>}/>
+            <Route path='/subject-performance' element={<SubjectPerformance/>}/>
             <Route path='/teachers' element={<TeachersPage/>}/>
             <Route path='/subject-analysis' element={<SubjectAnalysisDetail/>}/>
             <Route path="/profile" element={<ProfilePage />} />

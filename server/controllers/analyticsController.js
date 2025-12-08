@@ -163,7 +163,7 @@ exports.getClassAnalytics = async (req, res) => {
         // 2. Find the Assessment Types (The Subjects) that match the name (e.g., "Test 1")
         const assessmentTypes = await AssessmentType.find({
             gradeLevel,
-            name: assessmentName,
+            name: { $regex: new RegExp(`^${assessmentName.trim()}$`, 'i') },
             semester,
             year: academicYear
         }).populate('subject', 'name');
