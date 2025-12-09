@@ -1,47 +1,85 @@
+/* All Subject Analytics Print Settings */
+
 @media print {
-  /* 1. Hide everything that isn't the report */
-  .no-print, 
-  button, 
-  input, 
-  select, 
-  label, 
-  nav, 
-  .sidebar { 
-    display: none !important; 
+  /* 1. Force Landscape Mode & Minimal Margins */
+  @page {
+    size: landscape;
+    margin: 5mm;
   }
 
-  /* 2. Make the table look good on paper */
-  body, .bg-gray-50, .min-h-screen {
+  /* 2. Isolation Technique: Hide everything, show only the report */
+  body * {
+    visibility: hidden; 
+  }
+  
+  #printable-area, #printable-area * {
+    visibility: visible;
+  }
+
+  #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  /* 3. Hide UI Elements strictly */
+  .no-print, button, input, select, nav {
+    display: none !important;
+  }
+
+  /* 4. Reset Layout Styles (Remove shadows, background colors of page) */
+  .bg-gray-50, .min-h-screen, .shadow-lg, .rounded-lg {
     background-color: white !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  .shadow-md, .shadow-lg, .border {
     box-shadow: none !important;
     border: none !important;
+    border-radius: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
 
-  /* 3. Ensure the table fits */
+  /* 5. TABLE FIXES */
+  .overflow-x-auto {
+    overflow: visible !important; /* Show full table width */
+    display: block !important;
+  }
+
   table {
     width: 100% !important;
-    font-size: 10px !important; /* Smaller text for printing */
+    font-size: 8px !important; /* Smaller font to fit M/F/T columns */
     border-collapse: collapse !important;
   }
 
   th, td {
-    border: 1px solid black !important; /* Sharp borders for printers */
+    border: 1px solid black !important;
+    padding: 2px 4px !important; /* Tight padding */
     color: black !important;
   }
 
-  /* 4. Keep colors for the <50% and >90% cells if the user enables "Background Graphics" */
-  .bg-red-100 { background-color: #fee2e2 !important; -webkit-print-color-adjust: exact; }
-  .bg-green-50 { background-color: #f0fdf4 !important; -webkit-print-color-adjust: exact; }
-  
-  /* 5. Header for the Printout */
-  .print-header {
-    display: block !important;
-    text-align: center;
-    margin-bottom: 20px;
+  /* 6. DISABLE STICKY HEADERS/COLUMNS */
+  /* Sticky causes print glitches (overlapping text) */
+  .sticky {
+    position: static !important; 
+    box-shadow: none !important;
+    border: 1px solid black !important;
   }
+
+  /* 7. FORCE BACKGROUND COLORS (Heatmap) */
+  /* This ensures the Red/Green/Yellow cells actually print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Manually force specific Tailwind colors if browser strips them */
+  .bg-red-100 { background-color: #fee2e2 !important; }
+  .bg-red-50 { background-color: #fef2f2 !important; }
+  .bg-green-50 { background-color: #f0fdf4 !important; }
+  .bg-yellow-50 { background-color: #fefce8 !important; }
+  .bg-blue-50 { background-color: #eff6ff !important; }
+  .bg-gray-50 { background-color: #f9fafb !important; }
+  .bg-gray-900 { background-color: #111827 !important; color: white !important; }
 }
