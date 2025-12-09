@@ -172,7 +172,7 @@ const ParentDashboardPage = () => {
                                                     <th className={`${tableHeader} w-1/4`}>Subject</th>
                                                     <th className={tableHeader}>Month</th>
                                                     <th className={tableHeader}>Assessment</th>
-                                                    <th className={`${tableHeader} text-right w-30`}>Score</th>
+                                                    <th className={`${tableHeader} min-w-40`}>Score</th>
                                                     <th className={`${tableHeader} text-center bg-gray-100`}>Subject Total</th>
                                                 </tr>
                                             </thead>
