@@ -57,6 +57,7 @@
     border: 1px solid black !important;
     padding: 2px 4px !important; /* Tight padding */
     color: black !important;
+    text-align: left;
   }
 
   /* 6. DISABLE STICKY HEADERS/COLUMNS */

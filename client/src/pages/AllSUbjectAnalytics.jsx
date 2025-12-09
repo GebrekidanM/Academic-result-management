@@ -206,10 +206,10 @@ const AllSubjectAnalytics = () => {
                   <thead className="bg-gray-800 text-white">
                     <tr>
                       {/* Rank Column */}
-                      <th rowSpan="2" className="sticky left-0 z-20 bg-gray-900 px-2 py-3 text-center text-xs font-bold uppercase border-r border-gray-600 w-16">Rank</th>
+                      <th rowSpan="2" className="bg-gray-900 px-2 py-3 text-center text-xs font-bold uppercase border-r border-gray-600 w-16">Rank</th>
                       
                       {/* Subject Column */}
-                      <th rowSpan="2" className="sticky left-16 z-10 bg-gray-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider border-r border-gray-600 w-48 shadow-lg">Subject</th>
+                      <th rowSpan="2" className="sticky left-0 z-10 bg-gray-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider border-r border-gray-600 w-48 shadow-lg">Subject</th>
                       
                       <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600">Total</th>
                       <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600 bg-gray-700">Attended</th>
