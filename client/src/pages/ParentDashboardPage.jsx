@@ -97,7 +97,6 @@ const ParentDashboardPage = () => {
                             <p><span className="font-medium">Grade Level:</span> {student.gradeLevel}</p>
                             <p><span className="font-medium">Gender:</span> {student.gender}</p>
                             <p><span className="font-medium">Date of Birth:</span> {student.dateOfBirth || "N/A"}</p>
-                            <p><span className="font-medium">Promotion Status:</span> {student.promotionStatus}</p>
                         </div>
 
                         <div className="space-y-2 text-gray-700">
@@ -105,7 +104,6 @@ const ParentDashboardPage = () => {
                             <p><span className="font-medium">Mother Contact:</span> {student.motherContact || "N/A"}</p>
                             <p><span className="font-medium">Father Contact:</span> {student.fatherContact || "N/A"}</p>
                             <p><span className="font-medium">Health Status:</span> {student.healthStatus}</p>
-                            <p><span className="font-medium">Overall Average:</span> {student.overallAverage.toFixed(2)}</p>
                         </div>
 
                     </div>
@@ -242,7 +240,7 @@ const ParentDashboardPage = () => {
                                                 </tr>
 
                                                 <tr>
-                                                    <td className={`${tableCell} font-bold`} colSpan={4}>Rank</td>
+                                                    {student.gradeLevel.split(' ')[0] ==="Kg" || <td className={`${tableCell} font-bold`} colSpan={4}>Rank</td>}
                                                     <td className={`${tableCell} font-bold`}>
                                                         {rankBySemester[semester] || "Loading..."}
                                                     </td>

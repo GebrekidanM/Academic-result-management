@@ -9,7 +9,7 @@ import './ReportCard.css';
 const ReportCardPage = () => {
     const { id } = useParams();
     
-    // --- STATE & DATA LOADING (Same as before) ---
+    // --- STATE ---
     const [student, setStudent] = useState(null);
     const [allGrades, setAllGrades] = useState([]);
     const [allReports, setAllReports] = useState([]);
@@ -17,10 +17,13 @@ const ReportCardPage = () => {
     const [rank2ndSem, setRank2ndSem] = useState('-');
     const [overallRank, setOverallRank] = useState('-');
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
+    // --- DATA LOADING ---
     useEffect(() => {
         const fetchAllData = async () => {
             try {
+                // 1. Fetch Basic Data
                 const [studentRes, gradesRes, reportsRes] = await Promise.all([
                     studentService.getStudentById(id),
                     gradeService.getGradesByStudent(id),
@@ -29,96 +32,164 @@ const ReportCardPage = () => {
 
                 const studentData = studentRes.data.data;
                 const reportsData = reportsRes.data.data;
+                
                 setStudent(studentData);
                 setAllGrades(gradesRes.data.data);
                 setAllReports(reportsData);
 
+                // 2. Fetch Ranks if Student Exists
                 if (studentData) {
                     const firstReport = reportsData.find(r => r.semester === 'First Semester');
                     const secondReport = reportsData.find(r => r.semester === 'Second Semester');
-                    const academicYear = firstReport?.academicYear || '2018';
+                    const academicYear = firstReport?.academicYear || '2018'; 
                     const gradeLevel = studentData.gradeLevel;
 
                     const rankPromises = [];
+                    
+                    // Sem 1 Rank
                     rankPromises.push(rankService.getRank({ studentId: id, academicYear, semester: 'First Semester', gradeLevel }));
-                    if (secondReport) rankPromises.push(rankService.getRank({ studentId: id, academicYear, semester: 'Second Semester', gradeLevel }));
-                    else rankPromises.push(Promise.resolve(null));
+                    
+                    // Sem 2 Rank (only if exists)
+                    if (secondReport) {
+                        rankPromises.push(rankService.getRank({ studentId: id, academicYear, semester: 'Second Semester', gradeLevel }));
+                    } else {
+                        rankPromises.push(Promise.resolve(null));
+                    }
+                    
+                    // Overall Rank
                     rankPromises.push(rankService.getOverallRank({ studentId: id, academicYear, gradeLevel }));
 
+                    // Resolve all ranks
                     const [rank1Res, rank2Res, overallRankRes] = await Promise.allSettled(rankPromises);
+
                     if (rank1Res.status === 'fulfilled') setRank1stSem(rank1Res.value.data.rank);
                     if (rank2Res.status === 'fulfilled' && rank2Res.value) setRank2ndSem(rank2Res.value.data.rank);
                     if (overallRankRes.status === 'fulfilled') setOverallRank(overallRankRes.value.data.rank);
                 }
-            } catch (err) { console.error(err); } finally { setLoading(false); }
+            } catch (err) {
+                console.error(err);
+                setError("Failed to load report card data.");
+            } finally {
+                setLoading(false);
+            }
         };
         fetchAllData();
     }, [id]);
 
+    // --- CALCULATIONS: Process Grades ---
     const processedResults = useMemo(() => {
         if (!allGrades || allGrades.length === 0) return [];
         const subjectMap = new Map();
+        
         allGrades.forEach(grade => {
+            // Ensure subject exists before accessing properties
+            if (!grade.subject) return; 
+
             const subjectId = grade.subject._id;
             const subjectName = grade.subject.name;
-            if (!subjectMap.has(subjectId)) subjectMap.set(subjectId, { subjectName, firstSemester: null, secondSemester: null });
+            
+            if (!subjectMap.has(subjectId)) {
+                subjectMap.set(subjectId, { subjectName, firstSemester: null, secondSemester: null });
+            }
+            
             const subjectEntry = subjectMap.get(subjectId);
             if (grade.semester === 'First Semester') subjectEntry.firstSemester = grade.finalScore;
             else if (grade.semester === 'Second Semester') subjectEntry.secondSemester = grade.finalScore;
         });
+
+        // Calculate Subject Averages
         subjectMap.forEach(subject => {
-            const scores = [subject.firstSemester, subject.secondSemester].filter(s => s !== null);
+            const scores = [subject.firstSemester, subject.secondSemester].filter(s => s !== null && s !== undefined);
             subject.average = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
         });
+
         return Array.from(subjectMap.values());
     }, [allGrades]);
 
+    // --- CALCULATIONS: Final Summary ---
     const finalSummary = useMemo(() => {
         if (processedResults.length === 0) return null;
         const summary = {
             total1st: processedResults.reduce((sum, sub) => sum + (sub.firstSemester || 0), 0),
             total2nd: processedResults.reduce((sum, sub) => sum + (sub.secondSemester || 0), 0),
         };
+        
         const numSubjects = processedResults.length;
         summary.average1st = numSubjects > 0 ? summary.total1st / numSubjects : 0;
         summary.average2nd = numSubjects > 0 ? summary.total2nd / numSubjects : 0;
-        summary.overallTotal = (summary.total1st + summary.total2nd) / 2;
+        
+        // Overall Average
+        summary.overallTotal = (summary.total1st + summary.total2nd); 
         summary.overallAverage = (summary.average1st + summary.average2nd) / 2;
+        
         return summary;
     }, [processedResults]);
 
+    // --- HELPERS ---
     const firstSemesterReport = allReports.find(r => r.semester === 'First Semester');
     const secondSemesterReport = allReports.find(r => r.semester === 'Second Semester');
     const EVALUATION_AREAS = ["Punctuality", "Attendance", "Responsibility", "Respect", "Cooperation", "Initiative", "Completes Work"];
-    const calculateAge = (dob) => { if(!dob) return '-'; const d = new Date(dob); return new Date().getFullYear() - d.getFullYear(); };
+    
+    const calculateAge = (dob) => { 
+        if(!dob) return '-'; 
+        const d = new Date(dob); 
+        return new Date().getFullYear() - d.getFullYear(); 
+    };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return <div className="p-10 text-center">Loading Report...</div>;
+    if (error) return <div className="p-10 text-center text-red-600">{error}</div>;
 
     return (
         <div className="report-card-container">
+            
+            {/* Top Controls (Hidden on Print) */}
             <div className="no-print" style={{width:'210mm', display:'flex', justifyContent:'space-between', marginBottom:15}}>
-                <Link to={`/students/${id}`} style={{fontWeight:'bold'}}>Back to Student</Link>
-                <button onClick={() => window.print()} style={{background:'#1a365d', color:'white', padding:'8px 15px', borderRadius:4, cursor:'pointer'}}>Print Report</button>
+                <Link to={`/students/${id}`} style={{fontWeight:'bold', color: '#1a365d', textDecoration:'none'}}>
+                    &larr; Back to Student
+                </Link>
+                <button onClick={() => window.print()} style={{background:'#1a365d', color:'white', padding:'8px 16px', borderRadius:4, cursor:'pointer', border:'none', fontWeight:'bold'}}>
+                    🖨️ Print Report
+                </button>
             </div>
 
-            {/* ===== PAGE 1: ACADEMICS ===== */}
+            {/* ======================= */}
+            {/* PAGE 1: FRONT (Academic) */}
+            {/* ======================= */}
             <div className="sheet">
+                
                 {/* Header */}
                 <div className="header-section">
                     <h1>Freedom KG & Primary School</h1>
                     <p>Address: Addis Ababa, Ethiopia | OFFICIAL REPORT CARD</p>
                 </div>
 
-                {/* Profile */}
+                {/* Student Profile Card */}
                 <div className="student-card">
-                    {student?.imageUrl ? <img src={student.imageUrl} className="student-photo" alt="" /> : <div className="student-photo"></div>}
+                    {student?.imageUrl ? (
+                        <img src={student.imageUrl} className="student-photo" alt="Student" />
+                    ) : (
+                        <div className="student-photo"></div>
+                    )}
+                    
                     <div className="student-info">
-                        <div className="info-row"><label>Student Name:</label> <span>{student?.fullName}</span></div>
-                        <div className="info-row"><label>ID Number:</label> <span>{student?.studentId}</span></div>
-                        <div className="info-row"><label>Grade:</label> <span>{student?.gradeLevel}</span></div>
-                        <div className="info-row"><label>Academic Year:</label> <span>{firstSemesterReport?.academicYear}</span></div>
-                        <div className="info-row"><label>Gender:</label> <span>{student?.gender}</span></div>
-                        <div className="info-row"><label>Age:</label> <span>{calculateAge(student?.dateOfBirth)}</span></div>
+                        <div className="info-row">
+                            <label>Name / ስም:</label> <span>{student?.fullName}</span>
+                        </div>
+                        <div className="info-row">
+                            <label>ID No / መለያ ቁጥር:</label> <span>{student?.studentId}</span>
+                        </div>
+                        <div className="info-row">
+                            <label>Grade / ክፍል:</label> <span>{student?.gradeLevel}</span>
+                        </div>
+                        <div className="info-row">
+                            <label>Academic Year / ዘመን:</label> <span>{firstSemesterReport?.academicYear || '2018'}</span>
+                        </div>
+                        <div className="info-row">
+                            <label>Gender / ጾታ:</label> <span>{student?.gender}</span>
+                        </div>
+                        <div className="info-row">
+                            <label>Age / ዕድሜ:</label> <span>{calculateAge(student?.dateOfBirth)}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -156,6 +227,8 @@ const ReportCardPage = () => {
                             <td><strong>{finalSummary?.average2nd.toFixed(1)}</strong></td>
                             <td><strong>{finalSummary?.overallAverage.toFixed(1)}</strong></td>
                         </tr>
+                        
+                        {/* RANK ROW - Uses special CSS class for styling */}
                         <tr className="rank-row">
                             <td>CLASS RANK</td>
                             <td>{rank1stSem}</td>
@@ -165,20 +238,25 @@ const ReportCardPage = () => {
                     </tfoot>
                 </table>
 
-                <div style={{marginTop:'auto', borderTop:'2px solid #ccc', paddingTop:10, fontSize:12, display:'flex', justifyContent:'space-between'}}>
-                    <div>Promoted To: _________________________</div>
-                    <div>Date: _________________________</div>
+                {/* Footer (Bilingual) */}
+                <div className="footer-info">
+                    <div><strong>Promoted To / ወደ ... ተዛውሯል:</strong> _______________________</div>
+                    <div><strong>Date / ቀን:</strong> _______________________</div>
                 </div>
             </div>
 
-            {/* ===== PAGE 2: BEHAVIOR & COMMENTS ===== */}
+            {/* ======================= */}
+            {/* PAGE 2: BACK (Behavior) */}
+            {/* ======================= */}
             <div className="sheet">
+                
+                {/* Header for Page 2 */}
                 <div style={{textAlign:'center', borderBottom:'1px solid #ccc', marginBottom:20, paddingBottom:10}}>
                     <h2 style={{margin:0, color:'#555', fontSize:16}}>{student?.fullName} - {student?.studentId}</h2>
                 </div>
 
                 <div style={{display:'flex', gap:30}}>
-                    {/* Left Col */}
+                    {/* Left Col: Traits */}
                     <div style={{flex:1}}>
                         <h3 className="section-title">Behavioral Traits</h3>
                         <table className="behavior-table">
@@ -193,7 +271,7 @@ const ReportCardPage = () => {
                                         <td>{secondSemesterReport?.evaluations.find(e => e.area === area)?.result ?? '-'}</td>
                                     </tr>
                                 ))}
-                                <tr style={{background:'#eee', fontWeight:'bold'}}>
+                                <tr style={{background:'#f0f0f0', fontWeight:'bold'}}>
                                     <td>Conduct Grade</td>
                                     <td>{firstSemesterReport?.conduct ?? '-'}</td>
                                     <td>{secondSemesterReport?.conduct ?? '-'}</td>
@@ -201,12 +279,12 @@ const ReportCardPage = () => {
                             </tbody>
                         </table>
                         
-                        <div style={{fontSize:10, background:'#eee', padding:5}}>
+                        <div style={{fontSize:10, background:'#eee', padding:5, border:'1px solid #ccc'}}>
                             <strong>Key:</strong> E=Excellent, VG=Very Good, G=Good, NI=Needs Improvement
                         </div>
                     </div>
 
-                    {/* Right Col */}
+                    {/* Right Col: Comments */}
                     <div style={{flex:1}}>
                         <div className="comments-container">
                             <div className="comment-box">
@@ -221,6 +299,7 @@ const ReportCardPage = () => {
                     </div>
                 </div>
 
+                {/* Signatures */}
                 <div className="signatures-section">
                     <div className="sig-box">
                         <div className="sig-line"></div>
@@ -236,6 +315,7 @@ const ReportCardPage = () => {
                     </div>
                 </div>
 
+                {/* Message to Parents (Bilingual) */}
                 <div className="message-box">
                     <h5>Message to parents / ለወላጆች መልእክት</h5>
                     <p>The above report card primarily focuses on your child's behavioral development in various aspects, but it cannot encompass everything about your child. These are keys to your child's academic success. We would like you to pay attention to this progress report card and assess your child at home.</p>

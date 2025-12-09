@@ -10,7 +10,7 @@
 body {
     margin: 0;
     padding: 0;
-    background-color: #525659;
+    background-color: #525659; /* PDF Dark Grey */
 }
 
 .report-card-container {
@@ -18,14 +18,18 @@ body {
     flex-direction: column;
     align-items: center;
     padding: 30px 0;
+    width: 100%;
+    overflow-x: auto;
 }
 
 /* --- THE A4 PAPER (Portrait) --- */
 .sheet {
     background: white;
     width: 210mm;
+    min-width: 210mm;
     height: 297mm;
-    padding: 15mm;
+    min-height: 297mm; /* Force A4 Height */
+    padding: 12mm 15mm; /* Balanced padding */
     box-sizing: border-box;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
     margin-bottom: 30px;
@@ -36,12 +40,12 @@ body {
     color: #2d3748;
 }
 
-/* --- PAGE 1: HEADER & PROFILE --- */
+/* --- PAGE 1 COMPONENTS --- */
 .header-section {
     text-align: center;
     border-bottom: 3px double var(--primary);
-    padding-bottom: 15px;
-    margin-bottom: 25px;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
 }
 .header-section h1 {
     font-family: 'Playfair Display', serif;
@@ -51,20 +55,20 @@ body {
     text-transform: uppercase;
     letter-spacing: 1px;
 }
-.header-section p { margin: 5px 0; font-size: 12px; color: #555; }
+.header-section p { margin: 5px 0; font-size: 11px; color: #555; }
 
 .student-card {
     display: flex;
     gap: 20px;
     background: var(--bg-gray);
-    padding: 15px;
+    padding: 12px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 }
 .student-photo {
-    width: 100px;
-    height: 125px;
+    width: 90px;
+    height: 115px;
     background: #e2e8f0;
     border: 3px solid white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -74,16 +78,22 @@ body {
     flex: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 8px;
     align-content: center;
 }
 .info-row {
     border-bottom: 1px dotted #ccc;
-    font-size: 13px;
+    font-size: 11px; /* Smaller font for bilingual text */
     display: flex;
     justify-content: space-between;
+    padding-bottom: 2px;
+    align-items: center;
 }
-.info-row label { font-weight: bold; color: var(--primary); }
+.info-row label { 
+    font-weight: bold; 
+    color: var(--primary); 
+    font-family: 'Lato', 'Noto Sans Ethiopic', sans-serif;
+}
 .info-row span { font-weight: bold; color: #000; font-family: 'Courier New'; }
 
 /* --- TABLES --- */
@@ -91,31 +101,31 @@ body {
     font-family: 'Playfair Display', serif;
     color: var(--primary);
     border-bottom: 2px solid #edf2f7;
-    margin-bottom: 10px;
-    font-size: 18px;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
-    margin-bottom: 20px;
+    font-size: 11px;
+    margin-bottom: 15px;
 }
 th {
     background: var(--primary);
     color: white;
-    padding: 8px;
+    padding: 6px;
     text-transform: uppercase;
     border: 1px solid #000;
 }
 td {
     border: 1px solid #ccc;
-    padding: 6px;
+    padding: 5px;
     text-align: center;
 }
-/* Left align first column */
 .academic-table td:first-child, .behavior-table td:first-child { 
-    text-align: left; padding-left: 10px; font-weight: bold; 
+    text-align: left; padding-left: 8px; font-weight: bold; 
 }
 
 /* Rank Row Highlight */
@@ -123,112 +133,107 @@ td {
     background-color: var(--accent) !important;
     color: white !important;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 12px;
     border: 1px solid #000;
 }
 
-/* --- PAGE 2: COMMENTS & MESSAGE --- */
+/* Footer (Promoted To) */
+.footer-info {
+    margin-top: auto; /* Push to bottom */
+    border-top: 2px solid #ccc;
+    padding-top: 10px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* --- PAGE 2 COMPONENTS --- */
 .comments-container {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin-top: 20px;
+    gap: 10px;
+    margin-top: 10px;
 }
-
 .comment-box {
     border: 1px solid #cbd5e0;
-    padding: 10px;
+    padding: 8px;
     border-radius: 6px;
     background: #fff;
 }
 .comment-box h4 {
-    margin: 0 0 5px 0;
+    margin: 0 0 4px 0;
     color: var(--primary);
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
     border-bottom: 1px solid #eee;
 }
 .lines {
-    height: 25px;
+    height: 20px;
     border-bottom: 1px dotted #999;
     font-family: 'Courier New', monospace;
-    font-size: 13px;
+    font-size: 12px;
     color: #000;
 }
 
 .signatures-section {
-    margin-top: 40px;
+    margin-top: 30px;
     display: flex;
     justify-content: space-between;
-    padding: 0 20px;
+    padding: 0 10px;
 }
-.sig-box { text-align: center; width: 30%; }
+.sig-box { text-align: center; width: 30%; font-size: 11px; }
 .sig-line { border-bottom: 1px solid #000; height: 30px; margin-bottom: 5px; }
 
 .message-box {
-    margin-top: auto; /* Pushes to bottom of page */
+    margin-top: auto;
     background: #fffaf0;
     border: 1px solid #bee3f8;
     border-left: 5px solid var(--accent);
-    padding: 15px;
-    font-size: 11px;
+    padding: 10px;
+    font-size: 10px;
     text-align: justify;
     border-radius: 4px;
+    line-height: 1.4;
 }
-.message-box h5 { margin: 0 0 5px 0; color: var(--accent); font-weight: bold; font-size: 12px; }
+.message-box h5 { margin: 0 0 3px 0; color: var(--accent); font-weight: bold; font-size: 11px; }
 
 /* --- PRINT SETTINGS --- */
 @media print {
-    @page { size: A4 portrait; margin: 0; }
+    @page { 
+        size: A4 portrait; 
+        margin: 0; /* Remove browser margins */
+    }
     
     body { background: white; }
-    .report-card-container { display: block; padding: 0; }
+    
+    /* Hide UI Elements */
     .no-print { display: none !important; }
+    nav { display: none !important; }
+    button, input, select { display: none !important; }
 
-    .sheet {
-        margin: 0;
-        box-shadow: none;
+    /* Report Card Container */
+    .report-card-container { 
+        display: block; 
+        padding: 0; 
+        margin: 0; 
         width: 100%;
-        height: 297mm; /* Full Page Height */
-        page-break-after: always; /* Forces Page 2 */
-        padding: 15mm;
-        border: none;
+        background: white;
+    }
+
+    /* The Sheet */
+    .sheet {
+        margin: 0 !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        height: 297mm !important; /* Force exact A4 height */
+        page-break-after: always; /* Ensure new page */
+        padding: 12mm 15mm !important;
+        border: none !important;
     }
     
     /* Ensure colors print */
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-}
-
-@media print {
-  /* 1. Hide EVERYTHING on the page */
-  body * {
-    visibility: hidden;
-  }
-
-  /* 2. Show ONLY the specific area we want */
-  #printable-area, #printable-area * {
-    visibility: visible;
-  }
-
-  /* 3. Position the printable area at the top-left of the paper */
-  #printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20px; /* Optional padding for the paper */
-  }
-
-  /* 4. Ensure specific elements marked 'no-print' are definitely gone */
-  .no-print {
-    display: none !important;
-  }
-
-  /* 5. Remove shadows and backgrounds to save ink and look clean */
-  .shadow-md, .bg-gray-50 {
-    box-shadow: none !important;
-    background: white !important;
-    border: none !important;
-  }
+    * { 
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
+    }
 }
