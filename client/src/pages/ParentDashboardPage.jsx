@@ -201,11 +201,15 @@ const ParentDashboardPage = () => {
                                             <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                                                 <tr>
                                                     <td colSpan={3} className="px-4 py-3 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">Grand Total:</td>
-                                                    <td colSpan={2} className="px-4 py-3 font-bold text-center text-lg text-gray-900">{semesterObtained} / {semesterMax}</td>
+                                                    <td colSpan={2} className="px-4 py-3 font-bold text-center text-lg text-gray-900">{semesterObtained.toFixed(2)} / {semesterMax}</td>
                                                 </tr>
                                                 <tr>
                                                     <td colSpan={3} className="px-4 py-2 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">Average:</td>
-                                                    <td colSpan={2} className="px-4 py-2 font-bold text-center text-blue-600 text-md">{semesterAvg}%</td>
+                                                    <td colSpan={2} className="px-4 py-2 font-bold text-center text-blue-600 text-lg">{semesterAvg}%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td colSpan={3} className="px-4 py-2 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">Rank</td>
+                                                    <td colSpan={2} className="px-4 py-2 font-bold text-center text-blue-600 text-lg"><strong>{rankBySemester[semester] || '...'}</strong></td>
                                                 </tr>
                                             </tfoot>
                                         </table>
