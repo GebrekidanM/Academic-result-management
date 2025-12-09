@@ -116,7 +116,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                 {currentUser.role === 'admin' && (
                   <NavDropdown title="⚙️ Admin">
                     <NavLink to="/subjects" className={dropdownLinkClass} onClick={closeMenu}>Manage Subjects</NavLink>
-                    {/* Add Users/Teachers management link here later */}
+                    <NavLink to="/admin/users" className={dropdownLinkClass} onClick={closeMenu}>Manage Staff</NavLink>
                   </NavDropdown>
                 )}
               </>

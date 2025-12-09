@@ -70,14 +70,14 @@ const UserManagementPage = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                     {users.map(user => (
                         <tr key={user._id} className="hover:bg-gray-50">
-                            <td className={`${tableCell} font-medium text-gray-900`}>
-                                <Link to={'/otherprofile'} state={{profileData:user}}>{user.fullName}</Link>
+                            <td className={`${tableCell} text-left font-bold text-gray-900`}>
+                                <Link to={'/otherprofile'} state={{profileData:user}} className='text-left'>{user.fullName}</Link>
                             </td>
                             <td className={`${tableCell} text-gray-700`}>{user.username}</td>
-                            <td className={`${tableCell} text-gray-500 capitalize`}>{user.role}</td>
+                            <td className={`${tableCell} text-gray-500 text-left capitalize`}>{user.role}</td>
                             
                             {/* --- THIS IS THE NEW CELL FOR ASSIGNMENTS --- */}
-                            <td className={tableCell}>
+                            <td className={`${tableCell} text-left`}>
                                 {/* For Homeroom Teachers, display their assigned grade */}
                                 {user.homeroomGrade && (
                                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-pink-100 text-pink-800">
@@ -86,7 +86,7 @@ const UserManagementPage = () => {
                                 )}
                                 {/* For all teachers, list their subjects */}
                                 {user.subjectsTaught && user.subjectsTaught.length > 0 && (
-                                    <ul className="list-disc list-inside text-gray-600 mt-1">
+                                    <ul className="list-disc list-inside text-gray-600 mt-1 text-left">
                                         {user.subjectsTaught.map(assignment => (
                                             // Ensure assignment.subject is not null before rendering
                                             assignment.subject && (

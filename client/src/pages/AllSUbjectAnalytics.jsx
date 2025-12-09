@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import analyticsService from '../services/analyticsService';
 import authService from '../services/authService';
 import subjectService from '../services/subjectService';
+import userService from '../services/userService';
 
 const AllSubjectAnalytics = () => {
-  const [currentUser] = useState(authService.getCurrentUser());
+  const [currentUser,setCurrentUser] = useState(null);
   const [availableGrades, setAvailableGrades] = useState([]);
   
   const [filters, setFilters] = useState({
@@ -18,10 +19,12 @@ const AllSubjectAnalytics = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+
   // --- CONFIG LOADING ---
   useEffect(() => {
     const fetchGrades = async () => {
-      if (!currentUser) return;
+      const res = await userService.getProfile();
+      setCurrentUser(res.data)
       if (currentUser.role === 'teacher') {
         if (currentUser.subjectsTaught?.length > 0) {
           const teacherGrades = currentUser.subjectsTaught.map(s => s.subject?.gradeLevel).filter(g => g);
@@ -29,7 +32,7 @@ const AllSubjectAnalytics = () => {
           setAvailableGrades(uniqueGrades);
           if (uniqueGrades.length > 0) setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
         }
-      } else if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
+      } else if (['admin', 'staff'].includes(currentUser.role)) {
         try {
           const res = await subjectService.getAllSubjects();
           if (res.data) {

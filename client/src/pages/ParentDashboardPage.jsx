@@ -160,7 +160,7 @@ const ParentDashboardPage = () => {
                                 <div key={semester} className="border rounded-xl overflow-hidden shadow-sm">
                                     <div className="bg-blue-900 text-white p-4 flex justify-between items-center">
                                         <h4 className="text-lg font-bold">Semester: {semester}</h4>
-                                        <div className="text-sm bg-blue-800 px-3 py-1 rounded border border-blue-700">
+                                        <div className="text-sm bg-blue-800 px-3 py-1 rounded border border-blue-700 min-w-20">
                                             Rank: <strong>{rankBySemester[semester] || '...'}</strong>
                                         </div>
                                     </div>
@@ -172,7 +172,7 @@ const ParentDashboardPage = () => {
                                                     <th className={`${tableHeader} w-1/4`}>Subject</th>
                                                     <th className={tableHeader}>Month</th>
                                                     <th className={tableHeader}>Assessment</th>
-                                                    <th className={`${tableHeader} min-w-40`}>Score</th>
+                                                    <th className={`${tableHeader} min-w-20`}>Score</th>
                                                     <th className={`${tableHeader} text-center bg-gray-100`}>Subject Total</th>
                                                 </tr>
                                             </thead>
