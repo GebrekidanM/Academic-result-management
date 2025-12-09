@@ -236,7 +236,7 @@ const AllSubjectAnalytics = () => {
                       <tr key={row.subject} className="hover:bg-gray-50 transition-colors">
                         
                         {/* Rank Data */}
-                        <td className={`sticky left-0 z-20 px-2 py-3 text-center text-sm font-bold border-r-2 border-gray-200 
+                        <td className={`px-2 py-3 text-center text-sm font-bold border-r-2 border-gray-200 
                             ${row.rank === 1 ? 'bg-yellow-100 text-yellow-800' : 
                               row.rank === 2 ? 'bg-gray-200 text-gray-800' : 
                               row.rank === 3 ? 'bg-orange-100 text-orange-800' : 'bg-white text-gray-500'}
@@ -245,7 +245,7 @@ const AllSubjectAnalytics = () => {
                         </td>
 
                         {/* Subject Data */}
-                        <td className="sticky left-16 z-10 bg-white px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r-2 border-gray-200">
+                        <td className="sticky left-0 text-left z-10 bg-white px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r-2 border-gray-200">
                           {row.subject} <span className="ml-2 text-xs text-gray-400 font-normal">({row.totalMarks} pts)</span>
                           {row.rank === 1 && <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Best</span>}
                         </td>
