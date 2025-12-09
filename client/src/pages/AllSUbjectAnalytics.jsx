@@ -5,7 +5,7 @@ import subjectService from '../services/subjectService';
 import userService from '../services/userService';
 
 const AllSubjectAnalytics = () => {
-  const [currentUser,setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [availableGrades, setAvailableGrades] = useState([]);
   
   const [filters, setFilters] = useState({
@@ -19,12 +19,29 @@ const AllSubjectAnalytics = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-
-  // --- CONFIG LOADING ---
+  // --- 1. Load User Profile ---
   useEffect(() => {
-    const fetchGrades = async () => {
-      const res = await userService.getProfile();
-      setCurrentUser(res.data)
+    const fetchUser = async () => {
+      try {
+        // If you store full user details in authService, you can skip this
+        // But if you need 'subjectsTaught' populated, fetch profile
+        const user = authService.getCurrentUser();
+        if(user) {
+             const res = await userService.getProfile();
+             setCurrentUser(res.data.data || res.data); // Adjust based on your API response structure
+        }
+      } catch(err) {
+          console.error(err);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // --- 2. Load Grades based on User Role ---
+  useEffect(() => {
+    const fetchGrade = async () => {
+      if (!currentUser) return;
+
       if (currentUser.role === 'teacher') {
         if (currentUser.subjectsTaught?.length > 0) {
           const teacherGrades = currentUser.subjectsTaught.map(s => s.subject?.gradeLevel).filter(g => g);
@@ -32,7 +49,7 @@ const AllSubjectAnalytics = () => {
           setAvailableGrades(uniqueGrades);
           if (uniqueGrades.length > 0) setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
         }
-      } else if (['admin', 'staff'].includes(currentUser.role)) {
+      } else if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
         try {
           const res = await subjectService.getAllSubjects();
           if (res.data) {
@@ -43,13 +60,23 @@ const AllSubjectAnalytics = () => {
           }
         } catch (err) { console.error(err); }
       }
-    };
-    fetchGrades();
+    }
+    fetchGrade();
   }, [currentUser]);
 
-  // --- CALCULATE RANKS ---
+  // --- 3. HELPER: Performance Level ---
+  const getPerformanceLevel = (rate) => {
+    if (rate >= 90) return { label: 'Excellent', color: 'text-green-800 bg-green-200' };
+    if (rate >= 75) return { label: 'Very Good', color: 'text-blue-800 bg-blue-200' };
+    if (rate >= 50) return { label: 'Satisfactory', color: 'text-yellow-800 bg-yellow-200' };
+    return { label: 'Critical', color: 'text-red-800 bg-red-200' };
+  };
+
+  // --- 4. CALCULATE RANKS & BEST PERF ---
   const dataWithRanks = useMemo(() => {
     if (!data || data.length === 0) return [];
+    
+    // Calculate pass rates
     const calculated = data.map(row => {
         const total = row.attended.total;
         const failed = row.below50.total;
@@ -57,17 +84,13 @@ const AllSubjectAnalytics = () => {
         const passRate = total > 0 ? (passed / total) * 100 : 0;
         return { ...row, passRate };
     });
+
+    // Sort by Pass Rate (Descending)
     calculated.sort((a, b) => b.passRate - a.passRate);
+
+    // Assign Rank
     return calculated.map((row, index) => ({ ...row, rank: index + 1 }));
   }, [data]);
-
-  // --- BEST PERF HELPER ---
-  const getPerformanceLevel = (rate) => {
-    if (rate >= 90) return { label: 'Excellent', color: 'text-green-800 bg-green-200' };
-    if (rate >= 75) return { label: 'Very Good', color: 'text-blue-800 bg-blue-200' };
-    if (rate >= 50) return { label: 'Satisfactory', color: 'text-yellow-800 bg-yellow-200' };
-    return { label: 'Critical', color: 'text-red-800 bg-red-200' };
-  };
 
   const bestPerformance = useMemo(() => {
     if (!dataWithRanks.length) return null;
@@ -81,15 +104,22 @@ const AllSubjectAnalytics = () => {
     };
   }, [dataWithRanks]);
 
+  // --- HANDLERS ---
   const handleChange = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
 
   const fetchAnalytics = async () => {
     setLoading(true);
     setError('');
-    if(!filters.gradeLevel || !filters.assessmentName.trim()) {
+    
+    if(!filters.gradeLevel) {
         setLoading(false);
-        return setError("Please select Grade and enter Exam Name.");
+        return setError("Please select a Grade Level.");
     }
+    if(!filters.assessmentName.trim()) {
+        setLoading(false);
+        return setError("Please enter an Assessment Name.");
+    }
+
     try {
       const res = await analyticsService.getClassAnalytics(filters);
       setData(res.data.data);
@@ -102,6 +132,7 @@ const AllSubjectAnalytics = () => {
     }
   };
 
+  // --- CELL COMPONENT ---
   const TripleCell = ({ stats, totalStudents, bgColor = '' }) => {
     const percentage = totalStudents > 0 ? ((stats.total / totalStudents) * 100).toFixed(1) : 0;
     return (
@@ -118,13 +149,15 @@ const AllSubjectAnalytics = () => {
     <div className="p-6 bg-gray-50 min-h-screen font-sans">
       <div className="max-w-full mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
         
-        {/* === PRINTABLE AREA STARTS HERE === */}
+        {/* === PRINTABLE AREA WRAPPER === */}
         <div id="printable-area">
 
             {/* HEADER */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">Class Performance Matrix of {filters.gradeLevel ? filters.gradeLevel : "______"}</h2>
+                <h2 className="text-2xl font-bold text-gray-800">
+                    Class Performance Matrix {filters.gradeLevel ? `- ${filters.gradeLevel}` : ""}
+                </h2>
               </div>
               
               {/* FILTERS (Hidden on Print) */}
@@ -138,17 +171,21 @@ const AllSubjectAnalytics = () => {
                   <option value="Second Semester">Second Semester</option>
                 </select>
                 <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} placeholder="Year" className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                
                 <button onClick={fetchAnalytics} disabled={loading || !filters.gradeLevel} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">
-                  {loading ? 'Analyzing...' : 'Load Report'}
+                  {loading ? '...' : 'Load'}
                 </button>
+                
+                {/* PRINT BUTTON */}
                 <button onClick={() => window.print()} disabled={data.length === 0} className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-md">
                   🖨️ Print
                 </button>
               </div>
+
               {error && <div className="mt-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded no-print">{error}</div>}
             </div>
 
-            {/* BEST PERF BANNER (Visible on Print) */}
+            {/* BEST PERFORMANCE BANNER */}
             {bestPerformance && (
               <div className="bg-green-50 border-l-4 border-green-500 p-4 m-6 mb-0 shadow-sm flex items-center">
                 <div className="flex-shrink-0 text-3xl">🏆</div>
@@ -162,14 +199,18 @@ const AllSubjectAnalytics = () => {
               </div>
             )}
 
-            {/* TABLE (Visible on Print) */}
+            {/* DATA TABLE */}
             {dataWithRanks.length > 0 ? (
               <div className="overflow-x-auto p-4">
                 <table className="min-w-full divide-y divide-gray-200 border-collapse">
                   <thead className="bg-gray-800 text-white">
                     <tr>
+                      {/* Rank Column */}
                       <th rowSpan="2" className="sticky left-0 z-20 bg-gray-900 px-2 py-3 text-center text-xs font-bold uppercase border-r border-gray-600 w-16">Rank</th>
+                      
+                      {/* Subject Column */}
                       <th rowSpan="2" className="sticky left-16 z-10 bg-gray-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider border-r border-gray-600 w-48 shadow-lg">Subject</th>
+                      
                       <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600">Total</th>
                       <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600 bg-gray-700">Attended</th>
                       <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600 bg-red-900">Missed</th>
@@ -189,13 +230,26 @@ const AllSubjectAnalytics = () => {
                       ))}
                     </tr>
                   </thead>
+                  
                   <tbody className="bg-white divide-y divide-gray-200">
                     {dataWithRanks.map((row) => (
                       <tr key={row.subject} className="hover:bg-gray-50 transition-colors">
-                        <td className={`sticky left-0 z-20 px-2 py-3 text-center text-sm font-bold border-r-2 border-gray-200 ${row.rank === 1 ? 'bg-yellow-100 text-yellow-800' : row.rank === 2 ? 'bg-gray-200 text-gray-800' : row.rank === 3 ? 'bg-orange-100 text-orange-800' : 'bg-white text-gray-500'}`}>#{row.rank}</td>
+                        
+                        {/* Rank Data */}
+                        <td className={`sticky left-0 z-20 px-2 py-3 text-center text-sm font-bold border-r-2 border-gray-200 
+                            ${row.rank === 1 ? 'bg-yellow-100 text-yellow-800' : 
+                              row.rank === 2 ? 'bg-gray-200 text-gray-800' : 
+                              row.rank === 3 ? 'bg-orange-100 text-orange-800' : 'bg-white text-gray-500'}
+                        `}>
+                            #{row.rank}
+                        </td>
+
+                        {/* Subject Data */}
                         <td className="sticky left-16 z-10 bg-white px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r-2 border-gray-200">
                           {row.subject} <span className="ml-2 text-xs text-gray-400 font-normal">({row.totalMarks} pts)</span>
+                          {row.rank === 1 && <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Best</span>}
                         </td>
+
                         <TripleCell stats={row.students} totalStudents={row.students.total} />
                         <TripleCell stats={row.attended} totalStudents={row.students.total} bgColor="bg-gray-50" />
                         <TripleCell stats={row.missed} totalStudents={row.students.total} bgColor="bg-red-50 text-red-600" />
@@ -213,7 +267,7 @@ const AllSubjectAnalytics = () => {
             )}
         
         </div>
-        {/* === PRINTABLE AREA ENDS HERE === */}
+        {/* === PRINTABLE AREA ENDS === */}
 
       </div>
     </div>
