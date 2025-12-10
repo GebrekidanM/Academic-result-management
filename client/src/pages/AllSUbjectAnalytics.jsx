@@ -150,7 +150,7 @@ const AllSubjectAnalytics = () => {
       <div className="max-w-full mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
         
         {/* === PRINTABLE AREA WRAPPER === */}
-        <div id="printable-area">
+        <div id="printable-area" className="print-layout-landscape">
 
             {/* HEADER */}
             <div className="p-6 border-b border-gray-200">

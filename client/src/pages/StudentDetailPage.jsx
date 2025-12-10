@@ -157,7 +157,6 @@ const StudentDetailPage = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -167,10 +166,6 @@ const StudentDetailPage = () => {
                                         <td className="px-6 py-4 text-gray-500">{grade.semester}</td>
                                         <td className="px-6 py-4 text-gray-500">{grade.academicYear}</td>
                                         <td className="px-6 py-4 font-bold text-gray-800">{grade.finalScore}</td>
-                                        <td className="px-6 py-4 flex gap-2">
-                                            <Link to={`/grades/edit/${grade._id}`} className={yellowButton}>Edit</Link>
-                                            <button onClick={() => handleGradeDelete(grade._id)} className={redButton}>Delete</button>
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

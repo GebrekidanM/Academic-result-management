@@ -4,7 +4,6 @@ import studentService from '../services/studentService';
 import gradeService from '../services/gradeService';
 import behavioralReportService from '../services/behavioralReportService';
 import rankService from '../services/rankService';
-import './ReportCard.css';
 
 const ReportCardPage = () => {
     const { id } = useParams();
@@ -140,7 +139,7 @@ const ReportCardPage = () => {
     if (error) return <div className="p-10 text-center text-red-600">{error}</div>;
 
     return (
-        <div className="report-card-container">
+        <div className="report-card-container print-layout-portrait">
             
             {/* Top Controls (Hidden on Print) */}
             <div className="no-print" style={{width:'210mm', display:'flex', justifyContent:'space-between', marginBottom:15}}>

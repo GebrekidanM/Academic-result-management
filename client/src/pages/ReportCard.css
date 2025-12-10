@@ -1,3 +1,4 @@
+/*report card*/
 @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@700;900&family=Noto+Sans+Ethiopic:wght@400;700&display=swap');
 
 :root {
@@ -196,44 +197,3 @@ td {
     line-height: 1.4;
 }
 .message-box h5 { margin: 0 0 3px 0; color: var(--accent); font-weight: bold; font-size: 11px; }
-
-/* --- PRINT SETTINGS --- */
-@media print {
-    @page { 
-        size: A4 portrait; 
-        margin: 0; /* Remove browser margins */
-    }
-    
-    body { background: white; }
-    
-    /* Hide UI Elements */
-    .no-print { display: none !important; }
-    nav { display: none !important; }
-    button, input, select { display: none !important; }
-
-    /* Report Card Container */
-    .report-card-container { 
-        display: block; 
-        padding: 0; 
-        margin: 0; 
-        width: 100%;
-        background: white;
-    }
-
-    /* The Sheet */
-    .sheet {
-        margin: 0 !important;
-        box-shadow: none !important;
-        width: 100% !important;
-        height: 297mm !important; /* Force exact A4 height */
-        page-break-after: always; /* Ensure new page */
-        padding: 12mm 15mm !important;
-        border: none !important;
-    }
-    
-    /* Ensure colors print */
-    * { 
-        -webkit-print-color-adjust: exact !important; 
-        print-color-adjust: exact !important; 
-    }
-}
