@@ -282,55 +282,64 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
         const analysis = [];
 
         for (const subject of subjects) {
-            // --- 2. NEW: Calculate Total Possible Score for this Subject ---
-            // Find all assessments defined for this subject/semester (e.g. Quiz 1 + Mid + Final)
+            // 1. Calculate Total Possible Score
             const assessmentTypes = await AssessmentType.find({
                 subject: subject._id,
-                gradeLevel: gradeLevel,
-                semester: semester,
-                // year: academicYear // Uncomment if you create specific assessment types per year
+                gradeLevel, semester
             });
-
-            // Sum up the marks (e.g. 10 + 20 + 70 = 100)
             const totalPossible = assessmentTypes.reduce((sum, a) => sum + a.totalMarks, 0);
-            // -------------------------------------------------------------
 
+            // 2. Fetch Grades WITH Student Info (Gender)
             const grades = await Grade.find({
                 subject: subject._id,
                 student: { $in: studentIds },
                 semester,
                 academicYear
-            });
+            }).populate('student', 'gender'); // <--- CRITICAL: Get Gender
 
-            // ... (Keep your existing Stats logic for Highest/Lowest/Avg) ...
             let totalScore = 0;
             let highest = 0;
-            let lowest = totalPossible || 100; // Use calculated total as default max
+            let lowest = totalPossible || 100;
             let passedCount = 0;
             let count = 0;
-            let ranges = { below50: 0, below75: 0, below90: 0, above90: 0 };
+
+            // --- NEW: Complex Counters ---
+            // Structure: { total: 0, male: 0, female: 0 }
+            const initRange = () => ({ total: 0, m: 0, f: 0 });
+            let ranges = {
+                below50: initRange(),
+                below75: initRange(),
+                below90: initRange(),
+                above90: initRange()
+            };
 
             grades.forEach(g => {
-                if (g.finalScore !== undefined && g.finalScore !== null) {
+                if (g.finalScore !== undefined && g.finalScore !== null && g.student) {
                     const score = g.finalScore;
+                    const gender = g.student.gender; // Assuming 'Male' or 'Female'
+                    const isMale = gender === 'Male' || gender === 'M';
+
                     totalScore += score;
                     if (score > highest) highest = score;
                     if (score < lowest) lowest = score;
                     
-                    // Calculate pass based on 50% of the Total Possible Score
-                    const passMark = totalPossible / 2; 
+                    const passMark = totalPossible / 2;
                     if (score >= passMark) passedCount++;
-                    
                     count++;
 
-                    // Calculate Percentage for Range Distribution
-                    // (We convert score to percentage to keep ranges consistent)
+                    // Calculate Percentage relative to Total Marks
                     const percentage = totalPossible > 0 ? (score / totalPossible) * 100 : 0;
 
-                    if (percentage < 50) ranges.below50++;
-                    else if (percentage < 75) ranges.below75++;
-                    else if (percentage < 90) ranges.below90++;
-                    else ranges.above90++;
+                    // Helper to increment correct bucket
+                    const increment = (bucket) => {
+                        bucket.total++;
+                        if (isMale) bucket.m++; else bucket.f++;
+                    };
+
+                    if (percentage < 50) increment(ranges.below50);
+                    else if (percentage < 75) increment(ranges.below75);
+                    else if (percentage < 90) increment(ranges.below90);
+                    else increment(ranges.above90);
                 }
             });
 
@@ -340,27 +349,22 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
 
             analysis.push({
                 subjectName: subject.name,
-                subjectCode: subject.code,
                 submittedGrades: count,
                 averageScore: avg,
                 highestScore: highest,
                 lowestScore: lowest,
                 passRate: passRate + '%',
-                ranges: ranges,
-                totalPossibleScore: totalPossible // <--- 3. Send this to frontend
+                ranges: ranges, // Now contains m/f breakdown
+                totalPossibleScore: totalPossible
             });
         }
 
         analysis.sort((a, b) => b.averageScore - a.averageScore);
 
-        res.status(200).json({
-            success: true,
-            meta: { gradeLevel, semester, academicYear },
-            data: analysis
-        });
+        res.status(200).json({ success: true, data: analysis });
 
     } catch (error) {
-        console.error("Subject Analysis Error:", error);
-        res.status(500).json({ message: "Server error generating report." });
+        console.error("Analysis Error:", error);
+        res.status(500).json({ message: "Server error." });
     }
 };
