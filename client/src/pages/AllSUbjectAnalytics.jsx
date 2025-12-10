@@ -209,14 +209,14 @@ const AllSubjectAnalytics = () => {
                       <th rowSpan="2" className="bg-gray-900 px-2 py-3 text-center text-xs font-bold uppercase border-r border-gray-600 w-16">Rank</th>
                       
                       {/* Subject Column */}
-                      <th rowSpan="2" className="sticky left-0 z-10 bg-gray-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider border-r border-gray-600 w-48 shadow-lg">Subject</th>
+                      <th rowSpan="2" className="bg-gray-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider border-r border-gray-600 w-48 shadow-lg">Subject</th>
                       
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600">Total</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600 bg-gray-700">Attended</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600 bg-red-900">Missed</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600 bg-red-700"> &lt; 50% (Fail)</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600 bg-yellow-600"> 50% - 74%</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600 bg-blue-600"> 75% - 89%</th>
+                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300">Total</th>
+                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-gray-700">Attended</th>
+                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-red-900">Missed</th>
+                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-red-700"> &lt; 50% (Fail)</th>
+                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-yellow-600"> 50% - 74%</th>
+                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-blue-600"> 75% - 89%</th>
                       <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase bg-green-700"> &gt; 90% (Top)</th>
                     </tr>
                     <tr className="bg-gray-100 text-gray-600">
@@ -245,7 +245,7 @@ const AllSubjectAnalytics = () => {
                         </td>
 
                         {/* Subject Data */}
-                        <td className="sticky left-0 text-left z-10 bg-white px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r-2 border-gray-200">
+                        <td className="text-left bg-white px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r-2 border-gray-200">
                           {row.subject} <span className="ml-2 text-xs text-gray-400 font-normal">({row.totalMarks} pts)</span>
                           {row.rank === 1 && <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Best</span>}
                         </td>
