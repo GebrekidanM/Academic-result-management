@@ -116,7 +116,7 @@ th {
 td {
     border: 1px solid #ccc;
     padding: 4px; /* Less padding */
-    text-align: center;
+    text-align: left;
 }
 .academic-table td:first-child, .behavior-table td:first-child { 
     text-align: left; padding-left: 8px; font-weight: bold; 
