@@ -1,7 +1,7 @@
 // backend/routes/analyticsRoutes.js
 const express = require('express');
 const router = express.Router();
-const { getAssessmentAnalysis, getClassAnalytics,getSubjectPerformanceAnalysis} = require('../controllers/analyticsController');
+const { getAssessmentAnalysis, getClassAnalytics,getSubjectPerformanceAnalysis, getAtRiskStudents} = require('../controllers/analyticsController');
 const { 
     protect, 
     authorizeAnalytics,    
@@ -11,5 +11,5 @@ const {
 router.get('/class-analytics',protect,getClassAnalytics)
 router.get('/assessment', protect, authorizeAnalytics, getAssessmentAnalysis);
 router.get('/aGradeAnalysis',getSubjectPerformanceAnalysis)
-
+router.get('/at-risk', protect, getAtRiskStudents);
 module.exports = router;

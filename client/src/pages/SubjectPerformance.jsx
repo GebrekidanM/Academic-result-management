@@ -49,7 +49,7 @@ const SubjectPerformance = () => {
     setLoading(true);
     try {
       const res = await analyticsService.getSubjectPerformance(filters);
-      // OPTIONAL: Sort data by Average Percentage on the frontend for better ranking visualization
+      // Sort by Average Percentage (Highest to Lowest)
       const sortedData = res.data.data.sort((a, b) => {
          const pctA = a.totalPossibleScore ? (a.averageScore / a.totalPossibleScore) : 0;
          const pctB = b.totalPossibleScore ? (b.averageScore / b.totalPossibleScore) : 0;
@@ -64,21 +64,21 @@ const SubjectPerformance = () => {
     }
   };
 
-  // --- HELPER: Renders the 3 columns (M, F, %) for a specific range ---
+  // --- HELPER: Renders the 3 sub-columns (M | F | %) ---
   const RangeGroup = ({ bucket, totalStudents, bgClass }) => {
     const pct = totalStudents > 0 ? ((bucket.total / totalStudents) * 100).toFixed(0) : 0;
-    const textColor = bucket.total === 0 ? 'text-gray-500' : 'text-gray-800';
-    const pctColor = bucket.total === 0 ? 'text-gray-500' : 'text-black font-bold';
+    const textColor = bucket.total === 0 ? 'text-gray-300' : 'text-gray-800';
+    const pctColor = bucket.total === 0 ? 'text-gray-300' : 'text-black font-bold';
 
     return (
       <>
-        <td className={`px-1 py-2 text-center text-[10px] border-r border-gray-300 ${bgClass} ${textColor}`}>
+        <td className={`px-1 py-1 text-center text-[10px] border-r border-gray-400 ${bgClass} ${textColor}`}>
           {bucket.m}
         </td>
-        <td className={`px-1 py-2 text-center text-[10px] border-r border-gray-300 ${bgClass} ${textColor}`}>
+        <td className={`px-1 py-1 text-center text-[10px] border-r border-gray-400 ${bgClass} ${textColor}`}>
           {bucket.f}
         </td>
-        <td className={`px-1 py-2 text-center text-[10px] border-r-2 border-gray-400 ${bgClass} ${pctColor}`}>
+        <td className={`px-1 py-1 text-center text-[10px] border-r-2 border-gray-500 ${bgClass} ${pctColor}`}>
           {pct}%
         </td>
       </>
@@ -90,21 +90,24 @@ const SubjectPerformance = () => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md min-h-screen">
       
-      {/* === PRINTABLE AREA === */}
-      <div id="printable-area" className="print-landscape print-container">
+      {/* === PRINTABLE WRAPPER (Triggers Landscape CSS) === */}
+      <div id="printable-area" className="print-landscape">
           
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Subject Performance: {filters.gradeLevel}</h2>
+          {/* HEADER */}
+          <div className="flex justify-between items-center mb-6 border-b pb-4">
+            <h2 className="text-2xl font-bold text-gray-800">
+                Subject Performance: {filters.gradeLevel}
+            </h2>
             <button 
               onClick={() => window.print()}
-              className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold no-print"
+              className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold print:hidden"
             >
               🖨️ Print
             </button>
           </div>
 
           {/* FILTERS (Hidden on Print) */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-gray-50 p-4 rounded border no-print">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-gray-50 p-4 rounded border print:hidden">
             <div>
               <label className="text-xs font-bold text-gray-500 uppercase">Grade Level</label>
               <select name="gradeLevel" value={filters.gradeLevel} onChange={handleChange} className="w-full p-2 border rounded">
@@ -131,23 +134,22 @@ const SubjectPerformance = () => {
 
           {/* DATA TABLE */}
           {data.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 border border-gray-400">
+            <div className="overflow-x-auto p-2">
+              <table className="min-w-full divide-y divide-gray-200 border border-gray-500">
                 <thead className="bg-gray-800 text-white">
                   
-                  {/* Row 1: Main Headers */}
+                  {/* Row 1: Metrics */}
                   <tr>
-                    <th rowSpan="3" className="px-2 py-2 text-center text-xs font-bold uppercase border-r border-gray-600 w-10">Rank</th>
-                    <th rowSpan="3" className="px-2 py-2 text-left text-xs font-bold uppercase border-r border-gray-600 w-40">Subject</th>
+                    <th rowSpan="3" className="px-2 py-2 text-center text-xs font-bold uppercase border-r border-gray-500 w-10 bg-gray-900">Rank</th>
+                    <th rowSpan="3" className="px-2 py-2 text-left text-xs font-bold uppercase border-r border-gray-500 w-40 bg-gray-900">Subject</th>
                     
-                    {/* CHANGED HEADER TO 'Avg %' */}
-                    <th rowSpan="3" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600">Avg %</th>
+                    <th rowSpan="3" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-500">Avg %</th>
+                    <th rowSpan="3" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-500">Pass Rate</th>
                     
-                    <th rowSpan="3" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-600">Pass Rate</th>
                     <th colSpan="12" className="px-2 py-1 text-center text-sm font-bold uppercase border-b border-gray-500 bg-gray-700">Score Distribution</th>
                   </tr>
 
-                  {/* Row 2: Range Headers */}
+                  {/* Row 2: Ranges */}
                   <tr className="bg-gray-700 text-white text-[10px] uppercase">
                     <th colSpan="3" className="py-1 border-r border-gray-500 bg-red-900">&lt; 50% (Fail)</th>
                     <th colSpan="3" className="py-1 border-r border-gray-500 bg-yellow-700">50 - 75%</th>
@@ -155,13 +157,13 @@ const SubjectPerformance = () => {
                     <th colSpan="3" className="py-1 bg-green-800">&gt; 90% (Top)</th>
                   </tr>
 
-                  {/* Row 3: M/F/% Sub-headers */}
+                  {/* Row 3: Sub-columns */}
                   <tr className="bg-gray-200 text-gray-800 text-[9px] font-bold">
                     {[1, 2, 3, 4].map((i) => (
                       <React.Fragment key={i}>
-                        <th className="py-1 border-r border-gray-300">M</th>
-                        <th className="py-1 border-r border-gray-300">F</th>
-                        <th className="py-1 border-r-2 border-gray-400 bg-gray-300">%</th>
+                        <th className="py-1 border-r border-gray-400">M</th>
+                        <th className="py-1 border-r border-gray-400">F</th>
+                        <th className="py-1 border-r-2 border-gray-500 bg-gray-300">%</th>
                       </React.Fragment>
                     ))}
                   </tr>
@@ -169,43 +171,42 @@ const SubjectPerformance = () => {
 
                 <tbody className="bg-white divide-y divide-gray-200">
                   {data.map((subject, index) => {
-                    
-                    // --- CALCULATE AVERAGE PERCENTAGE ---
+                    // Calc Average Percentage
                     const avgPct = subject.totalPossibleScore > 0 
                         ? ((subject.averageScore / subject.totalPossibleScore) * 100).toFixed(1) 
                         : 0;
 
                     return (
-                        <tr key={index} className="hover:bg-gray-50 border-b border-gray-300">
+                      <tr key={index} className="hover:bg-gray-50 border-b border-gray-300">
                         
                         {/* Rank */}
-                        <td className="px-2 py-1 text-gray-500 font-bold border-r border-gray-300 text-center text-xs">#{index + 1}</td>
+                        <td className="px-2 py-1 text-gray-600 font-bold border-r border-gray-400 text-center text-xs">#{index + 1}</td>
                         
-                        {/* Subject Name (Total) */}
-                        <td className="px-2 py-1 whitespace-nowrap font-medium text-gray-900 border-r border-gray-300 text-xs">
-                            {subject.subjectName}
-                            <span className="text-gray-500 text-[10px] ml-1 font-normal">({subject.totalPossibleScore})</span>
+                        {/* Subject */}
+                        <td className="px-2 py-1 whitespace-nowrap font-medium text-gray-900 border-r border-gray-400 text-xs">
+                          {subject.subjectName}
+                          <span className="text-gray-500 text-[10px] ml-1 font-normal">({subject.totalPossibleScore})</span>
                         </td>
                         
-                        {/* --- UPDATED: AVERAGE PERCENTAGE --- */}
-                        <td className={`px-1 py-1 text-center font-bold border-r border-gray-300 text-xs ${avgPct < 50 ? 'text-red-600' : 'text-gray-800'}`}>
-                            {avgPct}%
+                        {/* Avg % */}
+                        <td className={`px-1 py-1 text-center font-bold border-r border-gray-400 text-xs ${avgPct < 50 ? 'text-red-600' : 'text-gray-800'}`}>
+                          {avgPct}%
                         </td>
                         
                         {/* Pass Rate */}
-                        <td className="px-1 py-1 text-center border-r-2 border-gray-400 text-xs">
-                            <span className={`px-1 rounded font-bold ${parseFloat(subject.passRate) < 50 ? 'text-red-600 bg-red-50' : 'text-green-700 bg-green-50'}`}>
+                        <td className="px-1 py-1 text-center border-r-2 border-gray-500 text-xs">
+                          <span className={`px-1 rounded font-bold ${parseFloat(subject.passRate) < 50 ? 'text-red-600' : 'text-green-700'}`}>
                             {subject.passRate}
-                            </span>
+                          </span>
                         </td>
 
-                        {/* --- DISTRIBUTION GROUPS --- */}
+                        {/* Distribution Columns */}
                         <RangeGroup bucket={subject.ranges.below50} totalStudents={subject.submittedGrades} bgClass="bg-red-50" />
                         <RangeGroup bucket={subject.ranges.below75} totalStudents={subject.submittedGrades} bgClass="bg-yellow-50" />
                         <RangeGroup bucket={subject.ranges.below90} totalStudents={subject.submittedGrades} bgClass="bg-blue-50" />
                         <RangeGroup bucket={subject.ranges.above90} totalStudents={subject.submittedGrades} bgClass="bg-green-50" />
 
-                        </tr>
+                      </tr>
                     );
                   })}
                 </tbody>

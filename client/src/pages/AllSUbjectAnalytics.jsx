@@ -23,12 +23,10 @@ const AllSubjectAnalytics = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // If you store full user details in authService, you can skip this
-        // But if you need 'subjectsTaught' populated, fetch profile
         const user = authService.getCurrentUser();
         if(user) {
              const res = await userService.getProfile();
-             setCurrentUser(res.data.data || res.data); // Adjust based on your API response structure
+             setCurrentUser(res.data.data || res.data);
         }
       } catch(err) {
           console.error(err);
@@ -37,7 +35,7 @@ const AllSubjectAnalytics = () => {
     fetchUser();
   }, []);
 
-  // --- 2. Load Grades based on User Role ---
+  // --- 2. Load Grades based on Role ---
   useEffect(() => {
     const fetchGrade = async () => {
       if (!currentUser) return;
@@ -64,15 +62,15 @@ const AllSubjectAnalytics = () => {
     fetchGrade();
   }, [currentUser]);
 
-  // --- 3. HELPER: Performance Level ---
+  // --- 3. Helper: Qualitative Level ---
   const getPerformanceLevel = (rate) => {
-    if (rate >= 90) return { label: 'Excellent', color: 'text-green-800 bg-green-200' };
-    if (rate >= 75) return { label: 'Very Good', color: 'text-blue-800 bg-blue-200' };
-    if (rate >= 50) return { label: 'Satisfactory', color: 'text-yellow-800 bg-yellow-200' };
-    return { label: 'Critical', color: 'text-red-800 bg-red-200' };
+    if (rate >= 90) return { label: 'Excellent', color: 'bg-green-100 text-green-800 border-green-200' };
+    if (rate >= 75) return { label: 'Very Good', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+    if (rate >= 50) return { label: 'Satisfactory', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+    return { label: 'Critical', color: 'bg-red-100 text-red-800 border-red-200' };
   };
 
-  // --- 4. CALCULATE RANKS & BEST PERF ---
+  // --- 4. Calculate Ranks & Stats ---
   const dataWithRanks = useMemo(() => {
     if (!data || data.length === 0) return [];
     
@@ -104,7 +102,7 @@ const AllSubjectAnalytics = () => {
     };
   }, [dataWithRanks]);
 
-  // --- HANDLERS ---
+  // --- Handlers ---
   const handleChange = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
 
   const fetchAnalytics = async () => {
@@ -132,35 +130,36 @@ const AllSubjectAnalytics = () => {
     }
   };
 
-  // --- CELL COMPONENT ---
-  const TripleCell = ({ stats, totalStudents, bgColor = '' }) => {
-    const percentage = totalStudents > 0 ? ((stats.total / totalStudents) * 100).toFixed(1) : 0;
-    return (
-      <>
-        <td className={`border px-2 py-2 text-center text-xs text-gray-500 ${bgColor}`}>{stats.male}</td>
-        <td className={`border px-2 py-2 text-center text-xs text-gray-500 ${bgColor}`}>{stats.female}</td>
-        <td className={`border px-2 py-2 text-center text-sm font-bold text-gray-800 border-r-2 ${bgColor}`}>{stats.total}</td>
-        <td className={`border px-2 py-2 text-center text-xs font-bold text-gray-600 border-r-2 ${bgColor}`}>{percentage}%</td>
-      </>
-    );
-  };
+  // --- Helper Component: Triple Cell (M | F | T) ---
+  const TripleCell = ({ stats, bgColor = '' }) => (
+    <>
+      <td className={`border border-gray-300 px-1 py-1 text-center text-[10px] text-gray-600 ${bgColor}`}>{stats.male}</td>
+      <td className={`border border-gray-300 px-1 py-1 text-center text-[10px] text-gray-600 ${bgColor}`}>{stats.female}</td>
+      <td className={`border-r-2 border-gray-400 px-1 py-1 text-center text-[11px] font-bold text-black ${bgColor}`}>{stats.total}</td>
+    </>
+  );
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen font-sans">
-      <div className="max-w-full mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-        
-        {/* === PRINTABLE AREA WRAPPER === */}
-        <div id="printable-area" className="print-landscape report-container">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6 font-sans print:bg-white print:p-2 print:min-w-full">
+      
+      {/* --- INJECT PRINT SETTINGS (LANDSCAPE) --- */}
+      <style>{`
+        @media print {
+          @page { size: A4 landscape; margin: 5mm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print { display: none !important; }
+          table { width: 100% !important; font-size: 9px !important; }
+          .print-static { position: static !important; }
+        }
+      `}</style>
 
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">
-                    Class Performance Matrix {filters.gradeLevel ? `- ${filters.gradeLevel}` : ""}
-                </h2>
-              </div>
-              
-              {/* FILTERS (Hidden on Print) */}
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-4 no-print">
+      <div className="min-w-full mx-auto bg-white shadow-lg rounded-lg overflow-hidden print:shadow-none print:rounded-none">
+        
+        {/* HEADER & FILTERS (Hidden on Print) */}
+        <div className="p-6 border-b border-gray-200 no-print">
+           <h2 className="text-2xl font-bold text-gray-800 mb-4">Class Performance Matrix</h2>
+           
+           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <select name="gradeLevel" value={filters.gradeLevel} onChange={handleChange} disabled={availableGrades.length === 0} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border">
                   {availableGrades.length > 0 ? availableGrades.map(g => <option key={g} value={g}>{g}</option>) : <option value="">No Grades</option>}
                 </select>
@@ -175,99 +174,97 @@ const AllSubjectAnalytics = () => {
                   {loading ? '...' : 'Load'}
                 </button>
                 
-                {/* PRINT BUTTON */}
                 <button onClick={() => window.print()} disabled={data.length === 0} className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-md">
                   🖨️ Print
                 </button>
-              </div>
-
-              {error && <div className="mt-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded no-print">{error}</div>}
-            </div>
-
-            {/* BEST PERFORMANCE BANNER */}
-            {bestPerformance && (
-              <div className="bg-green-50 border-l-4 w-full border-green-500 p-4 m-6 mb-0 shadow-sm flex items-center">
-                <div className="flex-shrink-0 text-3xl">🏆</div>
-                <div className="ml-4">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">Rank #1: {bestPerformance.name}</h3>
-                    <div className="mt-1 text-sm text-gray-600">Pass Rate: <span className="font-bold">{bestPerformance.passRate}%</span></div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${bestPerformance.levelColor}`}>
-                        {bestPerformance.levelLabel}
-                    </span>
-                </div>
-              </div>
-            )}
-
-            {/* DATA TABLE */}
-            {dataWithRanks.length > 0 ? (
-              <div className="overflow-x-auto p-4">
-                <table className="min-w-full divide-y divide-gray-200 border-collapse">
-                  <thead className="bg-gray-800 text-white">
-                    <tr>
-                      {/* Rank Column */}
-                      <th rowSpan="2" className="bg-gray-900 px-2 py-3 text-center text-xs font-bold uppercase border-r border-gray-600 w-16">Rank</th>
-                      
-                      {/* Subject Column */}
-                      <th rowSpan="2" className="bg-gray-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider border-r border-gray-600 w-48 shadow-lg">Subject</th>
-                      
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300">Total</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-gray-700">Attended</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-red-900">Missed</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-red-700"> &lt; 50% (Fail)</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-yellow-600"> 50% - 74%</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-300 bg-blue-600"> 75% - 89%</th>
-                      <th colSpan="4" className="px-1 py-2 text-center text-xs font-bold uppercase bg-green-700"> &gt; 90% (Top)</th>
-                    </tr>
-                    <tr className="bg-gray-100 text-gray-600">
-                      {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                        <React.Fragment key={i}>
-                          <th className="px-2 py-1 text-center text-[10px] font-bold border border-gray-300">M</th>
-                          <th className="px-2 py-1 text-center text-[10px] font-bold border border-gray-300">F</th>
-                          <th className="px-2 py-1 text-center text-[10px] font-bold border border-gray-300 border-r-2 border-r-gray-400">T</th>
-                          <th className="px-2 py-1 text-center text-[10px] font-bold border border-gray-300">%</th>
-                        </React.Fragment>
-                      ))}
-                    </tr>
-                  </thead>
-                  
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {dataWithRanks.map((row) => (
-                      <tr key={row.subject} className="hover:bg-gray-50 transition-colors">
-                        
-                        {/* Rank Data */}
-                        <td className={`px-2 py-3 text-center text-sm font-bold border-r-2 border-gray-200 
-                            ${row.rank === 1 ? 'bg-yellow-100 text-yellow-800' : 
-                              row.rank === 2 ? 'bg-gray-200 text-gray-800' : 
-                              row.rank === 3 ? 'bg-orange-100 text-orange-800' : 'bg-white text-gray-500'}
-                        `}>
-                            #{row.rank}
-                        </td>
-
-                        {/* Subject Data */}
-                        <td className="text-left bg-white px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r-2 border-gray-200">
-                          {row.subject} <span className="ml-2 text-xs text-gray-400 font-normal">({row.totalMarks} pts)</span>
-                          {row.rank === 1 && <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Best</span>}
-                        </td>
-
-                        <TripleCell stats={row.students} totalStudents={row.students.total} />
-                        <TripleCell stats={row.attended} totalStudents={row.students.total} bgColor="bg-gray-50" />
-                        <TripleCell stats={row.missed} totalStudents={row.students.total} bgColor="bg-red-50 text-red-600" />
-                        <TripleCell stats={row.below50} totalStudents={row.attended.total} bgColor="bg-red-100" />
-                        <TripleCell stats={row.below75} totalStudents={row.attended.total} bgColor="bg-yellow-50" />
-                        <TripleCell stats={row.below90} totalStudents={row.attended.total} bgColor="bg-blue-50" />
-                        <TripleCell stats={row.above90} totalStudents={row.attended.total} bgColor="bg-green-50" />
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              !loading && <div className="p-10 text-center text-gray-500 no-print">Select filters and click "Load Report".</div>
-            )}
-        
+           </div>
+           {error && <div className="mt-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded">{error}</div>}
         </div>
-        {/* === PRINTABLE AREA ENDS === */}
 
+        {/* PRINTABLE HEADER (Visible ONLY on Print) */}
+        <div className="hidden print:block text-center mb-4 pt-4 border-b pb-2">
+            <h1 className="text-xl font-bold uppercase text-gray-800">Class Performance Matrix</h1>
+            <p className="text-sm text-gray-600">Grade: {filters.gradeLevel} | Assessment: {filters.assessmentName} | Year: {filters.academicYear}</p>
+        </div>
+
+        {/* BEST PERFORMANCE BANNER (Visible Everywhere) */}
+        {bestPerformance && (
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 m-4 mb-0 shadow-sm flex items-center print:border print:bg-green-50 print:m-0 print:mb-2">
+                <div className="text-2xl mr-4">🏆</div>
+                <div>
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Top Performer: {bestPerformance.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm text-gray-700">Pass Rate: <strong>{bestPerformance.passRate}%</strong></span>
+                        <span className={`text-xs px-2 py-0.5 rounded border font-bold ${bestPerformance.levelColor}`}>
+                            {bestPerformance.levelLabel}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* MATRIX TABLE */}
+        {dataWithRanks.length > 0 ? (
+            <div className="overflow-x-auto p-4 print:p-0 print:overflow-visible">
+                <table className="min-w-full border-collapse border border-gray-400">
+                    <thead className="bg-gray-800 text-white print:bg-gray-800 print:text-white">
+                        <tr>
+                            <th rowSpan="2" className="border border-gray-500 px-2 py-2 text-center text-xs font-bold uppercase w-10 bg-gray-900 sticky left-0 z-20 print-static">#</th>
+                            <th rowSpan="2" className="border border-gray-500 px-2 py-2 text-left text-xs font-bold uppercase w-40 bg-gray-900 sticky left-10 z-10 print-static">Subject</th>
+                            
+                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase">Total</th>
+                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-gray-700 print:bg-gray-700">Attended</th>
+                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-red-900 print:bg-red-900">Missed</th>
+                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-red-700 print:bg-red-700">&lt; 50%</th>
+                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-yellow-600 print:bg-yellow-600">50-75%</th>
+                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-blue-700 print:bg-blue-700">75-90%</th>
+                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-green-700 print:bg-green-700">&gt; 90%</th>
+                        </tr>
+                        {/* Sub-headers M/F/T */}
+                        <tr className="text-[9px] bg-gray-700 text-gray-200 print:bg-gray-700 print:text-white">
+                            {[...Array(7)].map((_, i) => (
+                                <React.Fragment key={i}>
+                                    <th className="border border-gray-500 px-1">M</th>
+                                    <th className="border border-gray-500 px-1">F</th>
+                                    <th className="border border-gray-500 px-1 border-r-2 border-white">T</th>
+                                </React.Fragment>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white">
+                        {dataWithRanks.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50 border-b border-gray-300 print:border-gray-400">
+                                {/* Rank */}
+                                <td className={`border border-gray-300 px-1 py-1 text-center font-bold text-xs sticky left-0 z-20 print-static 
+                                    ${row.rank === 1 ? 'bg-yellow-100 text-yellow-800' : 
+                                      row.rank === 2 ? 'bg-gray-200 text-gray-800' : 
+                                      row.rank === 3 ? 'bg-orange-100 text-orange-800' : 'bg-white text-gray-500'}`}>
+                                    {row.rank}
+                                </td>
+
+                                {/* Subject Name */}
+                                <td className="border border-gray-300 px-2 py-1 font-bold text-xs sticky left-10 z-10 bg-white print-static">
+                                    <div className="flex items-center justify-between">
+                                        <span>{row.subject}</span>
+                                        <span className="text-[9px] text-gray-400 font-normal">({row.totalMarks})</span>
+                                    </div>
+                                </td>
+                                
+                                <TripleCell stats={row.students} />
+                                <TripleCell stats={row.attended} bgColor="bg-gray-50 print:bg-gray-100" />
+                                <TripleCell stats={row.missed} bgColor="bg-red-50 text-red-700 print:bg-red-50" />
+                                <TripleCell stats={row.below50} bgColor="bg-red-100 print:bg-red-100" />
+                                <TripleCell stats={row.below75} bgColor="bg-yellow-50 print:bg-yellow-50" />
+                                <TripleCell stats={row.below90} bgColor="bg-blue-50 print:bg-blue-50" />
+                                <TripleCell stats={row.above90} bgColor="bg-green-50 print:bg-green-50" />
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        ) : (
+            !loading && <div className="p-10 text-center text-gray-500 no-print">Select filters and click "Load" to see data.</div>
+        )}
       </div>
     </div>
   );

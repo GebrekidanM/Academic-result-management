@@ -70,7 +70,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
     `block md:inline-block text-white font-bold py-2 px-3 rounded-md transition-colors whitespace-nowrap ${isActive ? 'bg-pink-600' : 'hover:bg-gray-700'}`;
 
   return (
-    <nav className="bg-gray-900 min-h-[4rem] p-2 shadow-lg sticky top-0 z-50 font-sans no-print">
+    <nav className="bg-gray-900 min-h-[4rem] p-2 shadow-lg sticky top-0 z-50 font-sans print:hidden">
       <div className="container mx-auto flex items-center justify-between flex-wrap">
         
         {/* Logo */}
@@ -110,6 +110,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                   <NavLink to="/allsubjectAnalysis" className={dropdownLinkClass} onClick={closeMenu}>Class Matrix (All Subjects)</NavLink>
                   <NavLink to="/subject-performance" className={dropdownLinkClass} onClick={closeMenu}>Subject Leaderboard</NavLink>
                   <NavLink to="/analytics" className={dropdownLinkClass} onClick={closeMenu}>Single Subject Detail</NavLink>
+                  <NavLink to="/at-risk" className={dropdownLinkClass} onClick={closeMenu}>At-Risk Students</NavLink>
                 </NavDropdown>
 
                 {/* 4. ADMIN Dropdown (Config) */}

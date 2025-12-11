@@ -52,6 +52,7 @@ import SubjectAnalysisDetail from './pages/SubjectAnalysisDetail';
 import TeachersPage from './pages/TeachersPage';
 import AllSubjectAnalytics from './pages/AllSUbjectAnalytics';
 import SubjectPerformance from './pages/SubjectPerformance';
+import AtRiskStudents from './pages/AtRiskStudents';
 
 function App() {
   const [isOpen,setIsOpen] = useState(false)
@@ -79,6 +80,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/at-risk" element={<AtRiskStudents />} />
             <Route path="/allsubjectAnalysis" element={<AllSubjectAnalytics/>}/>
             <Route path='/subject-performance' element={<SubjectPerformance/>}/>
             <Route path='/teachers' element={<TeachersPage/>}/>

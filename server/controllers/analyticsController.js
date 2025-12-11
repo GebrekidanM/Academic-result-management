@@ -368,3 +368,65 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
         res.status(500).json({ message: "Server error." });
     }
 };
+
+// @desc    Get students scoring below 60% per subject
+// @route   GET /api/grades/analysis/at-risk
+exports.getAtRiskStudents = async (req, res) => {
+    const { gradeLevel, semester, academicYear } = req.query;
+
+    if (!gradeLevel || !semester || !academicYear) {
+        return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    try {
+        const subjects = await Subject.find({ gradeLevel }).sort({ name: 1 });
+        const students = await Student.find({ gradeLevel, status: 'Active' }).select('_id fullName studentId');
+        const studentIds = students.map(s => s._id);
+
+        const report = [];
+
+        for (const subject of subjects) {
+            // 1. Calculate Total Marks for this Subject
+            const assessmentTypes = await AssessmentType.find({
+                subject: subject._id, gradeLevel, semester
+            });
+            const totalPossible = assessmentTypes.reduce((sum, a) => sum + a.totalMarks, 0);
+
+            if (totalPossible === 0) continue; // Skip if no assessments defined
+
+            // 2. Define the Cutoff (60%)
+            const cutoffScore = totalPossible * 0.6;
+
+            // 3. Find Grades below cutoff
+            const lowGrades = await Grade.find({
+                subject: subject._id,
+                student: { $in: studentIds },
+                semester,
+                academicYear,
+                finalScore: { $lt: cutoffScore } // Less than 60%
+            }).populate('student', 'fullName studentId gender');
+
+            if (lowGrades.length > 0) {
+                report.push({
+                    subjectName: subject.name,
+                    totalPossible: totalPossible,
+                    cutoff: cutoffScore,
+                    students: lowGrades.map(g => ({
+                        id: g.student._id,
+                        name: g.student.fullName,
+                        studentId: g.student.studentId,
+                        gender: g.student.gender,
+                        score: g.finalScore,
+                        percentage: ((g.finalScore / totalPossible) * 100).toFixed(1)
+                    })).sort((a, b) => a.score - b.score) // Sort lowest score first
+                });
+            }
+        }
+
+        res.status(200).json({ success: true, data: report });
+
+    } catch (error) {
+        console.error("At Risk Error:", error);
+        res.status(500).json({ message: "Server error." });
+    }
+};

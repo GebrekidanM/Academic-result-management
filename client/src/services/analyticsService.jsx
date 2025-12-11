@@ -24,9 +24,13 @@ const getClassAnalytics = (filters)=>{
 
 }
 
+const getAtRiskStudents = (filters) => {
+    return api.get('/analytics/at-risk', { params: filters });
+};
 
 export default {
     getAnalysis,
     getSubjectPerformance,
-    getClassAnalytics
+    getClassAnalytics,
+    getAtRiskStudents
 };
