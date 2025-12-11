@@ -91,7 +91,7 @@ const SubjectPerformance = () => {
     <div className="bg-white p-6 rounded-lg shadow-md min-h-screen">
       
       {/* === PRINTABLE AREA === */}
-      <div id="printable-area" className="print-layout-landscape">
+      <div id="printable-area" className="print-landscape print-container">
           
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Subject Performance: {filters.gradeLevel}</h2>

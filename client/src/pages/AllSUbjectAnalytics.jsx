@@ -150,9 +150,8 @@ const AllSubjectAnalytics = () => {
       <div className="max-w-full mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
         
         {/* === PRINTABLE AREA WRAPPER === */}
-        <div id="printable-area" className="print-layout-landscape">
+        <div id="printable-area" className="print-landscape report-container">
 
-            {/* HEADER */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800">
@@ -187,7 +186,7 @@ const AllSubjectAnalytics = () => {
 
             {/* BEST PERFORMANCE BANNER */}
             {bestPerformance && (
-              <div className="bg-green-50 border-l-4 border-green-500 p-4 m-6 mb-0 shadow-sm flex items-center">
+              <div className="bg-green-50 border-l-4 w-full border-green-500 p-4 m-6 mb-0 shadow-sm flex items-center">
                 <div className="flex-shrink-0 text-3xl">🏆</div>
                 <div className="ml-4">
                     <h3 className="text-lg leading-6 font-medium text-gray-900">Rank #1: {bestPerformance.name}</h3>
