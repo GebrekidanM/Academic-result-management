@@ -2,6 +2,7 @@ const xlsx = require('xlsx');
 const fs = require('fs');
 const Student = require('../models/Student');
 const Grade = require('../models/Grade');
+const User = require('../models/User');
 
 // --- HELPER FUNCTIONS ---
 const capitalizeName = (name) => {
@@ -26,16 +27,71 @@ const getEthiopianYear = () => {
 
 // @desc Get all students or by grade
 // @route GET /api/students
+
 exports.getStudents = async (req, res) => {
     try {
         const { gradeLevel } = req.query;
-        const query = gradeLevel ? { gradeLevel } : {};
+        let query = {};
+
+        // --- CASE 1: ADMIN & STAFF (Access All) ---
+        if (['admin', 'staff', 'principal'].includes(req.user.role)) {
+            // If they ask for a specific grade, filter by it. Otherwise, show all.
+            if (gradeLevel) {
+                query.gradeLevel = gradeLevel;
+            }
+        } 
+        
+        // --- CASE 2: TEACHER (Restricted Access) ---
+        else if (req.user.role === 'teacher') {
+            // 1. Fetch full teacher profile to get 'subjectsTaught' populated
+            const teacher = await User.findById(req.user._id).populate('subjectsTaught.subject');
+
+            // 2. Collect all grade levels this teacher is associated with
+            const allowedGrades = new Set();
+
+            // A. Add Homeroom Grade
+            if (teacher.homeroomGrade) {
+                allowedGrades.add(teacher.homeroomGrade);
+            }
+
+            // B. Add Grades from Subjects they teach
+            if (teacher.subjectsTaught && teacher.subjectsTaught.length > 0) {
+                teacher.subjectsTaught.forEach(assignment => {
+                    if (assignment.subject && assignment.subject.gradeLevel) {
+                        allowedGrades.add(assignment.subject.gradeLevel);
+                    }
+                });
+            }
+
+            // Convert Set to Array
+            const allowedGradesArray = Array.from(allowedGrades);
+
+            // 3. Apply the Query Filter
+            if (gradeLevel) {
+                // If teacher specifically requests a grade (e.g. ?gradeLevel=Grade 4),
+                // check if they are actually allowed to see it.
+                if (!allowedGrades.has(gradeLevel)) {
+                    return res.status(403).json({ 
+                        success: false, 
+                        message: "Access Denied: You are not assigned to this grade level." 
+                    });
+                }
+                query.gradeLevel = gradeLevel;
+            } else {
+                // If no specific grade requested, show ALL students from ALL grades they teach
+                query.gradeLevel = { $in: allowedGradesArray };
+            }
+        }
+
+        // --- EXECUTE QUERY ---
         const students = await Student.find(query)
             .sort({ fullName: 1 })
-            .select('studentId fullName gender gradeLevel');
+            .select('studentId fullName gender gradeLevel status'); // Added status just in case
         
         res.json({ success: true, count: students.length, data: students });
+
     } catch (error) {
+        console.error("Error fetching students:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
