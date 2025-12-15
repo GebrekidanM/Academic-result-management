@@ -55,7 +55,7 @@ function TeachersPage() {
                                             key={item.subject._id} 
                                             className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium"
                                         >
-                                            {item.subject.name}
+                                            {item.subject.name} ({item.subject.gradeLevel})
                                         </Link>
                                     ) : null
                                 ))}

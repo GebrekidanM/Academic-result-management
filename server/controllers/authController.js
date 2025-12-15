@@ -6,20 +6,19 @@ const generateToken = require('../utils/generateToken');
 // It is only ever called by a logged-in admin.
 exports.register = async (req, res) => {
     // The 'authorize('admin')' middleware has already confirmed the user is an admin.
-    const { fullName, username, password, role } = req.body;
+    const { fullName, username, password, role,schoolLevel} = req.body;
     
     try {
         const userExists = await User.findOne({ username });
         if (userExists) {
             return res.status(400).json({ message: 'A user with this username already exists.' });
         }
-        
-        // The role is determined by what the admin chose in the form. Default to 'teacher'.
-        const userRole = role === 'admin' ? 'admin' : 'teacher';
+        const userRole = role || 'teacher'; // Default to 'teacher' if no role provided
 
         const user = await User.create({
             fullName:capitalizeName(fullName),
             username,
+            schoolLevel,
             password,
             role: userRole
         });

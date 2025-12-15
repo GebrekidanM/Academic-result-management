@@ -12,15 +12,14 @@ const getAuthConfig = () => {
 
 // Public
 const login = (userData) => api.post(`/auth/login`, userData);
-const publicRegister = (userData) => api.post(`/auth/register/public`, userData);
 
 // Protected (Admin-only)
 const adminRegister = (userData) => {
-    return api.post('/auth/register/admin', userData, getAuthConfig());
+    return api.post('/auth/register', userData, getAuthConfig());
 };
 
 // Local storage functions
 const logout = () => localStorage.removeItem('user');
 const getCurrentUser = () => JSON.parse(localStorage.getItem('user'));
 
-export default { login, publicRegister, adminRegister, logout, getCurrentUser };
+export default { login, adminRegister, logout, getCurrentUser };

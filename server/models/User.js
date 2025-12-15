@@ -15,6 +15,13 @@ const userSchema = new mongoose.Schema({
 
     password: { type: String, required: true, select: false },
 
+    schoolLevel:{
+        type: String, 
+        required: true,
+        enum: ['kg','primary', 'High School','all'],
+        default:'primary'
+    },
+
     role: { 
         type: String, 
         required: true, 

@@ -60,6 +60,7 @@ const UserManagementPage = () => {
                         <th scope="col" className={tableHeader}>Full Name</th>
                         <th scope="col" className={tableHeader}>Username</th>
                         <th scope="col" className={tableHeader}>Role</th>
+                        <th scope="col" className={tableHeader}>School Level</th>
                         
                         {/* --- THIS IS THE NEW COLUMN HEADER --- */}
                         <th scope="col" className={tableHeader}>Assignments</th>
@@ -75,6 +76,7 @@ const UserManagementPage = () => {
                             </td>
                             <td className={`${tableCell} text-gray-700`}>{user.username}</td>
                             <td className={`${tableCell} text-gray-500 text-left capitalize`}>{user.role}</td>
+                            <td className={`${tableCell} text-gray-700`}>{user.schoolLevel}</td>
                             
                             {/* --- THIS IS THE NEW CELL FOR ASSIGNMENTS --- */}
                             <td className={`${tableCell} text-left`}>

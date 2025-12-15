@@ -4,21 +4,6 @@ const User = require('../models/User');
 const capitalizeName = require('../utils/capitalizeName');
 const generateToken = require('../utils/generateToken');
 
-// @desc    Get all users (for Admin)
-// @route   GET /api/users
-exports.getUsers = async (req, res) => {
-    try {
-        const users = await User.find({})
-            .select('-password')
-            .populate('subjectsTaught.subject');
-        
-        res.status(200).json(users);
-    } catch (error) {
-        console.error("Error fetching users:", error);
-        res.status(500).json({ message: 'Server Error' });
-    }
-};
-
 // @desc    Get the current logged-in user's profile
 // @route   GET /api/users/profile
 exports.getUserProfile = async (req, res) => {
@@ -44,9 +29,35 @@ exports.getUserById = async (req, res) => {
     }
 };
 
+//get user by schoolLevel (for Staff or admin)
+//get /api/users/school-level
+exports.getUsersBySchoolLevel = async (req, res) => {
+
+    const user = req.user;
+    try {
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if(user.role === 'staff'){
+            const users = await User.find({ 'schoolLevel': user.schoolLevel }).select('-password').populate('subjectsTaught.subject');
+            res.status(200).json(users);
+        }else if(user.role === 'admin'){
+            const users = await User.find({}).select("-password").populate('subjectsTaught.subject');
+            return res.status(200).json(users);            
+        }else{
+            return res.status(403).json({ message: 'Access denied. Only staff or admin can access this resource.' });
+        }
+
+    } catch (error) {
+        return res.status(500).json({ message: 'Server Error' });
+    }
+    
+
+};
+
 // @desc    Update user (for Admin to assign subjects)
 // @route   PUT /api/users/:id
-
 exports.updateUser = async (req, res) => {
     try {
         const userToUpdate = await User.findById(req.params.id);
@@ -54,7 +65,7 @@ exports.updateUser = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const { fullName, role, subjectsTaught, homeroomGrade } = req.body;
+        const { fullName, role, subjectsTaught, homeroomGrade ,schoolLevel} = req.body;
 
         // --- VALIDATION 1: Check for Subject Assignment Conflicts ---
         if (subjectsTaught) {
@@ -79,7 +90,7 @@ exports.updateUser = async (req, res) => {
         if (homeroomGrade) {
             const conflictingHomeroomTeacher = await User.findOne({
                 homeroomGrade: homeroomGrade,
-                _id: { $ne: userToUpdate._id } // Exclude the current user
+                _id: { $ne: userToUpdate._id }
             });
 
             if (conflictingHomeroomTeacher) {
@@ -93,6 +104,7 @@ exports.updateUser = async (req, res) => {
         // --- If all validations pass, proceed with the update ---
         userToUpdate.fullName = capitalizeName(fullName || userToUpdate.fullName);
         userToUpdate.role = role || userToUpdate.role;
+        userToUpdate.schoolLevel = schoolLevel || userToUpdate.schoolLevel
         
         if (subjectsTaught !== undefined) {
             userToUpdate.subjectsTaught = subjectsTaught;
@@ -140,6 +152,7 @@ exports.bulkCreateUsers = async (req, res) => {
             return {
                 fullName: user['Full Name'] || user['fullName'],
                 username: user['Username'] || user['username'],
+                schoolLevel: user['schoolLevel'] || user['School Level'],
                 role: (user['Role'] || user['role'] || 'teacher').toLowerCase(),
                 password: initialPassword,
                 initialPassword: initialPassword
@@ -153,8 +166,9 @@ exports.bulkCreateUsers = async (req, res) => {
             const user = new User({
                 fullName: capitalizeName(userData.fullName),
                 username: userData.username,
+                schoolLevel: userData.schoolLevel,
                 role: userData.role,
-                password: userData.password 
+                password: userData.password
             });
             await user.save();
             
@@ -163,6 +177,7 @@ exports.bulkCreateUsers = async (req, res) => {
                 fullName: user.fullName,
                 username: user.username,
                 role: user.role,
+                schoolLevel: user.schoolLevel,
                 initialPassword: userData.initialPassword
             });
         }
@@ -265,6 +280,7 @@ exports.updateOtherUserProfile = async(req,res)=>{
 
         userToEdit.fullName = req.body.fullName || userToEdit.fullName;
         userToEdit.role = req.body.role || userToEdit.role;
+        userToEdit.schoolLevel = req.body.schoolLevel || userToEdit.schoolLevel;
         if(req.body.password){
             userToEdit.password = req.body.password;
         }
@@ -295,13 +311,22 @@ exports.deleteUser = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
-
+// @desc    Get all teachers (Admin and Staff only)
+// @route   GET /api/users/teachers
 exports.getTeachers = async (req,res) => {
-    try {
-        const teachers = await User.find({role:"teacher"}).populate('subjectsTaught.subject')
-        res.status(200).json(teachers)
-    } catch (error) {
+    const user = req.user;
 
+    try {
+        if (user.role === 'staff') {
+            const teachers = await User.find({ role: 'teacher', 'schoolLevel': user.schoolLevel }).select("-password").populate('subjectsTaught.subject');
+            return res.status(200).json(teachers);
+        } else if (user.role === 'admin') {
+            const teachers = await User.find({role:"teacher"}).populate('subjectsTaught.subject')
+            res.status(200).json(teachers)
+        } else {
+            return res.status(403).json({ message: 'Access denied. Only staff or admin can access this resource.' });
+        }
+    } catch (error) {
         res.status(500).json({message:error})
     }
 }

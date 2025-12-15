@@ -13,6 +13,7 @@ function UserProfileEditPage() {
             fullName:userData.fullName,
             username:userData.username,
             role:userData.role,
+            schoolLevel:userData.schoolLevel,
             password:'',
             confirmPassword:''
         }
@@ -34,6 +35,7 @@ function UserProfileEditPage() {
                     confirmPassword:'',
                     fullName:'',
                     username:'',
+                    schoolLevel:'',
                     role:'',
                     id:''
                 });
@@ -78,6 +80,19 @@ function UserProfileEditPage() {
                     <option value="admin">Admin</option>
                     <option value="teacher">Teacher</option>
                     <option value="staff">Staff</option>
+                </select>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">School Level</label>
+                <select 
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" 
+                    value={userProfile.schoolLevel}
+                    onChange={(e)=>setUserProfile({...userProfile,schoolLevel:e.target.value})}
+                >
+                    <option value='kg'>Kg</option>
+                    <option value='primary'>Primary</option>
+                    <option value='High School'>High School</option>
+                    <option value='all'>All Levels</option>
                 </select>
             </div>
             <div>
