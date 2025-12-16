@@ -23,7 +23,6 @@ const SubjectPerformance = () => {
     const loadConfiguration = async () => {
       try {
         let uniqueGrades = [];
-console.log('Current User:', currentUser);
         // CASE 1: ADMIN, STAFF, PRINCIPAL
         if (currentUser.role === 'admin' || currentUser.role === 'staff') {
           const res = await subjectService.getAllSubjects();

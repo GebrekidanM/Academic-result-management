@@ -35,28 +35,57 @@ const AllSubjectAnalytics = () => {
     fetchUser();
   }, []);
 
-  // --- 2. Load Grades based on Role ---
+  // --- 2. Load Grades based on Role & School Level ---
   useEffect(() => {
     const fetchGrade = async () => {
       if (!currentUser) return;
 
-      if (currentUser.role === 'teacher') {
-        if (currentUser.subjectsTaught?.length > 0) {
-          const teacherGrades = currentUser.subjectsTaught.map(s => s.subject?.gradeLevel).filter(g => g);
-          const uniqueGrades = [...new Set(teacherGrades)].sort();
-          setAvailableGrades(uniqueGrades);
-          if (uniqueGrades.length > 0) setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
-        }
-      } else if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
+      let uniqueGrades = [];
+
+      // CASE 1: ADMIN, STAFF, PRINCIPAL
+      if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
         try {
           const res = await subjectService.getAllSubjects();
           if (res.data) {
-            const subjects = res.data.data || res.data; 
-            const allDbGrades = [...new Set(subjects.map(s => s.gradeLevel))].sort();
-            setAvailableGrades(allDbGrades);
-            if (allDbGrades.length > 0) setFilters(prev => ({ ...prev, gradeLevel: allDbGrades[0] }));
+            const subjects = res.data.data || res.data;
+            let allGrades = [...new Set(subjects.map(s => s.gradeLevel))];
+
+            // --- FILTER BASED ON SCHOOL LEVEL FOR STAFF ---
+            if (currentUser.role === 'staff' && currentUser.schoolLevel) {
+               const level = currentUser.schoolLevel.toLowerCase();
+
+               if (level === 'kg') {
+                   // Keep only KG/Nursery
+                   allGrades = allGrades.filter(g => /^(kg|nursery)/i.test(g));
+               } 
+               else if (level === 'primary') {
+                   // Keep Grade 1-8 (e.g., Grade 1, Grade 8A)
+                   allGrades = allGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
+               } 
+               else if (level === 'high school') {
+                   // Keep Grade 9-12
+                   allGrades = allGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
+               }
+               // if level is 'all', keep everything
+            }
+
+            uniqueGrades = allGrades.sort();
           }
         } catch (err) { console.error(err); }
+      } 
+      // CASE 2: TEACHER (Based on Subjects)
+      else if (currentUser.role === 'teacher') {
+        if (currentUser.subjectsTaught?.length > 0) {
+          const teacherGrades = currentUser.subjectsTaught.map(s => s.subject?.gradeLevel).filter(g => g);
+          uniqueGrades = [...new Set(teacherGrades)].sort();
+        }
+      }
+
+      setAvailableGrades(uniqueGrades);
+        
+      // Auto-select first grade if available
+      if (uniqueGrades.length > 0) {
+          setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
       }
     }
     fetchGrade();
@@ -77,6 +106,7 @@ const AllSubjectAnalytics = () => {
     // Calculate pass rates
     const calculated = data.map(row => {
         const total = row.attended.total;
+        // Pass = Total Attended - Failed (<50%)
         const failed = row.below50.total;
         const passed = total - failed;
         const passRate = total > 0 ? (passed / total) * 100 : 0;
@@ -140,7 +170,7 @@ const AllSubjectAnalytics = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6 font-sans print:bg-white print:p-2 print:min-w-full">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6 font-sans print:bg-white print:p-0">
       
       {/* --- INJECT PRINT SETTINGS (LANDSCAPE) --- */}
       <style>{`
@@ -153,7 +183,7 @@ const AllSubjectAnalytics = () => {
         }
       `}</style>
 
-      <div className="min-w-full mx-auto bg-white shadow-lg rounded-lg overflow-hidden print:shadow-none print:rounded-none">
+      <div className="max-w-full mx-auto bg-white shadow-lg rounded-lg overflow-hidden print:shadow-none print:rounded-none">
         
         {/* HEADER & FILTERS (Hidden on Print) */}
         <div className="p-6 border-b border-gray-200 no-print">
@@ -238,7 +268,8 @@ const AllSubjectAnalytics = () => {
                                 <td className={`border border-gray-300 px-1 py-1 text-center font-bold text-xs sticky left-0 z-20 print-static 
                                     ${row.rank === 1 ? 'bg-yellow-100 text-yellow-800' : 
                                       row.rank === 2 ? 'bg-gray-200 text-gray-800' : 
-                                      row.rank === 3 ? 'bg-orange-100 text-orange-800' : 'bg-white text-gray-500'}`}>
+                                      row.rank === 3 ? 'bg-orange-100 text-orange-800' : 'bg-white text-gray-500'}
+                                `}>
                                     {row.rank}
                                 </td>
 
