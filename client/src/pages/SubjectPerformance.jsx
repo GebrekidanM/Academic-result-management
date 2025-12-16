@@ -23,22 +23,21 @@ const SubjectPerformance = () => {
     const loadConfiguration = async () => {
       try {
         let uniqueGrades = [];
-
+console.log('Current User:', currentUser);
         // CASE 1: ADMIN, STAFF, PRINCIPAL
-        if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
+        if (currentUser.role === 'admin' || currentUser.role === 'staff') {
           const res = await subjectService.getAllSubjects();
           const allSubjects = res.data.data || res.data;
           
           // Get all unique grades first
           let allGrades = [...new Set(allSubjects.map(s => s.gradeLevel))];
-
           // --- FILTER BASED ON SCHOOL LEVEL FOR STAFF ---
           if (currentUser.role === 'staff' && currentUser.schoolLevel) {
              const level = currentUser.schoolLevel.toLowerCase();
 
              if (level === 'kg') {
                  // Keep only KG/Nursery
-                 allGrades = allGrades.filter(g => /^(kg|nursery)/i.test(g));
+                 allGrades = allGrades.filter(g => /^Kg/i.test(g));
              } 
              else if (level === 'primary') {
                  // Keep Grade 1-8 (e.g., Grade 1, Grade 8A)

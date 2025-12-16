@@ -50,6 +50,7 @@ exports.login = async (req, res) => {
       fullName: user.fullName,
       username: user.username,
       role: user.role,
+      schoolLevel: user.schoolLevel,
       homeroomGrade: user.homeroomGrade,
       token: generateToken(user._id, 'user')
     });
