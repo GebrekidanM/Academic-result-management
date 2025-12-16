@@ -18,21 +18,55 @@ const SubjectPerformance = () => {
   const [loading, setLoading] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
 
-  // --- Load Config ---
+  // --- Load Config (With School Level Filtering) ---
   useEffect(() => {
     const loadConfiguration = async () => {
       try {
-        let subjects = [];
+        let uniqueGrades = [];
+
+        // CASE 1: ADMIN, STAFF, PRINCIPAL
         if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
           const res = await subjectService.getAllSubjects();
-          subjects = res.data.data || res.data; 
-        } else {
+          const allSubjects = res.data.data || res.data;
+          
+          // Get all unique grades first
+          let allGrades = [...new Set(allSubjects.map(s => s.gradeLevel))];
+
+          // --- FILTER BASED ON SCHOOL LEVEL FOR STAFF ---
+          if (currentUser.role === 'staff' && currentUser.schoolLevel) {
+             const level = currentUser.schoolLevel.toLowerCase();
+
+             if (level === 'kg') {
+                 // Keep only KG/Nursery
+                 allGrades = allGrades.filter(g => /^(kg|nursery)/i.test(g));
+             } 
+             else if (level === 'primary') {
+                 // Keep Grade 1-8 (e.g., Grade 1, Grade 8A)
+                 allGrades = allGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
+             } 
+             else if (level === 'high school') {
+                 // Keep Grade 9-12
+                 allGrades = allGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
+             }
+             // if level is 'all', keep everything
+          }
+
+          uniqueGrades = allGrades.sort();
+        } 
+        // CASE 2: TEACHER (Based on Subjects)
+        else {
           const res = await userService.getProfile();
-          subjects = res.data.subjectsTaught.map(a => a.subject).filter(Boolean);
+          // Extract grades from subjects taught
+          uniqueGrades = [...new Set(res.data.subjectsTaught.map(a => a.subject?.gradeLevel).filter(Boolean))].sort();
         }
-        const uniqueGrades = [...new Set(subjects.map(s => s.gradeLevel))].sort();
+
         setAvailableGrades(uniqueGrades);
-        if (uniqueGrades.length > 0) setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
+        
+        // Auto-select first grade if available
+        if (uniqueGrades.length > 0) {
+            setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
+        }
+
       } catch (err) {
         console.error(err);
       } finally {
@@ -40,7 +74,7 @@ const SubjectPerformance = () => {
       }
     };
     loadConfiguration();
-  }, [currentUser.role]);
+  }, [currentUser]);
 
   const handleChange = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
 
@@ -49,7 +83,7 @@ const SubjectPerformance = () => {
     setLoading(true);
     try {
       const res = await analyticsService.getSubjectPerformance(filters);
-      // Sort by Average Percentage (Highest to Lowest)
+      // Sort data by Average Percentage (Highest to Lowest)
       const sortedData = res.data.data.sort((a, b) => {
          const pctA = a.totalPossibleScore ? (a.averageScore / a.totalPossibleScore) : 0;
          const pctB = b.totalPossibleScore ? (b.averageScore / b.totalPossibleScore) : 0;
