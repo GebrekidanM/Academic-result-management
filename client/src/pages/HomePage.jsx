@@ -86,7 +86,7 @@ const HomePage = () => {
     // --- 2. Admin View ---
     if (role === 'admin') {
         return (
-            <div className="p-4">
+            <div className="p-4 flex justify-between items-center">
                 {/* Show Level Badge */}
                 <LevelBadge level={schoolLevel} />
                 
