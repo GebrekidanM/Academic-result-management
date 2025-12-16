@@ -30,7 +30,7 @@ const LevelBadge = ({ level }) => {
     }
 
     return (
-        <div className={`inline-flex items-center px-4 py-2 rounded-lg border shadow-sm font-bold text-sm mb-6 ${colorClass}`}>
+        <div className={`flex justify-between items-center px-4 py-2 rounded-lg border shadow-sm font-bold text-sm mb-6 ${colorClass}`}>
             <span className="mr-2">Current Access:</span>
             <span className="uppercase tracking-wide">{label}</span>
         </div>
@@ -86,7 +86,7 @@ const HomePage = () => {
     // --- 2. Admin View ---
     if (role === 'admin') {
         return (
-            <div className="p-4 flex justify-between items-center">
+            <div className="p-4">
                 {/* Show Level Badge */}
                 <LevelBadge level={schoolLevel} />
                 
