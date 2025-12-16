@@ -24,11 +24,12 @@ const StudentListPage = () => {
                 setAllStudents(fetchedStudents);
 
                 // 2. Determine which Grade Buttons to show
+                // From your existing code:
                 if (currentUser.role === 'admin' || currentUser.role === 'staff') {
-                    // Admins see all grades present in the database
                     const uniqueGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
                     setAvailableGrades(uniqueGrades);
-                } 
+                }
+                 
                 else if (currentUser.role === 'teacher') {
                     // Teachers see grades based on their Profile (Homeroom + Subjects)
                     const profileRes = await userService.getProfile();

@@ -31,62 +31,73 @@ const getEthiopianYear = () => {
 exports.getStudents = async (req, res) => {
     try {
         const { gradeLevel } = req.query;
-        let query = {};
-
-        // --- CASE 1: ADMIN & STAFF (Access All) ---
-        if (['admin', 'staff', 'principal'].includes(req.user.role)) {
-            // If they ask for a specific grade, filter by it. Otherwise, show all.
-            if (gradeLevel) {
-                query.gradeLevel = gradeLevel;
-            }
-        } 
         
-        // --- CASE 2: TEACHER (Restricted Access) ---
-        else if (req.user.role === 'teacher') {
-            // 1. Fetch full teacher profile to get 'subjectsTaught' populated
-            const teacher = await User.findById(req.user._id).populate('subjectsTaught.subject');
+        const constraints = [];
 
-            // 2. Collect all grade levels this teacher is associated with
-            const allowedGrades = new Set();
+        // 1. Specific Filter (from Frontend)
+        if (gradeLevel) {
+            constraints.push({ gradeLevel: gradeLevel });
+        }
 
-            // A. Add Homeroom Grade
-            if (teacher.homeroomGrade) {
-                allowedGrades.add(teacher.homeroomGrade);
-            }
+        // 2. Role Based Restrictions
 
-            // B. Add Grades from Subjects they teach
-            if (teacher.subjectsTaught && teacher.subjectsTaught.length > 0) {
-                teacher.subjectsTaught.forEach(assignment => {
-                    if (assignment.subject && assignment.subject.gradeLevel) {
-                        allowedGrades.add(assignment.subject.gradeLevel);
-                    }
-                });
-            }
+        // A. ADMIN: Access All
+        if (req.user.role === 'admin') {
+            // No constraints
+        }
 
-            // Convert Set to Array
-            const allowedGradesArray = Array.from(allowedGrades);
+        // B. STAFF: Filter by School Level (Updated Regex)
+        else if (req.user.role === 'staff') {
+            const level = req.user.schoolLevel;
 
-            // 3. Apply the Query Filter
-            if (gradeLevel) {
-                // If teacher specifically requests a grade (e.g. ?gradeLevel=Grade 4),
-                // check if they are actually allowed to see it.
-                if (!allowedGrades.has(gradeLevel)) {
-                    return res.status(403).json({ 
-                        success: false, 
-                        message: "Access Denied: You are not assigned to this grade level." 
-                    });
-                }
-                query.gradeLevel = gradeLevel;
-            } else {
-                // If no specific grade requested, show ALL students from ALL grades they teach
-                query.gradeLevel = { $in: allowedGradesArray };
+            if (level === 'kg') {
+                // Matches: "KG 1", "KG 1A", "Nursery", "Nursery A"
+                constraints.push({ gradeLevel: { $regex: /^(kg|nursery)/i } });
+            } 
+            else if (level === 'primary') {
+                // Matches: "Grade 1", "Grade 1A", "Grade 8C"
+                // Logic: Starts with Grade, then 1-8, then optional letters
+                constraints.push({ gradeLevel: { $regex: /^Grade\s*[1-8](\D|$)/i } });
+            } 
+            else if (level === 'High School') {
+                // Matches: "Grade 9", "Grade 9A", "Grade 10B", "Grade 12C"
+                // Logic: Starts with Grade, then 9-12, then optional letters
+                constraints.push({ gradeLevel: { $regex: /^Grade\s*(9|1[0-2])(\D|$)/i } });
             }
         }
 
-        // --- EXECUTE QUERY ---
-        const students = await Student.find(query)
-            .sort({ fullName: 1 })
-            .select('studentId fullName gender gradeLevel status'); // Added status just in case
+        // C. TEACHER: Filter by Assigned Subjects/Homeroom
+        else if (req.user.role === 'teacher') {
+            const teacher = await User.findById(req.user._id).populate('subjectsTaught.subject');
+            const allowedGrades = new Set();
+
+            if (teacher.homeroomGrade) allowedGrades.add(teacher.homeroomGrade);
+            
+            if (teacher.subjectsTaught) {
+                teacher.subjectsTaught.forEach(assign => {
+                    if (assign.subject?.gradeLevel) allowedGrades.add(assign.subject.gradeLevel);
+                });
+            }
+
+            const allowedArray = Array.from(allowedGrades);
+            
+            // If no assignments, return empty
+            if (allowedArray.length === 0) return res.json({ success: true, count: 0, data: [] });
+            
+            // Teacher sees "Grade 1A" if they teach "Grade 1A"
+            constraints.push({ gradeLevel: { $in: allowedArray } });
+        }
+
+        // 3. Execute
+        let finalQuery = {};
+        if (constraints.length > 0) {
+            finalQuery = { $and: constraints };
+        }
+
+        const students = await Student.find(finalQuery)
+            // Sort by Grade Level (alphabetically) then Name
+            .sort({ gradeLevel: 1, fullName: 1 }) 
+            .select('studentId fullName gender gradeLevel status');
         
         res.json({ success: true, count: students.length, data: students });
 
