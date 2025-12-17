@@ -9,7 +9,7 @@ const {
 } = require('../controllers/studentController');
 
 
-const { protect, authorize, canViewStudentData } = require('../middleware/authMiddleware');
+const { protect, canViewStudentData } = require('../middleware/authMiddleware');
 
 // Import the main multer instance we just created
 const upload = require('../middleware/upload');

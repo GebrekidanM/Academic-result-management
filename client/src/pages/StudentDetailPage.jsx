@@ -56,17 +56,6 @@ const StudentDetailPage = () => {
         }
     };
 
-    const handleGradeDelete = async (gradeId) => {
-        if (window.confirm('Are you sure you want to delete this grade entry?')) {
-            try {
-                await gradeService.deleteGrade(gradeId);
-                setGrades(grades.filter(g => g._id !== gradeId));
-            } catch {
-                alert('Failed to delete grade.');
-            }
-        }
-    };
-
     const handleReportDelete = async (reportId) => {
         if (window.confirm('Are you sure you want to delete this report?')) {
             try {
@@ -131,7 +120,7 @@ const StudentDetailPage = () => {
                     {(isAdmin || isHomeroomTeacher) && (
                         <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap">
                             <Link to={`/students/edit/${student._id}`} className={yellowButton}>Edit Info</Link>
-                            <button onClick={handleStudentDelete} className={redButton}>Delete Student</button>
+                            {isAdmin && <button onClick={handleStudentDelete} className={redButton}>Delete Student</button>}
                             <button onClick={()=> handleResetPassword(student._id)} className={redButton} >Reset Password</button>
                         </div>
                     )}

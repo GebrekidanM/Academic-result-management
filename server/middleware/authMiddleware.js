@@ -141,7 +141,7 @@ exports.canViewStudentData = async (req, res, next) => {
                 }
                 req.user = user;
 
-                if (user.role === 'admin'||user.role === 'admin') {
+                if (user.role === 'admin'|| user.role === 'staff') {
                     return next();
                 }
 

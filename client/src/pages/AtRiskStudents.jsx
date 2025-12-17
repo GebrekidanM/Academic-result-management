@@ -113,7 +113,7 @@ const AtRiskStudents = () => {
                         <span className="text-sm font-normal text-gray-500">Out of {subject.totalPossible}</span>
                     </h3>
                     
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
+                    <table className="w-full border-collapse border border-gray-300 text-sm overflow-x-auto">
                         <thead className="bg-red-50 text-red-900">
                             <tr>
                                 <th className="border p-2 text-left w-10">#</th>
