@@ -54,34 +54,11 @@ const seedAdminUser = async () => {
   }
 };
 
-const setSchoolLevel =  async () => {
-    try {
-        const users = await User.find({});
-        users.forEach(async (user) => {
-            if(user.homeroomGrade){
-              if(user.homeroomGrade.toLowerCase().includes('kg')){
-                    user.schoolLevel = 'kg';
-                    await user.save();
-              }else {
-                      user.schoolLevel = 'primary';
-                      await user.save();
-              }
-           }else{
-                user.schoolLevel = 'primary';
-                await user.save();
-            }
-        });   
-        console.log('✅ School levels set for all grades.');
-    } catch (error) {
-        console.error('❌ Error setting school levels for grades:', error);
-    }
-};
 // --- STARTUP SEQUENCE ---
 const startServer = async () => {
     try {
         // 1. Connect to DB
         await connectDB();
-        await setSchoolLevel();
         // 3. Seed Admin
         await seedAdminUser();
 
