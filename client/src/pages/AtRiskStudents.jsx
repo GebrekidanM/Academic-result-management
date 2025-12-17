@@ -107,13 +107,13 @@ const AtRiskStudents = () => {
             )}
 
             {data.map((subject) => (
-                <div key={subject.subjectName} className="mb-8 break-inside-avoid">
+                <div key={subject.subjectName} className="mb-8 overflow-x-auto break-inside-avoid">
                     <h3 className="text-lg font-bold text-gray-800 border-b-2 border-red-200 mb-2 flex justify-between">
                         <span>{subject.subjectName}</span>
                         <span className="text-sm font-normal text-gray-500">Out of {subject.totalPossible}</span>
                     </h3>
                     
-                    <table className="w-full border-collapse border border-gray-300 text-sm overflow-x-auto">
+                    <table className="w-full border-collapse border border-gray-300 text-sm ">
                         <thead className="bg-red-50 text-red-900">
                             <tr>
                                 <th className="border p-2 text-left w-10">#</th>
