@@ -1,4 +1,3 @@
-// src/pages/GradeSheetPage.js
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import subjectService from '../services/subjectService';
@@ -6,7 +5,11 @@ import assessmentTypeService from '../services/assessmentTypeService';
 import gradeService from '../services/gradeService';
 import authService from '../services/authService';
 import userService from '../services/userService';
-import { saveOfflineGrade } from '../offlineDB';
+import studentService from '../services/studentService';
+
+// --- CHANGED: Import the new Service ---
+import offlineGradeService from '../services/offlineGradeService'; 
+import offlineAssessmentService from '../services/offlineAssessmentService';
 
 const GradeSheetPage = () => {
   const location = useLocation();
@@ -57,35 +60,130 @@ const GradeSheetPage = () => {
 
   // --- Load Assessment Types When Subject Selected ---
   useEffect(() => {
-    if (selectedSubject) {
-      setSheetData(null);
-      assessmentTypeService.getBySubject(selectedSubject)
-        .then(res => setAssessmentTypes(res.data.data))
-        .catch(() => setError('Failed to load assessment types.'));
-    }
+      const fetchAssessments = async () => {
+          if (!selectedSubject) return;
+          
+          let onlineAssessments = [];
+          let offlineAssessments = [];
+
+          // 1. Try fetching online data
+          if (navigator.onLine) {
+              try {
+                  const res = await assessmentTypeService.getBySubject(selectedSubject);
+                  onlineAssessments = res.data.data;
+              } catch (err) {
+                  console.error("Couldn't fetch online assessments");
+              }
+          }
+
+          // 2. Fetch offline data
+          const allLocal = offlineAssessmentService.getLocalAssessments();
+          // Filter only ones matching the selected subject
+          offlineAssessments = allLocal.filter(a => a.subject === selectedSubject);
+
+          // 3. Merge them (Online + Offline)
+          setAssessmentTypes([...onlineAssessments, ...offlineAssessments]);
+      };
+
+      fetchAssessments();
   }, [selectedSubject]);
 
   // --- Load Grade Sheet ---
+  // --- Load Grade Sheet (Handles both Online & Offline/Temp IDs) ---
   const handleLoadSheet = async () => {
     if (!selectedAssessment) return;
+    
     setLoading(true);
     setError(null);
+
+    // CASE 1: OFFLINE / TEMPORARY ASSESSMENT
+    // If ID starts with "TEMP_", do NOT call the server.
+    if (selectedAssessment.toString().startsWith('TEMP_')) {
+      console.log("Loading offline assessment locally...");
+
+      try {
+        // 1. Get the Assessment Details from Local Storage
+        const localAssessments = offlineAssessmentService.getLocalAssessments();
+        const currentAssessment = localAssessments.find(a => a._id === selectedAssessment);
+
+        if (!currentAssessment) {
+          throw new Error("Offline assessment data not found.");
+        }
+
+        // 2. Find the Subject to know which Grade Level we need (e.g. "Grade 4")
+        const currentSubject = subjects.find(s => s._id === selectedSubject);
+        if (!currentSubject) {
+          throw new Error("Subject details not found.");
+        }
+
+        // 3. Fetch Students 
+        // (If offline, this relies on the Service Worker cache of previous visits)
+        const studentRes = await studentService.getAllStudents();
+        const allStudents = studentRes.data.data;
+
+        // 4. Filter students for this Grade Level
+        // Note: Sort by name to match the usual order
+        const classStudents = allStudents
+          .filter(s => s.gradeLevel === currentSubject.gradeLevel)
+          .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+        if (classStudents.length === 0) {
+          setError(`No students found locally for ${currentSubject.gradeLevel}. Please view the student list online once to cache data.`);
+          setLoading(false);
+          return;
+        }
+
+        // 5. Construct Mock Sheet Data (Mimic Backend Response Structure)
+        const mockSheetData = {
+          assessmentType: currentAssessment,
+          students: classStudents.map(s => ({
+            _id: s._id,
+            fullName: s.fullName,
+            studentId: s.studentId,
+            score: null // New offline sheet implies no scores saved yet
+          }))
+        };
+
+        // 6. Update State
+        setSheetData(mockSheetData);
+        
+        // Initialize inputs
+        const initialScores = {};
+        mockSheetData.students.forEach(s => {
+          initialScores[s._id] = '';
+        });
+        setScores(initialScores);
+
+      } catch (err) {
+        console.error(err);
+        setError("Could not generate local sheet. " + (err.message || ""));
+      } finally {
+        setLoading(false);
+      }
+      
+      return; // Stop here, don't call backend
+    }
+
+    // CASE 2: NORMAL ONLINE FLOW (Valid MongoDB ID)
     try {
       const response = await gradeService.getGradeSheet(selectedAssessment);
       setSheetData(response.data);
+      
       const initialScores = {};
       response.data.students.forEach(s => {
         initialScores[s._id] = s.score ?? '';
       });
       setScores(initialScores);
+
     } catch (err) {
+      console.error(err);
       setError(err.response?.data?.message || 'Failed to load grade sheet.');
     } finally {
       setLoading(false);
     }
   };
 
-// --- Preselect Subject & Assessment if Coming from Link ---
+  // --- Preselect Subject & Assessment if Coming from Link ---
   useEffect(() => {
     if (subjectFromLink && assessmentTypeFromLink) {
       setSelectedSubject(subjectFromLink.id);
@@ -96,7 +194,6 @@ const GradeSheetPage = () => {
   // --- Auto Load Sheet if Coming From Link ---
   useEffect(() => {
     if (subjectFromLink && assessmentTypeFromLink) {
-      // Wait until subject and assessment are both set
       setTimeout(() => {
         handleLoadSheet();
       }, 300);
@@ -108,39 +205,74 @@ const GradeSheetPage = () => {
     setScores(prevScores => ({ ...prevScores, [studentId]: value }));
   };
 
-  // --- Save Grade Sheet ---
+  // --- UPDATED: Save Grade Sheet (Offline Aware) ---
+  // --- UPDATED: Save Grade Sheet ---
   const handleSave = async () => {
-  if (saveDisabled) return;
+    if (saveDisabled) return;
+    setSaveDisabled(true);
 
-  setSaveDisabled(true);
+    // 1. Prepare Payload
+    const scoresPayload = Object.keys(scores)
+      .filter(id => scores[id] !== '' && scores[id] !== null)
+      .map(id => ({ studentId: id, score: Number(scores[id]) }));
 
-  const scoresPayload = Object.keys(scores)
-    .filter(id => scores[id] !== '' && scores[id] !== null)
-    .map(id => ({ studentId: id, score: Number(scores[id]) }));
+    const payload = {
+      assessmentTypeId: selectedAssessment,
+      subjectId: selectedSubject,
+      semester: sheetData.assessmentType.semester,
+      academicYear,
+      scores: scoresPayload,
+    };
 
-  const payload = {
-    assessmentTypeId: selectedAssessment,
-    subjectId: selectedSubject,
-    semester: sheetData.assessmentType.semester,
-    academicYear,
-    scores: scoresPayload,
-  };
-
-  try {
-    if (navigator.onLine) {
-      await gradeService.saveGradeSheet(payload);
-      alert('Grades saved successfully!');
-      setSaveDisabled(false)
-    } else {
-      await saveOfflineGrade(payload);
-      alert('No internet: grades saved offline ✅');
+    // ---------------------------------------------------------
+    // CRITICAL FIX: Check if this is a Temporary Offline Assessment
+    // ---------------------------------------------------------
+    if (selectedAssessment.toString().startsWith('TEMP_')) {
+        try {
+            console.log("Saving grades for temporary assessment to queue...");
+            // Always save to queue, even if online. 
+            // The SyncStatus component handles swapping the TEMP ID for a Real ID later.
+            offlineGradeService.addToQueue(payload);
+            
+            alert('✅ Grades saved locally! \n\nSince this is a new offline assessment, please click the "Sync" button to upload both the Assessment and the Grades to the server.');
+            setSaveDisabled(false);
+        } catch (e) {
+            console.error(e);
+            alert("Error saving to local storage.");
+            setSaveDisabled(false);
+        }
+        return; // STOP HERE. Do not send to backend.
     }
-  } catch (err) {
-    console.error(err);
-    alert('Failed to save grades.');
-    setSaveDisabled(false); // allow retry if save failed
-  }
-};
+    // ---------------------------------------------------------
+
+    // 2. Normal Save (For existing real assessments)
+    if (!navigator.onLine) {
+        // --- OFFLINE MODE ---
+        try {
+            offlineGradeService.addToQueue(payload);
+            alert('📴 No Internet. Grades saved to device.\n\nClick the "Sync" button when you are back online!');
+            setSaveDisabled(false); 
+        } catch (e) {
+            alert("Error saving to local storage.");
+            setSaveDisabled(false);
+        }
+    } else {
+        // --- ONLINE MODE ---
+        try {
+            await gradeService.saveGradeSheet(payload);
+            alert('✅ Grades saved to server successfully!');
+            setSaveDisabled(false);
+        } catch (err) {
+            console.error(err);
+            // Fallback: If server fails, offer offline save
+            if(window.confirm("Server Error! Save offline instead?")) {
+                offlineGradeService.addToQueue(payload);
+                alert("Saved offline.");
+            }
+            setSaveDisabled(false);
+        }
+    }
+  };
 
 
   return (
@@ -246,9 +378,9 @@ const GradeSheetPage = () => {
                 className={`bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg ${
                     saveDisabled ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
-                disabled={loading || saveDisabled}
+                disabled={loading}
                 >
-                {saveDisabled ? 'Saved ✅' : loading ? 'Saving...' : 'Save All Grades'}
+                {loading ? 'Saving...' : 'Save All Grades'}
               </button>
             </div>
 

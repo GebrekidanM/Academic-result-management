@@ -9,6 +9,10 @@ import AdminRoute from './components/AdminRoute';
 import ParentRoute from './components/ParentRoute';
 import UniversalRoute from './components/UniversalRoute';
 
+// --- OFFLINE COMPONENTS
+import SyncStatus from './components/SyncStatus';     
+import OfflineBanner from './components/OfflineBanner';
+
 // --- Page Imports ---
 
 // 1. Public Pages
@@ -50,14 +54,12 @@ import ImportSubjectsPage from './pages/ImportSubjectsPage';
 import UserProfileEditPage from './pages/UserProfileEditPage';
 import SubjectAnalysisDetail from './pages/SubjectAnalysisDetail';
 import TeachersPage from './pages/TeachersPage';
-import AllSubjectAnalytics from './pages/AllSUbjectAnalytics';
 import SubjectPerformance from './pages/SubjectPerformance';
 import AtRiskStudents from './pages/AtRiskStudents';
+import AllSubjectAnalytics from './pages/AllSubjectAnalytics';
 
 function App() {
-  const [isOpen,setIsOpen] = useState(false)
-
-  // ✅ Removed Socket.io setup completely
+  const [isOpen, setIsOpen] = useState(false);
 
   // Register service worker (for offline/PWA)
   useEffect(() => {
@@ -71,13 +73,20 @@ function App() {
   }, []);
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <Navbar  isOpen={isOpen} setIsOpen={setIsOpen}/> 
+    <div className="bg-gray-100 min-h-screen relative"> {/* Added relative for positioning */}
+      
+      {/* --- 3. ADD OFFLINE UI HERE --- */}
+      <SyncStatus /> 
+      {/* ----------------------------- */}
+
+      <Navbar isOpen={isOpen} setIsOpen={setIsOpen}/> 
+      
       <main className="container mx-auto p-4" onClick={()=> setIsOpen(false)}>
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<HomePage />} />
+          
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
             <Route path="/at-risk" element={<AtRiskStudents />} />
@@ -98,6 +107,7 @@ function App() {
             <Route path="/grade-sheet" element={<GradeSheetPage />} />
             <Route path="/students/add" element={<AddStudentPage />} />
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
+            
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
               <Route path='/otherprofile' element={<UserProfileEditPage/>}/>
@@ -125,6 +135,8 @@ function App() {
           </Route>
         </Routes>
       </main>
+      <OfflineBanner /> 
+
     </div>
   );
 }

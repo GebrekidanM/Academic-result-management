@@ -43,7 +43,7 @@ self.addEventListener("fetch", event => {
             return response;
           });
         })
-        .catch(() => caches.match("/index.html")); // fallback for React routes
+        .catch(() => caches.match("/index.html"));
     })
   );
 });

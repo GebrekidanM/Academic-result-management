@@ -1,34 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import subjectService from '../services/subjectService';
 import assessmentTypeService from '../services/assessmentTypeService';
+import offlineAssessmentService from '../services/offlineAssessmentService';
 import authService from '../services/authService';
 import userService from '../services/userService';
-import { Link,useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const MONTHS = [
   "September", "October", "November", "December",
   "January", "February", "March", "April", "May", "June"
 ];
 
-// Function to get current Ethiopian year
 function getEthiopianYear() {
     const today = new Date();
     const gregYear = today.getFullYear();
-    const gregMonth = today.getMonth() + 1; // JS months are 0-indexed
-
-    // Ethiopian year starts in September
-    const ethiopianYear = gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
-    return ethiopianYear;
+    const gregMonth = today.getMonth() + 1;
+    return gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
 }
-
-
 
 const AssessmentTypesPage = () => {
   const location = useLocation();
-  // If navigated from SubjectRosterPage with a subject selected
   const subjectFromLink = location.state?.subject || null;
 
-  // --- State ---
   const [currentUser] = useState(authService.getCurrentUser());
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -38,7 +31,6 @@ const AssessmentTypesPage = () => {
   const [error, setError] = useState('');
   const currentEthiopianYear = getEthiopianYear();
 
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     totalMarks: 10,
@@ -49,14 +41,14 @@ const AssessmentTypesPage = () => {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // --- Pre-select subject if coming from SubjectRosterPage ---
+  // --- Pre-select subject ---
   useEffect(() => {
     if (subjectFromLink) {
       setSelectedSubject(subjectFromLink);
     }
   }, [subjectFromLink]);
 
-  // --- Load subjects for user ---
+  // --- Load subjects ---
   useEffect(() => {
     const loadSubjects = async () => {
       setError('');
@@ -79,7 +71,6 @@ const AssessmentTypesPage = () => {
     loadSubjects();
   }, [currentUser.role]);
 
-  // --- Group subjects by grade ---
   const subjectsByGrade = useMemo(() => {
     const grouped = {};
     subjects.forEach(sub => {
@@ -90,29 +81,43 @@ const AssessmentTypesPage = () => {
     return grouped;
   }, [subjects]);
 
-  // --- Fetch assessments for selected subject ---
+  // --- Fetch assessments (Online + Offline) ---
   const fetchAssessments = async () => {
     if (!selectedSubject) return;
     setAssessmentsLoading(true);
     setError('');
-    try {
-      const res = await assessmentTypeService.getBySubject(selectedSubject._id);
-      const sorted = res.data.data.sort(
-        (a, b) => MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month)
-      );
-      setAssessmentTypes(sorted);
-    } catch {
-      setError('Failed to load assessment types.');
-    } finally {
-      setAssessmentsLoading(false);
+    
+    let onlineData = [];
+    let offlineData = [];
+
+    // 1. Fetch Online
+    if (navigator.onLine) {
+        try {
+            const res = await assessmentTypeService.getBySubject(selectedSubject._id);
+            onlineData = res.data.data;
+        } catch {
+            setError('Failed to load online assessments.');
+        }
     }
+
+    // 2. Fetch Offline
+    const allLocal = offlineAssessmentService.getLocalAssessments();
+    offlineData = allLocal.filter(a => a.subject === selectedSubject._id);
+
+    // 3. Merge & Sort
+    const merged = [...onlineData, ...offlineData].sort(
+        (a, b) => MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month)
+    );
+    
+    setAssessmentTypes(merged);
+    setAssessmentsLoading(false);
   };
 
   useEffect(() => {
     fetchAssessments();
   }, [selectedSubject]);
 
-  // --- Form handlers ---
+  // --- Form Handlers ---
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -120,26 +125,69 @@ const AssessmentTypesPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedSubject) return alert('Select a subject first.');
+    
     setSaving(true);
+    setError('');
 
+    const payload = { ...formData, subjectId: selectedSubject._id, gradeLevel: selectedSubject.gradeLevel };
+
+    // --- OFFLINE MODE ---
+    if (!navigator.onLine) {
+        if (editingId) {
+            alert("Cannot edit online assessments while offline.");
+            setSaving(false);
+            return;
+        }
+        try {
+            // Save locally with TEMP_ID
+            offlineAssessmentService.addLocalAssessment({
+                ...payload,
+                subject: selectedSubject._id // Ensure this matches filter key
+            });
+            alert("📴 Offline: Assessment created locally! Use Sync when online.");
+            await fetchAssessments(); // Refresh list to show new item
+            setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
+        } catch (err) {
+            setError("Failed to save offline.");
+        }
+        setSaving(false);
+        return;
+    }
+
+    // --- ONLINE MODE ---
     try {
-      const payload = { ...formData, subjectId: selectedSubject._id, gradeLevel: selectedSubject.gradeLevel };
-      if (editingId) {
+      if (editingId && !editingId.startsWith('TEMP_')) {
         await assessmentTypeService.update(editingId, payload);
       } else {
         await assessmentTypeService.create(payload);
       }
       await fetchAssessments();
-      setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: new Date().getFullYear() });
+      setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
       setEditingId(null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save assessment type.');
+      // Handle "Already Exists" error
+      const msg = err.response?.data?.message || 'Failed to save.';
+      if (msg.includes("already exists")) {
+          setError("⚠️ This Assessment already exists! Check the list below.");
+      } else {
+          setError(msg);
+      }
     } finally {
       setSaving(false);
     }
   };
 
   const handleEdit = (assessment) => {
+    // Prevent editing offline items if complex
+    if (assessment._id.startsWith('TEMP_')) {
+        // Optional: Implement updateLocalAssessment if needed, for now restrict
+        if(window.confirm("Delete this offline item and create new one?")) {
+            offlineAssessmentService.removeLocalAssessment(assessment._id);
+            fetchAssessments();
+        }
+        return;
+    }
+
     setEditingId(assessment._id);
     setFormData({
       name: assessment.name,
@@ -148,16 +196,24 @@ const AssessmentTypesPage = () => {
       semester: assessment.semester,
       year: assessment.year,
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this assessment type?')) return;
+    if (!window.confirm('Delete this assessment type?')) return;
+    
+    // Check if offline
+    if (id.startsWith('TEMP_')) {
+        offlineAssessmentService.removeLocalAssessment(id);
+        setAssessmentTypes(assessmentTypes.filter(at => at._id !== id));
+        return;
+    }
+
     try {
       await assessmentTypeService.remove(id);
       setAssessmentTypes(assessmentTypes.filter(at => at._id !== id));
     } catch {
-      setError('Failed to delete. This type might be used in an existing grade record.');
+      setError('Failed to delete. It may contain grades.');
     }
   };
 
@@ -166,11 +222,8 @@ const AssessmentTypesPage = () => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4 text-gray-800">Manage Assessment Types</h2>
-      <p className="text-gray-600 mb-6">
-        Select a subject below to view and manage its grading structure.
-      </p>
-
-      {error && !selectedSubject && <p className="text-red-500 mb-4">{error}</p>}
+      
+      {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded border border-red-200">{error}</div>}
 
       {/* SUBJECT SELECTION */}
       <div className="space-y-4 mb-6">
@@ -202,32 +255,15 @@ const AssessmentTypesPage = () => {
 
       {selectedSubject && (
         <>
-          {/* ADD / EDIT FORM */}
+          {/* FORM */}
           <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg border mb-6">
             <h3 className="text-xl font-bold mb-3 text-gray-700">
               {editingId ? 'Edit Assessment Type' : 'Add New Assessment Type'}
             </h3>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col md:flex-row gap-3">
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Assessment Name"
-                  required
-                  className="border p-2 rounded w-full"
-                />
-                <input
-                  type="number"
-                  name="totalMarks"
-                  value={formData.totalMarks}
-                  onChange={handleChange}
-                  min="1"
-                  placeholder="Total Marks"
-                  required
-                  className="border p-2 rounded w-full"
-                />
+                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Assessment Name" required className="border p-2 rounded w-full" />
+                <input type="number" name="totalMarks" value={formData.totalMarks} onChange={handleChange} min="1" placeholder="Total Marks" required className="border p-2 rounded w-full" />
               </div>
               <div className="flex flex-col md:flex-row gap-3">
                 <select name="semester" value={formData.semester} onChange={handleChange} className="border p-2 rounded w-full">
@@ -238,68 +274,50 @@ const AssessmentTypesPage = () => {
                   {MONTHS.map(m => <option key={m}>{m}</option>)}
                 </select>
               </div>
+              <input type="number" name="year" value={formData.year} onChange={handleChange} placeholder="Year" className="border p-2 rounded" />
               
-              <input
-                type="number"
-                name="year"
-                value={formData.year}
-                onChange={handleChange}
-                placeholder="Year"
-                className="border p-2 rounded"
-              />
-              {error && selectedSubject && <p className="text-red-500 mt-4 text-center">{error}</p>}
-
-              <button
-                type="submit"
-                disabled={saving}
-                className={`col-span-2 py-2 rounded font-semibold text-white ${
-                  saving ? 'bg-green-300 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'
-                }`}
-              >
-                {saving ? 'Saving...' : editingId ? 'Update Assessment' : 'Add Assessment'}
+              <button type="submit" disabled={saving} className={`col-span-2 py-2 rounded font-semibold text-white ${saving ? 'bg-green-300 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
+                {saving ? 'Saving...' : editingId ? 'Update' : 'Add Assessment'}
               </button>
             </div>
           </form>
 
-          {/* EXISTING ASSESSMENTS */}
+          {/* LIST */}
           <div>
             <h4 className="font-bold mb-3 text-gray-700">Existing Types</h4>
             {assessmentsLoading ? <p>Loading...</p> : (
               assessmentTypes.length > 0 ? (
                 <ul className="space-y-2">
                   {assessmentTypes.map(a => (
-                    <li key={a._id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                    <li key={a._id} className="flex justify-between items-center bg-gray-50 p-2 rounded border-l-4 border-l-blue-500">
+                      
                       <Link
                         to="/grade-sheet"
-                        state={
-                          {
+                        state={{
                             assessmentType: a,
-                            subject: 
-                              {
-                                id: selectedSubject._id,
-                                name: selectedSubject.name,
-                                gradeLevel: selectedSubject.gradeLevel,
-                                type: selectedSubject.type || null,
-                              },
-                          }
-                        }
-                        className="flex-1 hover:underline"
+                            subject: { id: selectedSubject._id, name: selectedSubject.name, gradeLevel: selectedSubject.gradeLevel }
+                        }}
+                        className="flex-1 hover:underline flex flex-col"
                       >
-                        <strong>{a.month}:</strong> {a.name} ({a.totalMarks} Marks)
+                        <span className="text-gray-800 font-bold">{a.name} ({a.totalMarks})</span>
+                        <span className="text-xs text-gray-500">{a.month} | {a.semester} | {a.year}</span>
+                        {a._id.startsWith('TEMP_') && <span className="text-xs text-red-500 font-bold">[Offline - Pending Sync]</span>}
                       </Link>
+
                       <div className="flex gap-3 ml-4">
-                        <button onClick={() => handleEdit(a)} className="text-blue-500 hover:text-blue-700 text-sm font-bold">Edit</button>
+                        {!a._id.startsWith('TEMP_') && (
+                            <button onClick={() => handleEdit(a)} className="text-blue-500 hover:text-blue-700 text-sm font-bold">Edit</button>
+                        )}
                         <button onClick={() => handleDelete(a._id)} className="text-red-500 hover:text-red-700 text-sm font-bold">Delete</button>
                       </div>
                     </li>
                   ))}
                 </ul>
-              ) : <p className="text-gray-500">No assessment types created for this subject yet.</p>
+              ) : <p className="text-gray-500">No assessments found.</p>
             )}
           </div>
         </>
       )}
-
     </div>
   );
 };
