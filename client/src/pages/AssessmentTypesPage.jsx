@@ -54,6 +54,7 @@ const AssessmentTypesPage = () => {
       setError('');
       try {
         let subjectsList = [];
+        // TRY-CATCH here allows caching to work for subjects list too
         if (currentUser.role === 'admin') {
           const res = await subjectService.getAllSubjects();
           subjectsList = res.data.data;
@@ -63,7 +64,7 @@ const AssessmentTypesPage = () => {
         }
         setSubjects(subjectsList);
       } catch {
-        setError('Failed to load subjects.');
+        setError('Failed to load subjects. Ensure you visited this page online once.');
       } finally {
         setLoading(false);
       }
@@ -81,7 +82,7 @@ const AssessmentTypesPage = () => {
     return grouped;
   }, [subjects]);
 
-  // --- Fetch assessments (Online + Offline) ---
+  // --- UPDATED: Fetch assessments (Cache + Offline Local) ---
   const fetchAssessments = async () => {
     if (!selectedSubject) return;
     setAssessmentsLoading(true);
@@ -90,17 +91,23 @@ const AssessmentTypesPage = () => {
     let onlineData = [];
     let offlineData = [];
 
-    // 1. Fetch Online
-    if (navigator.onLine) {
-        try {
-            const res = await assessmentTypeService.getBySubject(selectedSubject._id);
+    // 1. FETCH FROM API (Service Worker handles caching if offline)
+    // We removed 'if (navigator.onLine)' so the SW can return cached data
+    try {
+        const res = await assessmentTypeService.getBySubject(selectedSubject._id);
+        
+        // Validation: Ensure we actually got data (not an offline error object)
+        if (res.data && Array.isArray(res.data.data)) {
             onlineData = res.data.data;
-        } catch {
-            setError('Failed to load online assessments.');
+        } else {
+            console.warn("No cached assessments found or invalid response.");
         }
+    } catch (err) {
+        // If Axios fails completely (no cache available), just ignore and show offline items
+        console.log("Using only offline items (No cache available).");
     }
 
-    // 2. Fetch Offline
+    // 2. Fetch Locally Created Items (Pending Sync)
     const allLocal = offlineAssessmentService.getLocalAssessments();
     offlineData = allLocal.filter(a => a.subject === selectedSubject._id);
 
@@ -131,7 +138,8 @@ const AssessmentTypesPage = () => {
 
     const payload = { ...formData, subjectId: selectedSubject._id, gradeLevel: selectedSubject.gradeLevel };
 
-    // --- OFFLINE MODE ---
+    // --- OFFLINE MODE WRITE ---
+    // Use navigator.onLine here because we CANNOT write to the server offline
     if (!navigator.onLine) {
         if (editingId) {
             alert("Cannot edit online assessments while offline.");
@@ -139,13 +147,12 @@ const AssessmentTypesPage = () => {
             return;
         }
         try {
-            // Save locally with TEMP_ID
             offlineAssessmentService.addLocalAssessment({
                 ...payload,
-                subject: selectedSubject._id // Ensure this matches filter key
+                subject: selectedSubject._id 
             });
             alert("📴 Offline: Assessment created locally! Use Sync when online.");
-            await fetchAssessments(); // Refresh list to show new item
+            await fetchAssessments(); 
             setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
         } catch (err) {
             setError("Failed to save offline.");
@@ -154,7 +161,7 @@ const AssessmentTypesPage = () => {
         return;
     }
 
-    // --- ONLINE MODE ---
+    // --- ONLINE MODE WRITE ---
     try {
       if (editingId && !editingId.startsWith('TEMP_')) {
         await assessmentTypeService.update(editingId, payload);
@@ -165,7 +172,6 @@ const AssessmentTypesPage = () => {
       setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
       setEditingId(null);
     } catch (err) {
-      // Handle "Already Exists" error
       const msg = err.response?.data?.message || 'Failed to save.';
       if (msg.includes("already exists")) {
           setError("⚠️ This Assessment already exists! Check the list below.");
@@ -178,9 +184,7 @@ const AssessmentTypesPage = () => {
   };
 
   const handleEdit = (assessment) => {
-    // Prevent editing offline items if complex
     if (assessment._id.startsWith('TEMP_')) {
-        // Optional: Implement updateLocalAssessment if needed, for now restrict
         if(window.confirm("Delete this offline item and create new one?")) {
             offlineAssessmentService.removeLocalAssessment(assessment._id);
             fetchAssessments();
@@ -202,7 +206,6 @@ const AssessmentTypesPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this assessment type?')) return;
     
-    // Check if offline
     if (id.startsWith('TEMP_')) {
         offlineAssessmentService.removeLocalAssessment(id);
         setAssessmentTypes(assessmentTypes.filter(at => at._id !== id));
@@ -249,7 +252,7 @@ const AssessmentTypesPage = () => {
             </fieldset>
           ))
         ) : (
-          <p>No subjects assigned yet.</p>
+          <p>No subjects assigned yet. (Connect online once to load)</p>
         )}
       </div>
 
@@ -289,7 +292,7 @@ const AssessmentTypesPage = () => {
               assessmentTypes.length > 0 ? (
                 <ul className="space-y-2">
                   {assessmentTypes.map(a => (
-                    <li key={a._id} className="flex justify-between items-center bg-gray-50 p-2 rounded border-l-4 border-l-blue-500">
+                    <li key={a._id} className={`flex justify-between items-center bg-gray-50 p-2 rounded border-l-4 ${a._id.startsWith('TEMP_') ? 'border-l-red-500' : 'border-l-blue-500'}`}>
                       
                       <Link
                         to="/grade-sheet"
@@ -313,7 +316,7 @@ const AssessmentTypesPage = () => {
                     </li>
                   ))}
                 </ul>
-              ) : <p className="text-gray-500">No assessments found.</p>
+              ) : <p className="text-gray-500">No assessments found. (If offline, ensure you loaded this page once while online)</p>
             )}
           </div>
         </>
