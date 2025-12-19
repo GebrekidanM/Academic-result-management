@@ -97,7 +97,6 @@ const GradeSheetPage = () => {
     setError(null);
 
     // CASE 1: OFFLINE / TEMPORARY ASSESSMENT
-    // If ID starts with "TEMP_", do NOT call the server.
     if (selectedAssessment.toString().startsWith('TEMP_')) {
       console.log("Loading offline assessment locally...");
 
@@ -110,44 +109,46 @@ const GradeSheetPage = () => {
           throw new Error("Offline assessment data not found.");
         }
 
-        // 2. Find the Subject to know which Grade Level we need (e.g. "Grade 4")
+        // 2. Find the Subject to know which Grade Level we need
         const currentSubject = subjects.find(s => s._id === selectedSubject);
         if (!currentSubject) {
           throw new Error("Subject details not found.");
         }
 
-        // 3. Fetch Students 
-        // (If offline, this relies on the Service Worker cache of previous visits)
+        // 3. Fetch Students (Expects cached data)
         const studentRes = await studentService.getAllStudents();
+        
+        // --- FIX START: VALIDATE STUDENT DATA ---
+        // If the service worker returns an error object or empty data, handle it safely
+        if (!studentRes.data || !Array.isArray(studentRes.data.data)) {
+            throw new Error("Student list not found in cache. You must view the 'Students' page while online at least once.");
+        }
         const allStudents = studentRes.data.data;
+        // --- FIX END ---
 
         // 4. Filter students for this Grade Level
-        // Note: Sort by name to match the usual order
         const classStudents = allStudents
           .filter(s => s.gradeLevel === currentSubject.gradeLevel)
           .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
         if (classStudents.length === 0) {
-          setError(`No students found locally for ${currentSubject.gradeLevel}. Please view the student list online once to cache data.`);
-          setLoading(false);
-          return;
+          throw new Error(`No students found locally for ${currentSubject.gradeLevel}.`);
         }
 
-        // 5. Construct Mock Sheet Data (Mimic Backend Response Structure)
+        // 5. Construct Mock Sheet Data
         const mockSheetData = {
           assessmentType: currentAssessment,
           students: classStudents.map(s => ({
             _id: s._id,
             fullName: s.fullName,
             studentId: s.studentId,
-            score: null // New offline sheet implies no scores saved yet
+            score: null 
           }))
         };
 
         // 6. Update State
         setSheetData(mockSheetData);
         
-        // Initialize inputs
         const initialScores = {};
         mockSheetData.students.forEach(s => {
           initialScores[s._id] = '';
@@ -156,15 +157,16 @@ const GradeSheetPage = () => {
 
       } catch (err) {
         console.error(err);
-        setError("Could not generate local sheet. " + (err.message || ""));
+        // Show a helpful message to the user
+        setError(err.message || "Could not generate local sheet.");
       } finally {
         setLoading(false);
       }
       
-      return; // Stop here, don't call backend
+      return; // Stop here
     }
 
-    // CASE 2: NORMAL ONLINE FLOW (Valid MongoDB ID)
+    // CASE 2: NORMAL ONLINE FLOW
     try {
       const response = await gradeService.getGradeSheet(selectedAssessment);
       setSheetData(response.data);
