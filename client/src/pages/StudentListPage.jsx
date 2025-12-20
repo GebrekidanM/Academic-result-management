@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect,useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import studentService from '../services/studentService';
 import authService from '../services/authService';
@@ -10,7 +10,7 @@ const StudentListPage = () => {
     const [allStudents, setAllStudents] = useState([]);
     const [availableGrades, setAvailableGrades] = useState([]);
     const [selectedGrade, setSelectedGrade] = useState(null);
-    const [searchTerm, setSearchTerm] = useState(''); // NEW: Search state
+    const [searchTerm, setSearchTerm] = useState(''); 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -18,61 +18,90 @@ const StudentListPage = () => {
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                // 1. Fetch the students (The backend now filters this based on role!)
+                // 1. Fetch Students (Network First -> Cache)
                 const studentRes = await studentService.getAllStudents();
+                
+                // OFFLINE CHECK: If SW returns an error object or missing data, handle it.
+                if (!studentRes.data || !Array.isArray(studentRes.data.data)) {
+                    // Check if it's our custom SW error
+                    if (studentRes.data?.error) {
+                        throw new Error("You are offline and the student list was not found in cache. Please go online once to load data.");
+                    }
+                    throw new Error("Invalid data received.");
+                }
+
                 const fetchedStudents = studentRes.data.data;
                 setAllStudents(fetchedStudents);
 
-                // 2. Determine which Grade Buttons to show
-                // From your existing code:
-                if (currentUser.role === 'admin' || currentUser.role === 'staff') {
-                    const uniqueGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
-                    setAvailableGrades(uniqueGrades);
+                // 2. Determine Grade Buttons
+                if (currentUser.role === 'staff' || currentUser.role === 'admin') {
+                    // Get all unique grades from the student list
+                    const allGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
+                    
+                    let filteredGrades = [];
+                    const level = currentUser.schoolLevel ? currentUser.schoolLevel.toLowerCase() : 'all';
+
+                    if (currentUser.role === 'admin' || level === 'all') {
+                        filteredGrades = allGrades;
+                    } 
+                    else if (level === 'kg') {
+                        filteredGrades = allGrades.filter(g => /^(kg|nursery)/i.test(g));
+                    } 
+                    else if (level === 'primary') {
+                        filteredGrades = allGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
+                    } 
+                    else if (level === 'high school') {
+                        filteredGrades = allGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
+                    }
+
+                    setAvailableGrades(filteredGrades);
                 }
-                 
                 else if (currentUser.role === 'teacher') {
-                    // Teachers see grades based on their Profile (Homeroom + Subjects)
-                    const profileRes = await userService.getProfile();
-                    const teacherProfile = profileRes.data;
+                    // Teachers need their profile to know what they teach
+                    try {
+                        const profileRes = await userService.getProfile();
+                        // Validation: Ensure profile data exists
+                        if (profileRes.data) {
+                            const teacherProfile = profileRes.data;
+                            const gradeSet = new Set();
 
-                    const gradeSet = new Set();
-
-                    // A. Add Homeroom Grade
-                    if (teacherProfile.homeroomGrade) {
-                        gradeSet.add(teacherProfile.homeroomGrade);
-                    }
-
-                    // B. Add Grades from Subjects Taught
-                    if (teacherProfile.subjectsTaught) {
-                        teacherProfile.subjectsTaught.forEach(assign => {
-                            if (assign.subject?.gradeLevel) {
-                                gradeSet.add(assign.subject.gradeLevel);
+                            if (teacherProfile.homeroomGrade) {
+                                gradeSet.add(teacherProfile.homeroomGrade);
                             }
-                        });
-                    }
 
-                    const sortedGrades = Array.from(gradeSet).sort();
-                    setAvailableGrades(sortedGrades);
+                            if (teacherProfile.subjectsTaught) {
+                                teacherProfile.subjectsTaught.forEach(assign => {
+                                    if (assign.subject?.gradeLevel) {
+                                        gradeSet.add(assign.subject.gradeLevel);
+                                    }
+                                });
+                            }
+                            setAvailableGrades(Array.from(gradeSet).sort());
+                        }
+                    } catch (e) {
+                        console.warn("Could not fetch teacher profile offline. Showing all grades as fallback.");
+                        // Fallback: If offline and profile not cached, showing all grades is safer than showing none
+                        const allGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
+                        setAvailableGrades(allGrades);
+                    }
                 }
             } catch (err) {
                 console.error(err);
-                setError('Failed to load student data.');
+                setError(err.message || 'Failed to load student data.');
             } finally {
                 setLoading(false);
             }
         };
         loadInitialData();
-    }, [currentUser.role]);
+    }, [currentUser.role, currentUser.schoolLevel]);
 
-    // --- Memoized Filtering (Grade + Search) ---
+    // --- Memoized Filtering ---
     const filteredStudents = useMemo(() => {
         if (!selectedGrade) return [];
 
         return allStudents
             .filter(student => {
-                // 1. Match Grade
                 const matchGrade = student.gradeLevel === selectedGrade;
-                // 2. Match Search Term (Name or ID)
                 const matchSearch = searchTerm === '' || 
                     student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     student.studentId.toLowerCase().includes(searchTerm.toLowerCase());
@@ -83,7 +112,16 @@ const StudentListPage = () => {
     }, [selectedGrade, allStudents, searchTerm]);
 
     if (loading) return <div className="p-10 text-center text-lg text-gray-600">Loading student data...</div>;
-    if (error) return <div className="p-10 text-center text-red-500 font-bold">{error}</div>;
+    
+    // Show error but allow retry
+    if (error) return (
+        <div className="p-10 text-center">
+            <p className="text-red-500 font-bold mb-4">{error}</p>
+            <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-4 py-2 rounded">
+                Retry
+            </button>
+        </div>
+    );
 
     // --- Styling ---
     const gradeButton = "px-4 py-2 border rounded-md transition-all duration-200 font-medium text-sm shadow-sm";
@@ -101,7 +139,6 @@ const StudentListPage = () => {
                 </div>
                 
                 <div className="flex gap-3">
-                    {/* Only Admin/Staff can add/import */}
                     {['admin', 'staff'].includes(currentUser.role) && (
                         <>
                             <Link to="/students/add" className="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded shadow transition-colors">
@@ -138,7 +175,7 @@ const StudentListPage = () => {
                             </button>
                         ))
                     ) : (
-                        <p className="text-sm text-gray-500 italic">No classes assigned to you.</p>
+                        <p className="text-sm text-gray-500 italic">No classes found.</p>
                     )}
                 </div>
             </div>
@@ -147,7 +184,6 @@ const StudentListPage = () => {
             {selectedGrade ? (
                 <div className="animate-fade-in">
                     
-                    {/* Search Bar & Title */}
                     <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-4 gap-4">
                         <h3 className="text-xl font-bold text-gray-800">
                             Class: <span className="text-pink-600">{selectedGrade}</span> 
@@ -163,7 +199,7 @@ const StudentListPage = () => {
                         />
                     </div>
 
-                    <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+                    <div className="overflow-hidden border border-gray-200 rounded-lg shadow-sm">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
@@ -208,5 +244,4 @@ const StudentListPage = () => {
         </div>
     );
 };
-
 export default StudentListPage;

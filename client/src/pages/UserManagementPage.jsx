@@ -10,8 +10,8 @@ const UserManagementPage = () => {
     
     // --- Filter States ---
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterRole, setFilterRole] = useState(''); // '' means all
-    const [filterLevel, setFilterLevel] = useState(''); // '' means all
+    const [filterRole, setFilterRole] = useState('');
+    const [filterLevel, setFilterLevel] = useState('');
 
     // --- Data Fetching ---
     useEffect(() => {
