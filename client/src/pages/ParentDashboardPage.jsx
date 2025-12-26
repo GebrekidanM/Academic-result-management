@@ -1,9 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import studentAuthService from '../services/studentAuthService';
 import studentService from '../services/studentService';
 import gradeService from '../services/gradeService';
 import behavioralReportService from '../services/behavioralReportService';
 import rankService from '../services/rankService';
+
+// --- CHART IMPORTS ---
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const ParentDashboardPage = () => {
     const [student, setStudent] = useState(null);
@@ -13,7 +27,7 @@ const ParentDashboardPage = () => {
     const [error, setError] = useState(null);
     const [rankBySemester, setRankBySemester] = useState({});
 
-    // 1. Fetch Primary Data
+    // 1. Fetch Data (Offline Safe)
     useEffect(() => {
         const currentStudent = studentAuthService.getCurrentStudent();
         if (currentStudent) {
@@ -25,17 +39,33 @@ const ParentDashboardPage = () => {
                         behavioralReportService.getReportsByStudent(currentStudent._id)
                     ]);
 
-                    if (studentRes.status === 'fulfilled') {
+                    // --- SAFE DATA HANDLING ---
+                    
+                    // 1. Student Profile
+                    if (studentRes.status === 'fulfilled' && studentRes.value?.data?.data) {
                         setStudent(studentRes.value.data.data);
                     } else {
-                        throw new Error('Could not fetch student profile.');
+                        // If offline and no cache, this is critical
+                        throw new Error('Could not load student profile. Please connect to the internet once.');
                     }
 
-                    if (gradesRes.status === 'fulfilled') setGrades(gradesRes.value.data.data);
-                    if (reportsRes.status === 'fulfilled') setReports(reportsRes.value.data.data);
+                    // 2. Grades (Allow empty if offline/missing)
+                    if (gradesRes.status === 'fulfilled' && Array.isArray(gradesRes.value?.data?.data)) {
+                        setGrades(gradesRes.value.data.data);
+                    } else {
+                        setGrades([]); // Default to empty array, don't crash
+                    }
+
+                    // 3. Reports (Allow empty)
+                    if (reportsRes.status === 'fulfilled' && Array.isArray(reportsRes.value?.data?.data)) {
+                        setReports(reportsRes.value.data.data);
+                    } else {
+                        setReports([]);
+                    }
 
                 } catch (err) {
-                    setError(err.message);
+                    console.error(err);
+                    setError(err.message || "Failed to load dashboard.");
                 } finally {
                     setLoading(false);
                 }
@@ -50,7 +80,6 @@ const ParentDashboardPage = () => {
     // 2. Fetch Ranks
     useEffect(() => {
         if (!student || grades.length === 0) return;
-
         const fetchRanks = async () => {
             const semesters = [...new Set(grades.map(g => g.semester))];
             const academicYear = student.studentId.includes('-') ? student.studentId.split('-')[1] : '2018';
@@ -65,30 +94,98 @@ const ParentDashboardPage = () => {
                         gradeLevel: student.gradeLevel
                     });
                     newRanks[sem] = res.data.rank;
-                } catch (err) {
-                    console.error(`Error fetching rank for ${sem}`, err);
-                    newRanks[sem] = '-';
+                } catch (err) { 
+                    // If offline and rank not cached, just show '-'
+                    newRanks[sem] = '-'; 
                 }
             }
             setRankBySemester(newRanks);
         };
-
         fetchRanks();
     }, [student, grades]);
 
-    // 3. Helper: Calculate Age (Ethiopian)
+    // --- 3. ANALYTICS LOGIC ---
+    const studentStats = useMemo(() => {
+        if (!grades.length) return null;
+
+        const subjectPerformance = {};
+        let grandTotalScore = 0;
+        let grandTotalMax = 0;
+
+        grades.forEach(g => {
+            const totalScore = g.assessments.reduce((acc, curr) => acc + curr.score, 0);
+            const totalMax = g.assessments.reduce((acc, curr) => acc + (curr.assessmentType?.totalMarks || 0), 0);
+
+            grandTotalScore += totalScore;
+            grandTotalMax += totalMax;
+
+            if (totalMax > 0) {
+                if (!subjectPerformance[g.subject.name]) {
+                    subjectPerformance[g.subject.name] = { score: 0, max: 0, count: 0 };
+                }
+                subjectPerformance[g.subject.name].score += totalScore;
+                subjectPerformance[g.subject.name].max += totalMax;
+                subjectPerformance[g.subject.name].count += 1;
+            }
+        });
+
+        const performanceArray = Object.keys(subjectPerformance).map(subject => {
+            const data = subjectPerformance[subject];
+            return {
+                subject,
+                percentage: ((data.score / data.max) * 100)
+            };
+        });
+
+        performanceArray.sort((a, b) => b.percentage - a.percentage);
+        const overallAverage = grandTotalMax > 0 ? (grandTotalScore / grandTotalMax) * 100 : 0;
+
+        return {
+            bestSubject: performanceArray[0],
+            worstSubject: performanceArray[performanceArray.length - 1],
+            allSubjects: performanceArray,
+            overallAverage: overallAverage
+        };
+    }, [grades]);
+
+    // --- Chart Config ---
+    const chartData = {
+        labels: studentStats?.allSubjects.map(s => s.subject) || [],
+        datasets: [
+            {
+                label: 'Performance (%)',
+                data: studentStats?.allSubjects.map(s => s.percentage.toFixed(1)) || [],
+                backgroundColor: studentStats?.allSubjects.map(s => 
+                    s.percentage >= 80 ? 'rgba(34, 197, 94, 0.6)' : 
+                    s.percentage >= 50 ? 'rgba(59, 130, 246, 0.6)' : 
+                    'rgba(239, 68, 68, 0.6)'
+                ),
+                borderColor: 'rgba(200, 200, 200, 1)',
+                borderWidth: 1,
+            },
+        ],
+    };
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: { beginAtZero: true, max: 100, grid: { borderDash: [2, 2] } },
+            x: { grid: { display: false } }
+        },
+        plugins: { legend: { display: false } }
+    };
+
+    // --- Helpers ---
     const calculateAge = (dob) => {
         if (!dob) return 'N/A';
         const now = new Date();
         let ethYear = now.getFullYear() - 8;
-        if (now.getMonth() > 8 || (now.getMonth() === 8 && now.getDate() >= 11)) {
-            ethYear = now.getFullYear() - 7;
-        }
+        if (now.getMonth() > 8 || (now.getMonth() === 8 && now.getDate() >= 11)) ethYear = now.getFullYear() - 7;
         const birthYear = parseInt(String(dob).substring(0, 4));
         return isNaN(birthYear) ? 'N/A' : ethYear - birthYear;
     };
 
-    // 4. Helper: Process Grades
     const processSemesterGrades = (semesterGrades) => {
         return semesterGrades.map(grade => {
             const flatAssessments = grade.assessments.map(a => ({
@@ -98,16 +195,23 @@ const ParentDashboardPage = () => {
                 score: a.score,
                 totalMarks: a.assessmentType?.totalMarks
             }));
-
-            // Total Possible Score for Subject
             const subjectTotalMax = flatAssessments.reduce((sum, a) => sum + (a.totalMarks || 0), 0);
-
             return { ...grade, flatAssessments, subjectTotalMax };
         });
     };
 
-    if (loading) return <div className="flex justify-center items-center h-screen text-lg">Loading...</div>;
-    if (error) return <div className="p-10 text-center text-red-500 font-bold">{error}</div>;
+    if (loading) return <div className="flex justify-center items-center h-screen text-lg">Loading Dashboard...</div>;
+    
+    // OFFLINE ERROR STATE
+    if (error) return (
+        <div className="p-10 text-center">
+            <p className="text-red-500 font-bold mb-4">{error}</p>
+            <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-4 py-2 rounded shadow">
+                Retry Connection
+            </button>
+        </div>
+    );
+    
     if (!student) return null;
 
     const tableHeader = "px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase bg-gray-50 border-b border-gray-200";
@@ -116,8 +220,8 @@ const ParentDashboardPage = () => {
     return (
         <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
             
-            {/* Student Info Card */}
-            <div className="bg-white p-6 rounded-xl shadow-md mb-8 flex flex-col md:flex-row gap-8 items-center md:items-start">
+            {/* 1. Student Info */}
+            <div className="bg-white p-6 rounded-xl shadow-md mb-8 flex flex-col md:flex-row gap-8 items-center md:items-start border-l-4 border-blue-600">
                 <div className="flex-shrink-0">
                     {student.imageUrl ? (
                         <img src={student.imageUrl} alt={student.fullName} className="w-32 h-32 rounded-full object-cover border-4 border-gray-100 shadow-sm" />
@@ -137,9 +241,42 @@ const ParentDashboardPage = () => {
                 </div>
             </div>
 
-            {/* Academic Performance */}
+            {/* 2. Insights */}
+            {studentStats && (
+                <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+                    <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-purple-600 pl-3">Performance Insights</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div className="bg-green-50 p-4 rounded-xl border border-green-200 flex flex-col items-center justify-center">
+                            <div className="text-green-600 text-4xl mb-2">🏆</div>
+                            <div className="text-sm text-gray-500 uppercase font-bold">Strongest Subject</div>
+                            <div className="text-xl font-bold text-gray-800">{studentStats.bestSubject?.subject || '-'}</div>
+                            <div className="text-sm font-bold text-green-700">{studentStats.bestSubject?.percentage.toFixed(1) || 0}%</div>
+                        </div>
+
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex flex-col items-center justify-center">
+                            <div className="text-blue-600 text-4xl mb-2">📊</div>
+                            <div className="text-sm text-gray-500 uppercase font-bold">Overall Average</div>
+                            <div className="text-2xl font-bold text-gray-800">{studentStats.overallAverage.toFixed(1)}%</div>
+                        </div>
+
+                        <div className="bg-red-50 p-4 rounded-xl border border-red-200 flex flex-col items-center justify-center">
+                            <div className="text-red-500 text-4xl mb-2">🎯</div>
+                            <div className="text-sm text-gray-500 uppercase font-bold">Needs Focus</div>
+                            <div className="text-xl font-bold text-gray-800">{studentStats.worstSubject?.subject || '-'}</div>
+                            <div className="text-sm font-bold text-red-600">{studentStats.worstSubject?.percentage.toFixed(1) || 0}%</div>
+                        </div>
+                    </div>
+
+                    <div className="h-64 w-full">
+                        <Bar data={chartData} options={chartOptions} />
+                    </div>
+                </div>
+            )}
+
+            {/* 3. Detailed Grades */}
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-blue-600 pl-3">Academic Performance</h3>
+                <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-blue-600 pl-3">Detailed Grades</h3>
                 
                 {grades.length > 0 ? (
                     <div className="space-y-12">
@@ -150,7 +287,6 @@ const ParentDashboardPage = () => {
                                 return acc;
                             }, {})
                         ).map(([semester, rawGrades]) => {
-                            
                             const processedGrades = processSemesterGrades(rawGrades);
                             const semesterObtained = processedGrades.reduce((sum, g) => sum + g.finalScore, 0);
                             const semesterMax = processedGrades.reduce((sum, g) => sum + g.subjectTotalMax, 0);
@@ -160,7 +296,7 @@ const ParentDashboardPage = () => {
                                 <div key={semester} className="border rounded-xl overflow-hidden shadow-sm">
                                     <div className="bg-blue-900 text-white p-4 flex justify-between items-center">
                                         <h4 className="text-lg font-bold">Semester: {semester}</h4>
-                                        <div className="text-sm bg-blue-800 px-3 py-1 rounded border border-blue-700 min-w-20">
+                                        <div className="text-sm bg-blue-800 px-3 py-1 rounded border border-blue-700 min-w-20 text-center">
                                             Rank: <strong>{rankBySemester[semester] || '...'}</strong>
                                         </div>
                                     </div>
@@ -172,7 +308,7 @@ const ParentDashboardPage = () => {
                                                     <th className={`${tableHeader} w-1/4`}>Subject</th>
                                                     <th className={tableHeader}>Month</th>
                                                     <th className={tableHeader}>Assessment</th>
-                                                    <th className={`${tableHeader} min-w-20`}>Score</th>
+                                                    <th className={`${tableHeader} text-right`}>Score</th>
                                                     <th className={`${tableHeader} text-center bg-gray-100`}>Subject Total</th>
                                                 </tr>
                                             </thead>
@@ -201,15 +337,11 @@ const ParentDashboardPage = () => {
                                             <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                                                 <tr>
                                                     <td colSpan={3} className="px-4 py-3 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">Grand Total:</td>
-                                                    <td colSpan={2} className="px-4 py-3 font-bold text-center text-lg text-gray-900">{semesterObtained.toFixed(2)} / {semesterMax}</td>
+                                                    <td colSpan={2} className="px-4 py-3 font-bold text-center text-lg text-gray-900">{semesterObtained.toFixed(1)} / {semesterMax}</td>
                                                 </tr>
                                                 <tr>
                                                     <td colSpan={3} className="px-4 py-2 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">Average:</td>
                                                     <td colSpan={2} className="px-4 py-2 font-bold text-center text-blue-600 text-lg">{semesterAvg}%</td>
-                                                </tr>
-                                                <tr>
-                                                    <td colSpan={3} className="px-4 py-2 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">Rank</td>
-                                                    <td colSpan={2} className="px-4 py-2 font-bold text-center text-blue-600 text-lg"><strong>{rankBySemester[semester] || '...'}</strong></td>
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -223,7 +355,7 @@ const ParentDashboardPage = () => {
                 )}
             </div>
 
-            {/* Comments */}
+            {/* 4. Comments */}
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <h3 className="text-xl font-bold text-gray-700 mb-4 border-l-4 border-yellow-500 pl-3">Teacher's Comments</h3>
                 {reports.length > 0 ? (
@@ -234,7 +366,7 @@ const ParentDashboardPage = () => {
                                     <h4 className="font-bold text-yellow-800">{report.semester}</h4>
                                     <span className="text-xs text-yellow-600">{report.academicYear}</span>
                                 </div>
-                                <p className="text-sm text-gray-700 italic">"{report.teacherComment || 'No comment.'}"</p>
+                                <p className="text-sm text-gray-700 italic">"{report.teacherComment || 'No comment provided.'}"</p>
                             </div>
                         ))}
                     </div>

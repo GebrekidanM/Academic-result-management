@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import ParentRoute from './components/ParentRoute';
 import UniversalRoute from './components/UniversalRoute';
+import EventCardGenerator from './pages/EventCardGenerator';
 
 // --- OFFLINE COMPONENTS
 import SyncStatus from './components/SyncStatus';     
@@ -89,6 +90,7 @@ function App() {
           
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/events/generator" element={<EventCardGenerator />} />
             <Route path="/at-risk" element={<AtRiskStudents />} />
             <Route path="/allsubjectAnalysis" element={<AllSubjectAnalytics/>}/>
             <Route path='/subject-performance' element={<SubjectPerformance/>}/>

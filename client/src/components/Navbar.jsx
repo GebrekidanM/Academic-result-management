@@ -95,6 +95,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
               <>
                 {/* 1. Standalone Link */}
                 <NavLink to="/students" className={navLinkClass} onClick={closeMenu}>Students</NavLink>
+                <NavLink to="/events/generator" className={navLinkClass} onClick={closeMenu}>Event Cards</NavLink>
 
                 {/* 2. ACADEMICS Dropdown (Work) */}
                 <NavDropdown title="📝 Academics">

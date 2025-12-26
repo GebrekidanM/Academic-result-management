@@ -97,7 +97,7 @@ exports.getStudents = async (req, res) => {
         const students = await Student.find(finalQuery)
             // Sort by Grade Level (alphabetically) then Name
             .sort({ gradeLevel: 1, fullName: 1 }) 
-            .select('studentId fullName gender gradeLevel status');
+            .select('studentId fullName gender imageUrl gradeLevel status');
         
         res.json({ success: true, count: students.length, data: students });
 

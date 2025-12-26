@@ -1,247 +1,247 @@
-import React, { useState, useEffect,useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import studentService from '../services/studentService';
 import authService from '../services/authService';
 import userService from '../services/userService';
+import StudentStats from '../components/StudentStats'; // <--- IMPORT THE GRAPHS
 
 const StudentListPage = () => {
-    // --- State Management ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [allStudents, setAllStudents] = useState([]);
-    const [availableGrades, setAvailableGrades] = useState([]);
+    
+    // Stores which grades the user is ALLOWED to see
+    const [allAllowedGrades, setAllAllowedGrades] = useState([]);
+    
+    // UI State
+    const [selectedSection, setSelectedSection] = useState(null); // 'kg', 'primary', 'highSchool'
     const [selectedGrade, setSelectedGrade] = useState(null);
     const [searchTerm, setSearchTerm] = useState(''); 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- Data Fetching ---
+    // --- 1. Data Fetching ---
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                // 1. Fetch Students (Network First -> Cache)
                 const studentRes = await studentService.getAllStudents();
                 
-                // OFFLINE CHECK: If SW returns an error object or missing data, handle it.
                 if (!studentRes.data || !Array.isArray(studentRes.data.data)) {
-                    // Check if it's our custom SW error
-                    if (studentRes.data?.error) {
-                        throw new Error("You are offline and the student list was not found in cache. Please go online once to load data.");
-                    }
-                    throw new Error("Invalid data received.");
+                    if (studentRes.data?.error) throw new Error("Offline mode: Connect once to load data.");
+                    throw new Error("Invalid data.");
                 }
 
                 const fetchedStudents = studentRes.data.data;
                 setAllStudents(fetchedStudents);
 
-                // 2. Determine Grade Buttons
+                // Determine Allowed Grades based on Role
+                let allowed = [];
                 if (currentUser.role === 'staff' || currentUser.role === 'admin') {
-                    // Get all unique grades from the student list
-                    const allGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
-                    
-                    let filteredGrades = [];
+                    const uniqueGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
                     const level = currentUser.schoolLevel ? currentUser.schoolLevel.toLowerCase() : 'all';
-
-                    if (currentUser.role === 'admin' || level === 'all') {
-                        filteredGrades = allGrades;
-                    } 
-                    else if (level === 'kg') {
-                        filteredGrades = allGrades.filter(g => /^(kg|nursery)/i.test(g));
-                    } 
-                    else if (level === 'primary') {
-                        filteredGrades = allGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
-                    } 
-                    else if (level === 'high school') {
-                        filteredGrades = allGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
-                    }
-
-                    setAvailableGrades(filteredGrades);
-                }
+                    
+                    if (currentUser.role === 'admin' || level === 'all') allowed = uniqueGrades;
+                    else if (level === 'kg') allowed = uniqueGrades.filter(g => /^(kg|nursery)/i.test(g));
+                    else if (level === 'primary') allowed = uniqueGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
+                    else if (level === 'high school') allowed = uniqueGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
+                } 
                 else if (currentUser.role === 'teacher') {
-                    // Teachers need their profile to know what they teach
                     try {
                         const profileRes = await userService.getProfile();
-                        // Validation: Ensure profile data exists
                         if (profileRes.data) {
-                            const teacherProfile = profileRes.data;
                             const gradeSet = new Set();
-
-                            if (teacherProfile.homeroomGrade) {
-                                gradeSet.add(teacherProfile.homeroomGrade);
-                            }
-
-                            if (teacherProfile.subjectsTaught) {
-                                teacherProfile.subjectsTaught.forEach(assign => {
-                                    if (assign.subject?.gradeLevel) {
-                                        gradeSet.add(assign.subject.gradeLevel);
-                                    }
-                                });
-                            }
-                            setAvailableGrades(Array.from(gradeSet).sort());
+                            if (profileRes.data.homeroomGrade) gradeSet.add(profileRes.data.homeroomGrade);
+                            profileRes.data.subjectsTaught?.forEach(assign => {
+                                if (assign.subject?.gradeLevel) gradeSet.add(assign.subject.gradeLevel);
+                            });
+                            allowed = Array.from(gradeSet).sort();
                         }
                     } catch (e) {
-                        console.warn("Could not fetch teacher profile offline. Showing all grades as fallback.");
-                        // Fallback: If offline and profile not cached, showing all grades is safer than showing none
-                        const allGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
-                        setAvailableGrades(allGrades);
+                        allowed = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
                     }
                 }
+                setAllAllowedGrades(allowed);
+
             } catch (err) {
-                console.error(err);
-                setError(err.message || 'Failed to load student data.');
+                setError(err.message || 'Failed to load data.');
             } finally {
                 setLoading(false);
             }
         };
         loadInitialData();
-    }, [currentUser.role, currentUser.schoolLevel]);
+    }, [currentUser]);
 
-    // --- Memoized Filtering ---
-    const filteredStudents = useMemo(() => {
+    // --- 2. Filter Logic ---
+
+    // A. Buttons to show based on section
+    const visibleGradeButtons = useMemo(() => {
+        if (!selectedSection) return [];
+        return allAllowedGrades.filter(g => {
+            if (selectedSection === 'kg') return /^(kg|nursery)/i.test(g);
+            if (selectedSection === 'primary') return /^Grade\s*[1-8](\D|$)/i.test(g);
+            if (selectedSection === 'highSchool') return /^Grade\s*(9|1[0-2])(\D|$)/i.test(g);
+            return false;
+        });
+    }, [selectedSection, allAllowedGrades]);
+
+    // B. Students for the Table (Specific Class)
+    const tableStudents = useMemo(() => {
         if (!selectedGrade) return [];
-
         return allStudents
-            .filter(student => {
-                const matchGrade = student.gradeLevel === selectedGrade;
-                const matchSearch = searchTerm === '' || 
-                    student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    student.studentId.toLowerCase().includes(searchTerm.toLowerCase());
-                
-                return matchGrade && matchSearch;
-            })
+            .filter(s => s.gradeLevel === selectedGrade)
+            .filter(s => searchTerm === '' || s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.studentId.toLowerCase().includes(searchTerm.toLowerCase()))
             .sort((a, b) => a.fullName.localeCompare(b.fullName));
     }, [selectedGrade, allStudents, searchTerm]);
 
-    if (loading) return <div className="p-10 text-center text-lg text-gray-600">Loading student data...</div>;
-    
-    // Show error but allow retry
-    if (error) return (
-        <div className="p-10 text-center">
-            <p className="text-red-500 font-bold mb-4">{error}</p>
-            <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-4 py-2 rounded">
-                Retry
-            </button>
-        </div>
-    );
+    // C. Students for Graphs (Entire Section or Entire School)
+    const graphStudents = useMemo(() => {
+        // Only include students in grades the user is allowed to see
+        let relevantStudents = allStudents.filter(s => allAllowedGrades.includes(s.gradeLevel));
 
-    // --- Styling ---
-    const gradeButton = "px-4 py-2 border rounded-md transition-all duration-200 font-medium text-sm shadow-sm";
-    const selectedBtn = "bg-pink-600 text-white border-pink-600 shadow-md transform scale-105";
-    const deselectedBtn = "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400";
+        // If a section is selected, filter further
+        if (selectedSection === 'kg') return relevantStudents.filter(s => /^(kg|nursery)/i.test(s.gradeLevel));
+        if (selectedSection === 'primary') return relevantStudents.filter(s => /^Grade\s*[1-8](\D|$)/i.test(s.gradeLevel));
+        if (selectedSection === 'highSchool') return relevantStudents.filter(s => /^Grade\s*(9|1[0-2])(\D|$)/i.test(s.gradeLevel));
+        
+        return relevantStudents; // Show all allowed if no section selected
+    }, [allStudents, allAllowedGrades, selectedSection]);
+
+
+    // --- 3. Section Card Component ---
+    const SectionCard = ({ id, label, color }) => {
+        // Calculate count for this specific section card
+        const count = allStudents.filter(s => allAllowedGrades.includes(s.gradeLevel) && (
+            id === 'kg' ? /^(kg|nursery)/i.test(s.gradeLevel) :
+            id === 'primary' ? /^Grade\s*[1-8](\D|$)/i.test(s.gradeLevel) :
+            /^Grade\s*(9|1[0-2])(\D|$)/i.test(s.gradeLevel)
+        )).length;
+
+        // If user has no access or 0 students, hide card
+        if (count === 0) return null;
+
+        return (
+            <div 
+                onClick={() => { setSelectedSection(id); setSelectedGrade(null); }}
+                className={`flex-1 min-w-[200px] p-6 rounded-xl border-2 cursor-pointer transition-all transform hover:-translate-y-1 hover:shadow-lg bg-white ${selectedSection === id ? 'ring-4 ring-offset-2 ring-pink-400 border-transparent shadow-xl' : color}`}
+            >
+                <h3 className="text-xl font-bold uppercase tracking-wide opacity-80">{label}</h3>
+                <div className="mt-2 text-3xl font-black">{count} <span className="text-sm font-normal opacity-60">Students</span></div>
+            </div>
+        );
+    };
+
+    if (loading) return <div className="p-10 text-center text-gray-600">Loading...</div>;
+    if (error) return <div className="p-10 text-center text-red-500">{error}</div>;
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md min-h-screen">
+        <div className="p-6 bg-gray-50 min-h-screen">
             
-            {/* --- Header --- */}
+            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <div>
                     <h2 className="text-3xl font-bold text-gray-800">Students List</h2>
-                    <p className="text-sm text-gray-500 mt-1">Manage and view student records</p>
+                    <p className="text-sm text-gray-500">Manage student records</p>
                 </div>
-                
                 <div className="flex gap-3">
                     {['admin', 'staff'].includes(currentUser.role) && (
                         <>
-                            <Link to="/students/add" className="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded shadow transition-colors">
-                                + Add Student
-                            </Link>
-                            <Link to="/students/import" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow transition-colors">
-                                Import Excel
-                            </Link>
+                            <Link to="/students/add" className="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded shadow">+ Add</Link>
+                            <Link to="/students/import" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">Import</Link>
                         </>
                     )}
                 </div>
             </div>
 
-            {/* --- Grade Level Selector --- */}
-            <div className="mb-8 bg-gray-50 p-5 rounded-xl border border-gray-100">
-                <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Filter by Grade:</h4>
-                    {selectedGrade && (
-                        <button onClick={() => { setSelectedGrade(null); setSearchTerm(''); }} className="text-xs text-red-500 hover:text-red-700 font-bold underline">
-                            Reset Filter
-                        </button>
-                    )}
+            {/* --- GRAPHS AREA --- */}
+            {/* Only show graphs if no specific class is selected (to save space) */}
+            {!selectedGrade && (
+                <StudentStats 
+                    students={graphStudents} 
+                    sectionName={selectedSection ? selectedSection.toUpperCase() : "Total School"} 
+                />
+            )}
+
+            {/* --- SECTION SELECTION --- */}
+            {!selectedGrade && (
+                <div className="flex flex-wrap gap-6 mb-8">
+                    <SectionCard id="kg" label="Kindergarten" color="border-purple-200 text-purple-800" />
+                    <SectionCard id="primary" label="Primary" color="border-blue-200 text-blue-800" />
+                    <SectionCard id="highSchool" label="High School" color="border-indigo-200 text-indigo-800" />
                 </div>
-                
-                <div className="flex flex-wrap gap-3">
-                    {availableGrades.length > 0 ? (
-                        availableGrades.map(grade => (
+            )}
+
+            {/* --- CLASS SELECTION --- */}
+            {selectedSection && (
+                <div className="mb-8 bg-white p-5 rounded-xl shadow-sm border border-gray-200 animate-fade-in">
+                    <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-sm font-bold text-gray-700 uppercase">Select Class:</h4>
+                        <button onClick={() => { setSelectedSection(null); setSelectedGrade(null); }} className="text-sm text-blue-600 hover:underline">
+                            Clear Section
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                        {visibleGradeButtons.map(grade => (
                             <button 
                                 key={grade} 
                                 onClick={() => setSelectedGrade(grade)}
-                                className={`${gradeButton} ${selectedGrade === grade ? selectedBtn : deselectedBtn}`}
+                                className={`px-4 py-2 border rounded-md font-bold text-sm transition-all ${selectedGrade === grade ? 'bg-pink-600 text-white border-pink-600 shadow-md' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}
                             >
                                 {grade}
                             </button>
-                        ))
-                    ) : (
-                        <p className="text-sm text-gray-500 italic">No classes found.</p>
-                    )}
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            {/* --- Student List Table --- */}
-            {selectedGrade ? (
-                <div className="animate-fade-in">
-                    
-                    <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-4 gap-4">
+            {/* --- STUDENT TABLE --- */}
+            {selectedGrade && (
+                <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden animate-slide-up">
+                    <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50">
                         <h3 className="text-xl font-bold text-gray-800">
-                            Class: <span className="text-pink-600">{selectedGrade}</span> 
-                            <span className="text-sm text-gray-400 font-normal ml-2">({filteredStudents.length} students)</span>
+                            {selectedGrade} <span className="text-sm font-normal text-gray-500">({tableStudents.length} Students)</span>
                         </h3>
-                        
                         <input 
                             type="text" 
-                            placeholder="Search by name or ID..." 
+                            placeholder="Search Name or ID..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="border border-gray-300 rounded px-3 py-2 text-sm w-full md:w-64 focus:outline-none focus:border-pink-500"
+                            className="border border-gray-300 rounded px-3 py-2 text-sm w-full md:w-64 focus:ring-2 focus:ring-pink-500 outline-none"
                         />
                     </div>
 
-                    <div className="overflow-hidden border border-gray-200 rounded-lg shadow-sm">
+                    <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Gender</th>
-                                    <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-6 py-3 text-left">ID</th>
+                                    <th className="px-6 py-3 text-left">Name</th>
+                                    <th className="px-6 py-3 text-left">Gender</th>
+                                    <th className="px-6 py-3 text-center">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredStudents.length > 0 ? (
-                                    filteredStudents.map(student => (
+                            <tbody className="divide-y divide-gray-200 bg-white">
+                                {tableStudents.length > 0 ? (
+                                    tableStudents.map(student => (
                                         <tr key={student._id} className="hover:bg-pink-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">{student.studentId}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <Link to={`/students/${student._id}`} className="text-base font-medium text-gray-900 hover:text-pink-600">
-                                                    {student.fullName}
-                                                </Link>
+                                            <td className="px-6 py-4 font-mono text-sm text-gray-500">{student.studentId}</td>
+                                            <td className="px-6 py-4 font-bold text-gray-800">
+                                                <Link to={`/students/${student._id}`} className="hover:text-pink-600 hover:underline">{student.fullName}</Link>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.gender}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                                <Link to={`/students/${student._id}`} className="text-indigo-600 hover:text-indigo-900">View</Link>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{student.gender}</td>
+                                            <td className="px-6 py-4 text-center">
+                                                <Link to={`/students/${student._id}`} className="text-indigo-600 hover:text-indigo-900 font-bold text-sm">View</Link>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr>
-                                        <td colSpan="4" className="px-6 py-10 text-center text-gray-500">
-                                            {searchTerm ? 'No students match your search.' : 'No students found in this grade.'}
-                                        </td>
-                                    </tr>
+                                    <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">No students match your search.</td></tr>
                                 )}
                             </tbody>
                         </table>
                     </div>
                 </div>
-            ) : (
-                <div className="text-center py-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg">
-                    <p className="text-gray-500 text-lg">Select a Grade Level above to view students.</p>
-                </div>
             )}
         </div>
     );
 };
+
 export default StudentListPage;
