@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; 
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService';
+import LanguageSwitcher from './LanguageSwitcher';
 
-// --- Helper Component for Dropdowns ---
 const NavDropdown = ({ title, children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Close dropdown if clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -28,8 +28,6 @@ const NavDropdown = ({ title, children }) => {
         {title}
         <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
       </button>
-      
-      {/* Dropdown Menu */}
       {isOpen && (
         <div className="md:absolute right-0 mt-2 w-full md:w-48 bg-white rounded-md shadow-lg z-50 overflow-hidden py-1 text-gray-800">
           {children}
@@ -39,8 +37,8 @@ const NavDropdown = ({ title, children }) => {
   );
 };
 
-// --- Main Navbar Component ---
 const Navbar = ({ isOpen, setIsOpen }) => {
+  const { t } = useTranslation(); 
   const [currentUser, setCurrentUser] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(null);
   const navigate = useNavigate();
@@ -63,9 +61,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
 
   const closeMenu = () => setIsOpen(false);
 
-  // Styles for links INSIDE dropdowns (Dark text)
   const dropdownLinkClass = "block px-4 py-2 text-sm hover:bg-pink-100 hover:text-pink-600 transition-colors border-b md:border-none border-gray-100";
-  // Styles for standalone links (White text)
   const navLinkClass = ({ isActive }) => 
     `block md:inline-block text-white font-bold py-2 px-3 rounded-md transition-colors whitespace-nowrap ${isActive ? 'bg-pink-600' : 'hover:bg-gray-700'}`;
 
@@ -76,7 +72,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
         {/* Logo */}
         <div className="flex items-center flex-shrink-0 text-white mr-6">
           <Link to={currentUser ? "/" : "/parent/dashboard"} onClick={closeMenu} className="font-bold text-xl tracking-tight flex items-center gap-2">
-            🏫 Freedom School
+            🏫 {t('app_name')}
           </Link>
         </div>
 
@@ -93,37 +89,66 @@ const Navbar = ({ isOpen, setIsOpen }) => {
             
             {currentUser && (
               <>
-                {/* 1. Standalone Link */}
-                <NavLink to="/students" className={navLinkClass} onClick={closeMenu}>Students</NavLink>
-                <NavLink to="/events/generator" className={navLinkClass} onClick={closeMenu}>Event Cards</NavLink>
+                {/* 1. Students Link */}
+                <NavLink to="/students" className={navLinkClass} onClick={closeMenu}>
+                    {t('students_list')}
+                </NavLink>
+                
+                {/* 2. Event Cards */}
+                <NavLink to="/events/generator" className={navLinkClass} onClick={closeMenu}>
+                    {t('event_cards')}
+                </NavLink>
 
-                {/* 2. ACADEMICS Dropdown (Work) */}
-                <NavDropdown title="📝 Academics">
-                  <NavLink to="/grade-sheet" className={dropdownLinkClass} onClick={closeMenu}>Enter Grades (ውጤት)</NavLink>
-                  <NavLink to="/manage-assessments" className={dropdownLinkClass} onClick={closeMenu}>Manage Assessments</NavLink>
+                {/* 3. ACADEMICS Dropdown */}
+                <NavDropdown title={`📝 ${t('academics')}`}>
+                  <NavLink to="/grade-sheet" className={dropdownLinkClass} onClick={closeMenu}>
+                    {t('enter_grades')}
+                  </NavLink>
+                  <NavLink to="/manage-assessments" className={dropdownLinkClass} onClick={closeMenu}>
+                    {t('manage_assessments')}
+                  </NavLink>
                   {(currentUser.role === 'admin' || currentUser.homeroomGrade) && (
-                    <NavLink to="/roster" className={dropdownLinkClass} onClick={closeMenu}>Class Roster</NavLink>
+                    <NavLink to="/roster" className={dropdownLinkClass} onClick={closeMenu}>
+                        {t('class_roster')}
+                    </NavLink>
                   )}
                 </NavDropdown>
 
-                {/* 3. ANALYTICS Dropdown (Reports) */}
-                <NavDropdown title="📊 Analytics">
-                  <NavLink to="/allsubjectAnalysis" className={dropdownLinkClass} onClick={closeMenu}>Class Matrix (All Subjects)</NavLink>
-                  <NavLink to="/subject-performance" className={dropdownLinkClass} onClick={closeMenu}>Subject Leaderboard</NavLink>
-                  <NavLink to="/analytics" className={dropdownLinkClass} onClick={closeMenu}>Single Subject Detail</NavLink>
-                  <NavLink to="/at-risk" className={dropdownLinkClass} onClick={closeMenu}>At-Risk Students</NavLink>
+                {/* 4. ANALYTICS Dropdown */}
+                <NavDropdown title={`📊 ${t('analytics')}`}>
+                  <NavLink to="/allsubjectAnalysis" className={dropdownLinkClass} onClick={closeMenu}>
+                    {t('class_matrix')}
+                  </NavLink>
+                  <NavLink to="/subject-performance" className={dropdownLinkClass} onClick={closeMenu}>
+                    {t('subject_performance')}
+                  </NavLink>
+                  <NavLink to="/analytics" className={dropdownLinkClass} onClick={closeMenu}>
+                    {t('subject_detail')}
+                  </NavLink>
+                  <NavLink to="/at-risk" className={dropdownLinkClass} onClick={closeMenu}>
+                    {t('at_risk')}
+                  </NavLink>
                 </NavDropdown>
 
-                {/* 4. ADMIN Dropdown (Config) */}
+                {/* 5. ADMIN Dropdown */}
                 {currentUser.role === 'admin' && (
-                  <NavDropdown title="⚙️ Admin">
-                    <NavLink to="/subjects" className={dropdownLinkClass} onClick={closeMenu}>Manage Subjects</NavLink>
-                    <NavLink to="/admin/users" className={dropdownLinkClass} onClick={closeMenu}>Manage Staff</NavLink>
+                  <NavDropdown title={`⚙️ ${t('admin')}`}>
+                    <NavLink to="/subjects" className={dropdownLinkClass} onClick={closeMenu}>
+                        {t('manage_subjects')}
+                    </NavLink>
+                    <NavLink to="/admin/users" className={dropdownLinkClass} onClick={closeMenu}>
+                        {t('manage_staff')}
+                    </NavLink>
                   </NavDropdown>
                 )}
               </>
             )}
           </div>
+          
+          {/* Language Switcher */}
+          <div className="mt-4 md:mt-0 md:ml-4">
+              <LanguageSwitcher />
+           </div>
 
           {/* Logout Button */}
           <div className="mt-4 md:mt-0 md:ml-4">
@@ -132,10 +157,12 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                 onClick={handleLogout}
                 className="w-full md:w-auto bg-red-600 text-white font-bold py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm"
               >
-                Logout
+                {t('logout')}
               </button>
             ) : (
-              <NavLink to="/login" className={navLinkClass} onClick={closeMenu}>Login</NavLink>
+              <NavLink to="/login" className={navLinkClass} onClick={closeMenu}>
+                {t('login')}
+              </NavLink>
             )}
           </div>
         </div>

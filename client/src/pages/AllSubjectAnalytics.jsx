@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next'; // <--- 1. Import Hook
 import analyticsService from '../services/analyticsService';
 import authService from '../services/authService';
 import subjectService from '../services/subjectService';
 import userService from '../services/userService';
 
 const AllSubjectAnalytics = () => {
+  const { t } = useTranslation(); // <--- 2. Initialize Hook
   const [currentUser, setCurrentUser] = useState(null);
   const [availableGrades, setAvailableGrades] = useState([]);
   
@@ -55,25 +57,21 @@ const AllSubjectAnalytics = () => {
                const level = currentUser.schoolLevel.toLowerCase();
 
                if (level === 'kg') {
-                   // Keep only KG/Nursery
                    allGrades = allGrades.filter(g => /^(kg|nursery)/i.test(g));
                } 
                else if (level === 'primary') {
-                   // Keep Grade 1-8 (e.g., Grade 1, Grade 8A)
                    allGrades = allGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
                } 
                else if (level === 'high school') {
-                   // Keep Grade 9-12
                    allGrades = allGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
                }
-               // if level is 'all', keep everything
             }
 
             uniqueGrades = allGrades.sort();
           }
         } catch (err) { console.error(err); }
       } 
-      // CASE 2: TEACHER (Based on Subjects)
+      // CASE 2: TEACHER
       else if (currentUser.role === 'teacher') {
         if (currentUser.subjectsTaught?.length > 0) {
           const teacherGrades = currentUser.subjectsTaught.map(s => s.subject?.gradeLevel).filter(g => g);
@@ -82,8 +80,6 @@ const AllSubjectAnalytics = () => {
       }
 
       setAvailableGrades(uniqueGrades);
-        
-      // Auto-select first grade if available
       if (uniqueGrades.length > 0) {
           setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
       }
@@ -91,32 +87,27 @@ const AllSubjectAnalytics = () => {
     fetchGrade();
   }, [currentUser]);
 
-  // --- 3. Helper: Qualitative Level ---
+  // --- 3. Helper: Qualitative Level (Moved inside to use 't') ---
   const getPerformanceLevel = (rate) => {
-    if (rate >= 90) return { label: 'Excellent', color: 'bg-green-100 text-green-800 border-green-200' };
-    if (rate >= 75) return { label: 'Very Good', color: 'bg-blue-100 text-blue-800 border-blue-200' };
-    if (rate >= 50) return { label: 'Satisfactory', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
-    return { label: 'Critical', color: 'bg-red-100 text-red-800 border-red-200' };
+    if (rate >= 90) return { label: t('Excellent') || 'Excellent', color: 'bg-green-100 text-green-800 border-green-200' };
+    if (rate >= 75) return { label: t('Very Good') || 'Very Good', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+    if (rate >= 50) return { label: t('Satisfactory') || 'Satisfactory', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+    return { label: t('Critical') || 'Critical', color: 'bg-red-100 text-red-800 border-red-200' };
   };
 
   // --- 4. Calculate Ranks & Stats ---
   const dataWithRanks = useMemo(() => {
     if (!data || data.length === 0) return [];
     
-    // Calculate pass rates
     const calculated = data.map(row => {
         const total = row.attended.total;
-        // Pass = Total Attended - Failed (<50%)
         const failed = row.below50.total;
         const passed = total - failed;
         const passRate = total > 0 ? (passed / total) * 100 : 0;
         return { ...row, passRate };
     });
 
-    // Sort by Pass Rate (Descending)
     calculated.sort((a, b) => b.passRate - a.passRate);
-
-    // Assign Rank
     return calculated.map((row, index) => ({ ...row, rank: index + 1 }));
   }, [data]);
 
@@ -130,7 +121,7 @@ const AllSubjectAnalytics = () => {
         levelLabel: level.label,
         levelColor: level.color
     };
-  }, [dataWithRanks]);
+  }, [dataWithRanks]); // Added dependency on getPerformanceLevel implicitly via render
 
   // --- Handlers ---
   const handleChange = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -141,11 +132,11 @@ const AllSubjectAnalytics = () => {
     
     if(!filters.gradeLevel) {
         setLoading(false);
-        return setError("Please select a Grade Level.");
+        return setError(t('select_class') || "Please select a Grade Level.");
     }
     if(!filters.assessmentName.trim()) {
         setLoading(false);
-        return setError("Please enter an Assessment Name.");
+        return setError(t('error') || "Please enter an Assessment Name.");
     }
 
     try {
@@ -153,7 +144,7 @@ const AllSubjectAnalytics = () => {
       setData(res.data.data);
     } catch (err) {
       console.error(err);
-      setError('Error fetching analytics.');
+      setError(t('error') || 'Error fetching analytics.');
       setData([]);
     } finally {
       setLoading(false);
@@ -187,25 +178,25 @@ const AllSubjectAnalytics = () => {
         
         {/* HEADER & FILTERS (Hidden on Print) */}
         <div className="p-6 border-b border-gray-200 no-print">
-           <h2 className="text-2xl font-bold text-gray-800 mb-4">Class Performance Matrix</h2>
+           <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('class_matrix')}</h2>
            
            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <select name="gradeLevel" value={filters.gradeLevel} onChange={handleChange} disabled={availableGrades.length === 0} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                  {availableGrades.length > 0 ? availableGrades.map(g => <option key={g} value={g}>{g}</option>) : <option value="">No Grades</option>}
+                  {availableGrades.length > 0 ? availableGrades.map(g => <option key={g} value={g}>{g}</option>) : <option value="">{t('loading')}</option>}
                 </select>
-                <input type="text" name="assessmentName" value={filters.assessmentName} onChange={handleChange} placeholder="Exam Name" className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                <input type="text" name="assessmentName" value={filters.assessmentName} onChange={handleChange} placeholder={t('assessment')} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
                 <select name="semester" value={filters.semester} onChange={handleChange} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                  <option value="First Semester">First Semester</option>
-                  <option value="Second Semester">Second Semester</option>
+                  <option value="First Semester">{t('sem_1')}</option>
+                  <option value="Second Semester">{t('sem_2')}</option>
                 </select>
-                <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} placeholder="Year" className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} placeholder={t('academic_year')} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
                 
                 <button onClick={fetchAnalytics} disabled={loading || !filters.gradeLevel} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">
-                  {loading ? '...' : 'Load'}
+                  {loading ? t('loading') : t('view')}
                 </button>
                 
                 <button onClick={() => window.print()} disabled={data.length === 0} className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-md">
-                  🖨️ Print
+                  🖨️ {t('print')}
                 </button>
            </div>
            {error && <div className="mt-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded">{error}</div>}
@@ -213,18 +204,18 @@ const AllSubjectAnalytics = () => {
 
         {/* PRINTABLE HEADER (Visible ONLY on Print) */}
         <div className="hidden print:block text-center mb-4 pt-4 border-b pb-2">
-            <h1 className="text-xl font-bold uppercase text-gray-800">Class Performance Matrix</h1>
-            <p className="text-sm text-gray-600">Grade: {filters.gradeLevel} | Assessment: {filters.assessmentName} | Year: {filters.academicYear}</p>
+            <h1 className="text-xl font-bold uppercase text-gray-800">{t('class_matrix')}</h1>
+            <p className="text-sm text-gray-600">{t('grade')}: {filters.gradeLevel} | {t('assessment')}: {filters.assessmentName} | {t('academic_year')}: {filters.academicYear}</p>
         </div>
 
-        {/* BEST PERFORMANCE BANNER (Visible Everywhere) */}
+        {/* BEST PERFORMANCE BANNER */}
         {bestPerformance && (
             <div className="bg-green-50 border-l-4 border-green-500 p-4 m-4 mb-0 shadow-sm flex items-center print:border print:bg-green-50 print:m-0 print:mb-2">
                 <div className="text-2xl mr-4">🏆</div>
                 <div>
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Top Performer: {bestPerformance.name}</h3>
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">{t('strongest_subject')}: {bestPerformance.name}</h3>
                     <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-gray-700">Pass Rate: <strong>{bestPerformance.passRate}%</strong></span>
+                        <span className="text-sm text-gray-700">{t('pass_rate')}: <strong>{bestPerformance.passRate}%</strong></span>
                         <span className={`text-xs px-2 py-0.5 rounded border font-bold ${bestPerformance.levelColor}`}>
                             {bestPerformance.levelLabel}
                         </span>
@@ -239,11 +230,11 @@ const AllSubjectAnalytics = () => {
                 <table className="min-w-full border-collapse border border-gray-400">
                     <thead className="bg-gray-800 text-white print:bg-gray-800 print:text-white">
                         <tr>
-                            <th rowSpan="2" className="border border-gray-500 px-2 py-2 text-center text-xs font-bold uppercase w-10 bg-gray-900 sticky left-0 z-20 print-static">#</th>
-                            <th rowSpan="2" className="border border-gray-500 px-2 py-2 text-left text-xs font-bold uppercase w-40 bg-gray-900 sticky left-10 z-10 print-static">Subject</th>
+                            <th rowSpan="2" className="border border-gray-500 px-2 py-2 text-center text-xs font-bold uppercase w-10 bg-gray-900 sticky left-0 z-20 print-static">{t('rank')}</th>
+                            <th rowSpan="2" className="border border-gray-500 px-2 py-2 text-left text-xs font-bold uppercase w-40 bg-gray-900 sticky left-10 z-10 print-static">{t('subject')}</th>
                             
-                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase">Total</th>
-                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-gray-700 print:bg-gray-700">Attended</th>
+                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase">{t('total')}</th>
+                            <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-gray-700 print:bg-gray-700">{t('active')}</th>
                             <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-red-900 print:bg-red-900">Missed</th>
                             <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-red-700 print:bg-red-700">&lt; 50%</th>
                             <th colSpan="3" className="border border-gray-500 px-1 text-center text-[10px] font-bold uppercase bg-yellow-600 print:bg-yellow-600">50-75%</th>
@@ -254,9 +245,9 @@ const AllSubjectAnalytics = () => {
                         <tr className="text-[9px] bg-gray-700 text-gray-200 print:bg-gray-700 print:text-white">
                             {[...Array(7)].map((_, i) => (
                                 <React.Fragment key={i}>
-                                    <th className="border border-gray-500 px-1">M</th>
-                                    <th className="border border-gray-500 px-1">F</th>
-                                    <th className="border border-gray-500 px-1 border-r-2 border-white">T</th>
+                                    <th className="border border-gray-500 px-1">{t('M')}</th>
+                                    <th className="border border-gray-500 px-1">{t('F')}</th>
+                                    <th className="border border-gray-500 px-1 border-r-2 border-white">{t('total')[0]}</th>
                                 </React.Fragment>
                             ))}
                         </tr>
@@ -270,7 +261,7 @@ const AllSubjectAnalytics = () => {
                                       row.rank === 2 ? 'bg-gray-200 text-gray-800' : 
                                       row.rank === 3 ? 'bg-orange-100 text-orange-800' : 'bg-white text-gray-500'}
                                 `}>
-                                    {row.rank}
+                                    #{row.rank}
                                 </td>
 
                                 {/* Subject Name */}
@@ -294,7 +285,7 @@ const AllSubjectAnalytics = () => {
                 </table>
             </div>
         ) : (
-            !loading && <div className="p-10 text-center text-gray-500 no-print">Select filters and click "Load" to see data.</div>
+            !loading && <div className="p-10 text-center text-gray-500 no-print">{t('no_data_select_filters')}</div>
         )}
       </div>
     </div>
