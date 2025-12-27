@@ -1,12 +1,15 @@
-// src/pages/EditGradePage.js
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import gradeService from '../services/gradeService';
 import assessmentTypeService from '../services/assessmentTypeService';
+import offlineGradeService from '../services/offlineGradeService'; // <--- Import Offline Service
 
 const EditGradePage = () => {
+    const { t } = useTranslation(); // <--- Initialize
     const { gradeId } = useParams();
     const navigate = useNavigate();
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
 
     // --- State Management ---
     const [gradeData, setGradeData] = useState(null);
@@ -16,35 +19,49 @@ const EditGradePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // --- Monitor Online Status ---
+    useEffect(() => {
+        const handleStatus = () => setIsOnline(navigator.onLine);
+        window.addEventListener('online', handleStatus);
+        window.addEventListener('offline', handleStatus);
+        return () => {
+            window.removeEventListener('online', handleStatus);
+            window.removeEventListener('offline', handleStatus);
+        };
+    }, []);
+
     // --- Data Fetching ---
     useEffect(() => {
         const loadGradeData = async () => {
             try {
+                // 1. Fetch Grade Data
                 const gradeRes = await gradeService.getGradeById(gradeId);
                 const fetchedGrade = gradeRes.data.data;
                 setGradeData(fetchedGrade);
 
+                // 2. Fetch Assessment Types for this Subject
                 const assessmentRes = await assessmentTypeService.getBySubject(fetchedGrade.subject._id);
                 setAssessmentTypes(assessmentRes.data.data);
 
+                // 3. Map existing scores
                 const initialScores = {};
-                // Pre-fill scores with existing data, using the full assessment list as a guide
                 assessmentRes.data.data.forEach(at => {
-                    const existingScore = fetchedGrade.assessments.find(a => a.assessmentType === at._id);
-                    initialScores[at._id] = existingScore ? existingScore.score : 0;
+                    // Find score in the fetched grade object
+                    const existingScore = fetchedGrade.assessments.find(a => a.assessmentType === at._id || a.assessmentType._id === at._id);
+                    initialScores[at._id] = existingScore ? existingScore.score : '';
                 });
                 setScores(initialScores);
 
             } catch (err) {
-                setError('Failed to load grade data for editing.');
+                setError(t('error') || 'Failed to load grade data.');
             } finally {
                 setLoading(false);
             }
         };
         loadGradeData();
-    }, [gradeId]);
+    }, [gradeId, t]);
 
-    // --- Data Processing: Group Assessments by Month ---
+    // --- Data Processing ---
     const assessmentsByMonth = useMemo(() => {
         const grouped = {};
         assessmentTypes.forEach(at => {
@@ -55,102 +72,147 @@ const EditGradePage = () => {
         return grouped;
     }, [assessmentTypes]);
 
-    // --- THIS IS THE UPDATED HANDLER WITH VALIDATION ---
     const handleScoreChange = (assessmentTypeId, value) => {
-        // Find the definition for this assessment to know its max marks
         const assessmentDef = assessmentTypes.find(at => at._id === assessmentTypeId);
-        if (!assessmentDef) return; // Safety check
+        if (!assessmentDef) return;
+
+        // Allow empty string for typing, otherwise parse number
+        if (value === '') {
+            setScores({ ...scores, [assessmentTypeId]: '' });
+            return;
+        }
 
         let newScore = Number(value);
-
-        // --- CRITICAL VALIDATION LOGIC ---
-        // 1. Prevent scores higher than the maximum allowed
-        if (newScore > assessmentDef.totalMarks) {
-            newScore = assessmentDef.totalMarks;
-        }
-        // 2. Prevent negative numbers
-        if (newScore < 0) {
-            newScore = 0;
-        }
+        if (newScore > assessmentDef.totalMarks) newScore = assessmentDef.totalMarks;
+        if (newScore < 0) newScore = 0;
         
-        // Update the state with the validated score
         setScores({ ...scores, [assessmentTypeId]: newScore });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
-        const assessmentsPayload = Object.keys(scores).map(id => ({
-            assessmentType: id,
-            score: scores[id]
-        }));
-        const updatePayload = { assessments: assessmentsPayload };
         
+        // Prepare Payload for Online Update
+        const assessmentsPayload = Object.keys(scores)
+            .filter(key => scores[key] !== '')
+            .map(id => ({
+                assessmentType: id,
+                score: Number(scores[id])
+            }));
+
+        // --- OFFLINE LOGIC ---
+        if (!isOnline) {
+            try {
+                // We must break this "Single Student" update into "Grade Sheet" payloads 
+                // because the offline queue expects the GradeSheet format.
+                assessmentsPayload.forEach(item => {
+                    const queuePayload = {
+                        assessmentTypeId: item.assessmentType,
+                        subjectId: gradeData.subject._id,
+                        semester: gradeData.semester,
+                        academicYear: gradeData.academicYear,
+                        scores: [{ 
+                            studentId: gradeData.student._id || gradeData.student, 
+                            score: item.score 
+                        }]
+                    };
+                    offlineGradeService.addToQueue(queuePayload);
+                });
+
+                alert(t('offline_warning') + "\n" + "Changes saved to Sync Queue.");
+                navigate(`/students/${gradeData.student._id || gradeData.student}`);
+            } catch (err) {
+                alert("Error saving offline.");
+            }
+            return;
+        }
+
+        // --- ONLINE LOGIC ---
         try {
+            const updatePayload = { assessments: assessmentsPayload };
             await gradeService.updateGrade(gradeId, updatePayload);
-            alert('Grade updated successfully!');
-            navigate(`/students/${gradeData.student}`);
+            alert(t('success_save') || 'Grade updated successfully!');
+            navigate(`/students/${gradeData.student._id || gradeData.student}`);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to update grade.');
+            setError(err.response?.data?.message || t('error'));
         }
     };
     
-    const currentTotal = Object.values(scores).reduce((sum, score) => sum + (score || 0), 0);
+    // Calculate totals for display
+    const currentObtained = Object.values(scores).reduce((sum, score) => sum + (Number(score) || 0), 0);
+    const currentMax = assessmentTypes.reduce((sum, at) => sum + at.totalMarks, 0);
 
-    if (loading) return <p className="text-center text-lg mt-8">Loading grade for editing...</p>;
+    if (loading) return <p className="text-center text-lg mt-8">{t('loading')}</p>;
     if (error) return <p className="text-center text-red-500 mt-8">{error}</p>;
     if (!gradeData) return null;
 
-    // --- Tailwind CSS class strings ---
-    const textInput = "shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500";
-    const submitButton = `bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200`;
+    // --- Tailwind CSS ---
+    const textInput = "shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500 text-center font-bold";
+    const submitButton = `w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200`;
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Edit Grade</h2>
-            <Link to={`/students/${gradeData.student}`} className="text-pink-500 hover:underline mb-6 block">
-                ← Back to Student Details
-            </Link>
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-3xl mx-auto">
+            <div className="flex justify-between items-center mb-6 border-b pb-4">
+                <h2 className="text-2xl font-bold text-gray-800">{t('edit')} {t('score')}</h2>
+                <Link to={`/students/${gradeData.student._id || gradeData.student}`} className="text-pink-600 hover:underline font-bold text-sm">
+                    ← {t('back')}
+                </Link>
+            </div>
             
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
-                <p><strong>Subject:</strong> {gradeData.subject.name}</p>
-                <p><strong>Semester:</strong> {gradeData.semester}</p>
-                <p><strong>Academic Year:</strong> {gradeData.academicYear}</p>
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg flex flex-col md:flex-row justify-between gap-4">
+                <div>
+                    <p className="text-sm text-gray-500 uppercase font-bold">{t('subject')}</p>
+                    <p className="text-lg font-bold text-blue-900">{gradeData.subject.name}</p>
+                </div>
+                <div>
+                    <p className="text-sm text-gray-500 uppercase font-bold">{t('semester')}</p>
+                    <p className="text-lg font-bold text-blue-900">{gradeData.semester}</p>
+                </div>
+                <div>
+                    <p className="text-sm text-gray-500 uppercase font-bold">{t('academic_year')}</p>
+                    <p className="text-lg font-bold text-blue-900">{gradeData.academicYear}</p>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit}>
                 {Object.keys(assessmentsByMonth).length > 0 && (
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Update Scores</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                            {Object.keys(assessmentsByMonth).map(month => (
-                                <fieldset key={month} className="border border-gray-300 p-4 rounded-lg">
-                                    <legend className="font-bold px-2">{month}</legend>
+                    <div className="space-y-6">
+                        {Object.keys(assessmentsByMonth).map(month => (
+                            <fieldset key={month} className="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                                <legend className="font-bold px-3 text-gray-700 bg-white border rounded shadow-sm text-sm">{month}</legend>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                                     {assessmentsByMonth[month].map(at => (
-                                        <div key={at._id} className="grid grid-cols-2 items-center gap-4 mb-2">
-                                            <label htmlFor={at._id} className="text-sm font-medium text-gray-700">
-                                                {at.name} (out of {at.totalMarks})
+                                        <div key={at._id} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+                                            <label htmlFor={at._id} className="text-sm font-medium text-gray-700 mr-2 flex-1">
+                                                {at.name} <span className="text-xs text-gray-400">(/ {at.totalMarks})</span>
                                             </label>
                                             <input 
-                                                id={at._id} type="number"
-                                                value={scores[at._id] || 0}
+                                                id={at._id} 
+                                                type="number"
+                                                value={scores[at._id]}
                                                 onChange={e => handleScoreChange(at._id, e.target.value)}
-                                                max={at.totalMarks} min="0"
-                                                className={textInput} required
+                                                className={`w-20 ${textInput}`} 
+                                                placeholder="-"
                                             />
                                         </div>
                                     ))}
-                                </fieldset>
-                            ))}
-                        </div>
-                        <div className="text-right text-2xl font-bold text-gray-800 mt-6 p-4 bg-gray-100 rounded-lg">
-                            New Final Score: <span className="text-pink-600">{currentTotal}</span>
+                                </div>
+                            </fieldset>
+                        ))}
+
+                        {/* Total Score Display */}
+                        <div className="flex justify-end items-center gap-4 p-4 bg-gray-100 rounded-lg border border-gray-200">
+                            <span className="text-gray-600 font-bold uppercase text-sm">{t('grand_total')}:</span>
+                            <span className="text-3xl font-black text-gray-800">{currentObtained} <span className="text-sm text-gray-400 font-normal">/ {currentMax}</span></span>
                         </div>
                     </div>
                 )}
                 
                 <div className="mt-8">
-                    <button type="submit" className={submitButton}>Update Grade</button>
+                    <button type="submit" className={submitButton} disabled={loading}>
+                        {isOnline ? t('update') : `${t('save')} (Offline)`}
+                    </button>
                 </div>
             </form>
         </div>

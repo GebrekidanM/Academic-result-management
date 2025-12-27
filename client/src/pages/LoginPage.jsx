@@ -1,14 +1,27 @@
-// src/pages/LoginPage.js
-import React, { useState } from 'react';
-import { useNavigate} from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService';
 
 const LoginPage = () => {
-    const [formData, setFormData] = useState({ username: '', password: '' });
+    const { t } = useTranslation(); // <--- Initialize Hook
+    const [formData, setFormData] = useState({ username: '', password: '', role: '' });
     const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false); // For loading state on the button
+    const [loading, setLoading] = useState(false);
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
     const navigate = useNavigate();
+
+    // --- Monitor Online Status ---
+    useEffect(() => {
+        const handleStatus = () => setIsOnline(navigator.onLine);
+        window.addEventListener('online', handleStatus);
+        window.addEventListener('offline', handleStatus);
+        return () => {
+            window.removeEventListener('online', handleStatus);
+            window.removeEventListener('offline', handleStatus);
+        };
+    }, []);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,25 +29,38 @@ const LoginPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (!isOnline) {
+            setError(t('offline_mode') || "You are currently offline. Cannot login.");
+            return;
+        }
+
+        if (!formData.role) {
+            setError(t('error') || "Select your Role!"); // Fallback if key missing
+            return;
+        }
+
         setLoading(true);
         setError(null);
-        try {
-            if(formData.role==="staff"){
-                const response = await authService.login(formData);
-                    if (response.data.token) {
-                        localStorage.setItem('user', JSON.stringify(response.data));
-                        navigate('/');
-                        window.location.reload();
-                    }
-            }
-            else if(formData.role === "parent"){
 
+        try {
+            if (formData.role === "staff") {
+                const response = await authService.login({
+                    username: formData.username,
+                    password: formData.password
+                });
+                if (response.data.token) {
+                    localStorage.setItem('user', JSON.stringify(response.data));
+                    navigate('/');
+                    window.location.reload();
+                }
+            } 
+            else if (formData.role === "parent") {
                 const response = await studentAuthService.login(formData.username, formData.password);
                 if (response.data.token) {
-                    // Use a different key in local storage to avoid conflicts with teacher/admin login
                     localStorage.setItem('student-user', JSON.stringify(response.data));
 
-                    // The crucial check: if it's the initial password, force a change.
+                    // Force Password Change Check
                     if (response.data.isInitialPassword) {
                         navigate('/parent/change-password');
                     } else {
@@ -42,54 +68,72 @@ const LoginPage = () => {
                     }
                     window.location.reload();
                 }
-            }else{
-                return  setError("Select your Role!")
-            }
-            
+            } 
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+            console.error(err);
+            // Try to get a specific error message, otherwise fallback to generic
+            const msg = err.response?.data?.message || t('error') || 'Login failed.';
+            setError(msg);
             setLoading(false);
         }
     };
 
-    // --- Tailwind CSS class strings for reusability ---
-    const cardContainer = "min-h-[100vh-5rem] flex items-center justify-center bg-gray-100";
-    const formCard = "bg-white p-8 rounded-xl shadow-lg w-full max-w-md";
+    // --- Tailwind CSS class strings ---
+    const cardContainer = "min-h-[calc(100vh-5rem)] flex items-center justify-center bg-gray-100 p-4";
+    const formCard = "bg-white p-8 rounded-xl shadow-lg w-full max-w-md border border-gray-200";
     const formTitle = "text-3xl font-bold text-center text-gray-800 mb-6";
     const inputGroup = "mb-4";
     const inputLabel = "block text-gray-700 text-sm font-bold mb-2";
-    const textInput = "shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500";
-    const submitButton = `w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`;
-    const errorText = "text-red-500 text-sm text-center mt-4";
+    const textInput = "shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all";
+    const submitButton = `w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 ${loading || !isOnline ? 'opacity-50 cursor-not-allowed' : ''}`;
+    const errorText = "bg-red-50 border border-red-200 text-red-600 text-sm text-center p-3 rounded-md";
 
     return (
         <div className={cardContainer}>
             <div className={formCard}>
-                <h2 className={formTitle}>Welcome Back!</h2>
+                <h2 className={formTitle}>{t('welcome')}!</h2>
                 
+                {!isOnline && (
+                    <div className="bg-yellow-50 text-yellow-800 p-3 rounded mb-4 text-sm text-center font-bold border border-yellow-200">
+                        ⚠️ {t('offline_mode')}
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit}>
+                    
+                    {/* Username */}
                     <div className={inputGroup}>
-                        <label htmlFor="username" className={inputLabel}>Username</label>
+                        <label htmlFor="username" className={inputLabel}>{t('username')}</label>
                         <input 
                             id="username"
                             type="text" 
                             name="username" 
                             className={textInput}
                             onChange={handleChange} 
-                            placeholder="Enter your username"
+                            placeholder={t('username')}
                             required 
                         />
                     </div>
-                     <div className={inputGroup}>
-                        <label htmlFor="role" className={inputLabel}>Role</label>
-                        <select name="role" onChange={handleChange} className={textInput} required>
-                            <option value="">Select your role</option>
-                            <option value="parent">Parent</option>
-                            <option value="staff">Staff</option>
+
+                    {/* Role Selection */}
+                    <div className={inputGroup}>
+                        <label htmlFor="role" className={inputLabel}>{t('role') || "Role"}</label>
+                        <select 
+                            name="role" 
+                            onChange={handleChange} 
+                            className={`${textInput} bg-white`} 
+                            required
+                            value={formData.role}
+                        >
+                            <option value="">-- Select Role --</option>
+                            <option value="parent">Parent / Student</option>
+                            <option value="staff">Staff / Admin / Teacher</option>
                         </select>
                     </div>
+
+                    {/* Password */}
                     <div className={inputGroup}>
-                        <label htmlFor="password" className={inputLabel}>Password</label>
+                        <label htmlFor="password" className={inputLabel}>{t('password')}</label>
                         <input 
                             id="password"
                             type="password" 
@@ -100,12 +144,16 @@ const LoginPage = () => {
                             required 
                         />
                     </div>
-                    <div className={inputGroup}>
+
+                    {/* Error Message */}
+                    <div className="mb-4 min-h-[20px]">
                         {error && <p className={errorText}>{error}</p>}
                     </div>
-                    <div className="mt-6">
-                        <button type="submit" className={submitButton} disabled={loading}>
-                            {loading ? 'Logging in...' : 'Login'}
+
+                    {/* Submit Button */}
+                    <div className="mt-2">
+                        <button type="submit" className={submitButton} disabled={loading || !isOnline}>
+                            {loading ? t('loading') : t('login')}
                         </button>
                     </div>
                 </form>

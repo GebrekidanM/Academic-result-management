@@ -1,11 +1,11 @@
-// src/pages/AnalyticsPage.js
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import subjectService from '../services/subjectService';
 import assessmentTypeService from '../services/assessmentTypeService';
 import analyticsService from '../services/analyticsService';
 import authService from '../services/authService';
 import userService from '../services/userService';
-import {Link} from 'react-router-dom'
 
 // --- Reusable Stat Card Component ---
 const StatCard = ({ title, value, unit = '', colorClass = 'text-gray-900' }) => (
@@ -16,6 +16,7 @@ const StatCard = ({ title, value, unit = '', colorClass = 'text-gray-900' }) => 
 );
 
 const AnalyticsPage = () => {
+  const { t } = useTranslation();
   const [currentUser] = useState(authService.getCurrentUser());
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [assessmentTypes, setAssessmentTypes] = useState([]);
@@ -35,22 +36,34 @@ const AnalyticsPage = () => {
     const loadSubjects = async () => {
       try {
         let subjects = [];
-        if (currentUser.role === 'admin') {
+        if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
           const res = await subjectService.getAllSubjects();
-          subjects = res.data.data;
+          subjects = res.data.data || res.data;
+
+          // Filter by School Level for Staff
+          if (currentUser.role === 'staff' && currentUser.schoolLevel) {
+              const level = currentUser.schoolLevel.toLowerCase();
+              if (level === 'kg') {
+                  subjects = subjects.filter(s => /^(kg|nursery)/i.test(s.gradeLevel));
+              } else if (level === 'primary') {
+                  subjects = subjects.filter(s => /^Grade\s*[1-8](\D|$)/i.test(s.gradeLevel));
+              } else if (level === 'high school') {
+                  subjects = subjects.filter(s => /^Grade\s*(9|1[0-2])(\D|$)/i.test(s.gradeLevel));
+              }
+          }
         } else {
           const res = await userService.getProfile();
           subjects = res.data.subjectsTaught.map(a => a.subject).filter(Boolean);
         }
         setAvailableSubjects(subjects);
       } catch {
-        setError('Failed to load subject list.');
+        setError(t('error'));
       } finally {
         setLoadingSubjects(false);
       }
     };
     loadSubjects();
-  }, [currentUser.role]);
+  }, [currentUser]);
 
   // --- Load assessment types ---
   useEffect(() => {
@@ -62,7 +75,7 @@ const AnalyticsPage = () => {
     setLoadingAssessments(true);
     assessmentTypeService.getBySubject(selectedSubject)
       .then(res => setAssessmentTypes(res.data.data))
-      .catch(() => setError('Could not fetch assessments.'))
+      .catch(() => setError(t('error')))
       .finally(() => setLoadingAssessments(false));
     setSelectedAssessment('');
   }, [selectedSubject]);
@@ -77,7 +90,7 @@ const AnalyticsPage = () => {
 
     analyticsService.getAnalysis(selectedAssessment, selectedGrade)
       .then(res => setAnalysisResult(res.data))
-      .catch(err => setError(err.response?.data?.message || 'Failed to get analysis.'))
+      .catch(err => setError(err.response?.data?.message || t('error')))
       .finally(() => setLoadingAnalysis(false));
   };
 
@@ -88,52 +101,58 @@ const AnalyticsPage = () => {
   const subThStyle = `${thStyle} bg-gray-100`;
   const tdStyle = "p-2 border border-black text-center text-sm";
 
-  if (loadingSubjects) return <p className="text-center text-lg mt-8">Loading configuration...</p>;
+  if (loadingSubjects) return <p className="text-center text-lg mt-8">{t('loading')}</p>;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">Assessment Analysis</h2>
-      <div className='flex gap-6'>
-          <Link to="/allsubjectAnalysis" className='p-2 bg-pink-500 text-white border rounded-sm font-bold'>Assessement in one</Link>
-          <Link to="/subjectPerformance" className='p-2 bg-pink-500 text-white border rounded-sm font-bold'>Subject Performance</Link>
+      <h2 className="text-2xl font-bold text-gray-800">{t('subject_detail')}</h2>
+      
+      {/* Quick Links */}
+      <div className="flex gap-4 mb-4">
+          <Link to="/allsubjectAnalysis" className='px-4 py-2 bg-pink-500 text-white border rounded shadow hover:bg-pink-600 transition-colors font-bold text-sm'>
+             {t('class_matrix')}
+          </Link>
+          <Link to="/subject-performance" className='px-4 py-2 bg-pink-500 text-white border rounded shadow hover:bg-pink-600 transition-colors font-bold text-sm'>
+             {t('subject_performance')}
+          </Link>
       </div>
     
       {/* Selection Controls */}
       <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
         <div>
-          <label className="font-bold block mb-1 text-sm">Grade Level</label>
+          <label className="font-bold block mb-1 text-sm">{t('grade_level')}</label>
           <select
             onChange={(e) => { setSelectedGrade(e.target.value); setSelectedSubject(''); }}
             value={selectedGrade}
             className="w-full p-2 border rounded-md"
           >
-            <option value="">Select Grade</option>
+            <option value="">{t('select_class')}</option>
             {gradeLevels.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
         </div>
         <div>
-          <label className="font-bold block mb-1 text-sm">Subject</label>
+          <label className="font-bold block mb-1 text-sm">{t('subject')}</label>
           <select
             onChange={(e) => setSelectedSubject(e.target.value)}
             value={selectedSubject}
             className="w-full p-2 border rounded-md"
             disabled={!selectedGrade}
           >
-            <option value="">Select Subject</option>
+            <option value="">{t('subject')}</option>
             {subjectsForGrade.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="font-bold block mb-1 text-sm">Assessment</label>
+          <label className="font-bold block mb-1 text-sm">{t('assessment')}</label>
           <select
             onChange={(e) => setSelectedAssessment(e.target.value)}
             value={selectedAssessment}
             className="w-full p-2 border rounded-md"
             disabled={!selectedSubject}
           >
-            <option value="">Select Assessment</option>
+            <option value="">{t('assessment')}</option>
             {loadingAssessments
-              ? <option>Loading...</option>
+              ? <option>{t('loading')}</option>
               : assessmentTypes.map(at => (
                 <option key={at._id} value={at._id}>
                   {at.month} - {at.name} ({at.semester})
@@ -143,10 +162,10 @@ const AnalyticsPage = () => {
         </div>
         <button
           onClick={handleFetchAnalysis}
-          className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-md"
+          className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-md disabled:bg-pink-300"
           disabled={!selectedAssessment || loadingAnalysis}
         >
-          {loadingAnalysis ? 'Analyzing...' : 'Get Analysis'}
+          {loadingAnalysis ? t('loading') : t('analytics')}
         </button>
       </div>
 
@@ -154,37 +173,35 @@ const AnalyticsPage = () => {
         <div className="text-red-500 text-center p-4 bg-red-50 rounded border border-red-200">{error}</div>
       )}
 
-      {loadingAnalysis && <p className="text-center">Calculating results...</p>}
-
       {analysisResult && analysisResult.analysis && (
         <div className="animate-fade-in space-y-8 mt-6">
           <h3 className="text-xl font-bold text-gray-800">
-            Results for: <span className="text-pink-600">{analysisResult.assessmentType.month} - {analysisResult.assessmentType.name} out of {analysisResult.assessmentType.totalMarks}</span>
+            {t('score')}: <span className="text-pink-600">{analysisResult.assessmentType.month} - {analysisResult.assessmentType.name} ({analysisResult.assessmentType.totalMarks})</span>
           </h3>
 
           {/* General Summary */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatCard title="Total Students" value={analysisResult.analysis.general.totalStudents} />
-            <StatCard title="Took Assessment" value={analysisResult.analysis.general.studentsWhoTookAssessment} colorClass="text-green-600" />
-            <StatCard title="Missed Assessment" value={analysisResult.analysis.general.studentsWhoMissedAssessment} colorClass="text-red-600" />
-            <StatCard title="Male" value={analysisResult.analysis.general.maleStudents} />
-            <StatCard title="Female" value={analysisResult.analysis.general.femaleStudents} />
-            <StatCard title="Pass %" value={analysisResult.analysis.scoreStats.passPercentage} unit="%" colorClass="text-blue-600" />
+            <StatCard title={t('total_students')} value={analysisResult.analysis.general.totalStudents} />
+            <StatCard title="Active" value={analysisResult.analysis.general.studentsWhoTookAssessment} colorClass="text-green-600" />
+            <StatCard title="Missed" value={analysisResult.analysis.general.studentsWhoMissedAssessment} colorClass="text-red-600" />
+            <StatCard title={t('male')} value={analysisResult.analysis.general.maleStudents} />
+            <StatCard title={t('female')} value={analysisResult.analysis.general.femaleStudents} />
+            <StatCard title={t('pass_rate')} value={analysisResult.analysis.scoreStats.passPercentage} unit="%" colorClass="text-blue-600" />
           </div>
 
           {/* Score Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatCard title="Highest Score" value={analysisResult.analysis.scoreStats.highestScore} />
-            <StatCard title="Lowest Score" value={analysisResult.analysis.scoreStats.lowestScore} />
-            <StatCard title="Average Score" value={analysisResult.analysis.scoreStats.averageScore} />
+            <StatCard title="Highest" value={analysisResult.analysis.scoreStats.highestScore} />
+            <StatCard title="Lowest" value={analysisResult.analysis.scoreStats.lowestScore} />
+            <StatCard title={t('average')} value={analysisResult.analysis.scoreStats.averageScore} />
             <StatCard title="Highest %" value={analysisResult.analysis.scoreStats.highestPercent} unit="%" />
             <StatCard title="Lowest %" value={analysisResult.analysis.scoreStats.lowestPercent} unit="%" />
-            <StatCard title="Average %" value={analysisResult.analysis.scoreStats.averagePercent} unit="%" />
+            <StatCard title="Avg %" value={analysisResult.analysis.scoreStats.averagePercent} unit="%" />
           </div>
 
           {/* Distribution Table */}
           <div>
-            <h4 className="text-lg font-bold text-gray-700 mb-3">Score Distribution Analysis</h4>
+            <h4 className="text-lg font-bold text-gray-700 mb-3">{t('score_distribution')}</h4>
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse border border-black">
                 <thead>
@@ -197,20 +214,25 @@ const AnalyticsPage = () => {
                   </tr>
                   <tr>
                     {Array(4).fill().map((_, i) => (
-                      ['F', 'M', 'T', '%'].map(h => <th key={`${i}-${h}`} className={subThStyle}>{h}</th>)
+                      <React.Fragment key={i}>
+                        <th className={subThStyle}>{t('F')}</th>
+                        <th className={subThStyle}>{t('M')}</th>
+                        <th className={subThStyle}>{t('total')[0]}</th>
+                        <th className={subThStyle}>%</th>
+                      </React.Fragment>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className={`${tdStyle} font-bold`}>Students</td>
+                    <td className={`${tdStyle} font-bold`}>{t('students')}</td>
                     {Object.values(analysisResult.analysis.distribution).map((range, i) => (
-                      <>
-                        <td key={`F-${i}`} className={tdStyle}>{range.F}</td>
-                        <td key={`M-${i}`} className={tdStyle}>{range.M}</td>
-                        <td key={`T-${i}`} className={`${tdStyle} font-bold`}>{range.T}</td>
-                        <td key={`P-${i}`} className={`${tdStyle} bg-gray-100`}>{range.P}%</td>
-                      </>
+                      <React.Fragment key={i}>
+                        <td className={tdStyle}>{range.F}</td>
+                        <td className={tdStyle}>{range.M}</td>
+                        <td className={`${tdStyle} font-bold`}>{range.T}</td>
+                        <td className={`${tdStyle} bg-gray-100`}>{range.P}%</td>
+                      </React.Fragment>
                     ))}
                   </tr>
                 </tbody>

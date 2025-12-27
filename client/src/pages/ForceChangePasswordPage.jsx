@@ -1,9 +1,10 @@
-// src/pages/ForceChangePasswordPage.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import studentAuthService from '../services/studentAuthService';
 
 const ForceChangePasswordPage = () => {
+    const { t } = useTranslation(); // <--- Initialize Hook
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
@@ -12,23 +13,26 @@ const ForceChangePasswordPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Use translated error messages
         if (newPassword.length < 6) {
-            return setError('Password must be at least 6 characters long.');
+            return setError(t('err_pass_len'));
         }
         if (newPassword !== confirmPassword) {
-            return setError('Passwords do not match.');
+            return setError(t('err_pass_match'));
         }
+        
         setError('');
         setLoading(true);
-
-        
         
         try {
             const stu = await studentAuthService.changePassword(newPassword);
             console.log("Password change response:", stu);
-            alert('Password changed successfully! You will now be taken to your dashboard.');
             
-            // We need to update the local storage to reflect the change
+            // Translated Alert
+            alert(t('success_pass_change'));
+            
+            // Update local storage
             const user = studentAuthService.getCurrentStudent();
             if (user) {
                 user.isInitialPassword = false;
@@ -38,7 +42,7 @@ const ForceChangePasswordPage = () => {
             navigate('/parent/dashboard');
             window.location.reload();
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to change password.');
+            setError(err.response?.data?.message || t('fail_pass_change'));
             setLoading(false);
         }
     };
@@ -57,36 +61,37 @@ const ForceChangePasswordPage = () => {
     return (
         <div className={cardContainer}>
             <div className={formCard}>
-                <h2 className={formTitle}>Create Your New Password</h2>
-                <p className={formSubtitle}>For your security, you must change the initial password provided by the school.</p>
+                <h2 className={formTitle}>{t('change_password_title')}</h2>
+                <p className={formSubtitle}>{t('change_password_sub')}</p>
+                
                 <form onSubmit={handleSubmit}>
                     <div className={inputGroup}>
-                        <label htmlFor="newPassword" className={inputLabel}>New Password</label>
+                        <label htmlFor="newPassword" className={inputLabel}>{t('new_password')}</label>
                         <input
                             id="newPassword"
                             type="password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             className={textInput}
-                            placeholder="Enter 6 or more characters"
+                            placeholder={t('ph_min_chars')}
                             required
                         />
                     </div>
                      <div className={inputGroup}>
-                        <label htmlFor="confirmPassword" className={inputLabel}>Confirm New Password</label>
+                        <label htmlFor="confirmPassword" className={inputLabel}>{t('confirm_password')}</label>
                         <input
                             id="confirmPassword"
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             className={textInput}
-                            placeholder="Enter the same password again"
+                            placeholder={t('ph_confirm_pass')}
                             required
                         />
                     </div>
                     <div className="mt-6">
                         <button type="submit" className={submitButton} disabled={loading}>
-                            {loading ? 'Saving...' : 'Set New Password'}
+                            {loading ? t('loading') : t('set_password_btn')}
                         </button>
                     </div>
                     {error && <p className={errorText}>{error}</p>}

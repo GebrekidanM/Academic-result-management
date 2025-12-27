@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import studentAuthService from '../services/studentAuthService';
 import studentService from '../services/studentService';
 import gradeService from '../services/gradeService';
@@ -20,6 +21,7 @@ import { Bar } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const ParentDashboardPage = () => {
+    const { t } = useTranslation(); // <--- Initialize Hook
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
     const [reports, setReports] = useState([]);
@@ -27,7 +29,7 @@ const ParentDashboardPage = () => {
     const [error, setError] = useState(null);
     const [rankBySemester, setRankBySemester] = useState({});
 
-    // 1. Fetch Data (Offline Safe)
+    // 1. Fetch Data
     useEffect(() => {
         const currentStudent = studentAuthService.getCurrentStudent();
         if (currentStudent) {
@@ -39,33 +41,17 @@ const ParentDashboardPage = () => {
                         behavioralReportService.getReportsByStudent(currentStudent._id)
                     ]);
 
-                    // --- SAFE DATA HANDLING ---
-                    
-                    // 1. Student Profile
-                    if (studentRes.status === 'fulfilled' && studentRes.value?.data?.data) {
+                    if (studentRes.status === 'fulfilled') {
                         setStudent(studentRes.value.data.data);
                     } else {
-                        // If offline and no cache, this is critical
-                        throw new Error('Could not load student profile. Please connect to the internet once.');
+                        throw new Error('Could not fetch student profile.');
                     }
 
-                    // 2. Grades (Allow empty if offline/missing)
-                    if (gradesRes.status === 'fulfilled' && Array.isArray(gradesRes.value?.data?.data)) {
-                        setGrades(gradesRes.value.data.data);
-                    } else {
-                        setGrades([]); // Default to empty array, don't crash
-                    }
-
-                    // 3. Reports (Allow empty)
-                    if (reportsRes.status === 'fulfilled' && Array.isArray(reportsRes.value?.data?.data)) {
-                        setReports(reportsRes.value.data.data);
-                    } else {
-                        setReports([]);
-                    }
+                    if (gradesRes.status === 'fulfilled') setGrades(gradesRes.value.data.data);
+                    if (reportsRes.status === 'fulfilled') setReports(reportsRes.value.data.data);
 
                 } catch (err) {
-                    console.error(err);
-                    setError(err.message || "Failed to load dashboard.");
+                    setError(err.message);
                 } finally {
                     setLoading(false);
                 }
@@ -95,7 +81,6 @@ const ParentDashboardPage = () => {
                     });
                     newRanks[sem] = res.data.rank;
                 } catch (err) { 
-                    // If offline and rank not cached, just show '-'
                     newRanks[sem] = '-'; 
                 }
             }
@@ -104,7 +89,7 @@ const ParentDashboardPage = () => {
         fetchRanks();
     }, [student, grades]);
 
-    // --- 3. ANALYTICS LOGIC ---
+    // 3. Analytics Logic
     const studentStats = useMemo(() => {
         if (!grades.length) return null;
 
@@ -200,18 +185,8 @@ const ParentDashboardPage = () => {
         });
     };
 
-    if (loading) return <div className="flex justify-center items-center h-screen text-lg">Loading Dashboard...</div>;
-    
-    // OFFLINE ERROR STATE
-    if (error) return (
-        <div className="p-10 text-center">
-            <p className="text-red-500 font-bold mb-4">{error}</p>
-            <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-4 py-2 rounded shadow">
-                Retry Connection
-            </button>
-        </div>
-    );
-    
+    if (loading) return <div className="flex justify-center items-center h-screen text-lg">{t('loading')}</div>;
+    if (error) return <div className="p-10 text-center text-red-500 font-bold">{error}</div>;
     if (!student) return null;
 
     const tableHeader = "px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase bg-gray-50 border-b border-gray-200";
@@ -231,12 +206,12 @@ const ParentDashboardPage = () => {
                 </div>
                 <div className="flex-grow text-center md:text-left">
                     <h2 className="text-3xl font-bold text-gray-800 mb-2">{student.fullName}</h2>
-                    <p className="text-gray-500 mb-4 font-medium">{student.gradeLevel} | ID: {student.studentId}</p>
+                    <p className="text-gray-500 mb-4 font-medium">{t('grade')}: {student.gradeLevel} | {t('id_no')}: {student.studentId}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-600">
-                        <p><strong>Age:</strong> {calculateAge(student.dateOfBirth)}</p>
-                        <p><strong>Parent:</strong> {student.motherName}</p>
-                        <p><strong>Contact:</strong> {student.motherContact}</p>
-                        <p><strong>Status:</strong> <span className="text-green-600 font-bold">Active</span></p>
+                        <p><strong>{t('age')}:</strong> {calculateAge(student.dateOfBirth)}</p>
+                        <p><strong>{t('parent_name')}:</strong> {student.motherName}</p>
+                        <p><strong>{t('contact')}:</strong> {student.motherContact}</p>
+                        <p><strong>{t('status')}:</strong> <span className="text-green-600 font-bold">{t('active')}</span></p>
                     </div>
                 </div>
             </div>
@@ -244,25 +219,25 @@ const ParentDashboardPage = () => {
             {/* 2. Insights */}
             {studentStats && (
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-                    <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-purple-600 pl-3">Performance Insights</h3>
+                    <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-purple-600 pl-3">{t('performance_insights')}</h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div className="bg-green-50 p-4 rounded-xl border border-green-200 flex flex-col items-center justify-center">
                             <div className="text-green-600 text-4xl mb-2">🏆</div>
-                            <div className="text-sm text-gray-500 uppercase font-bold">Strongest Subject</div>
+                            <div className="text-sm text-gray-500 uppercase font-bold">{t('strongest_subject')}</div>
                             <div className="text-xl font-bold text-gray-800">{studentStats.bestSubject?.subject || '-'}</div>
                             <div className="text-sm font-bold text-green-700">{studentStats.bestSubject?.percentage.toFixed(1) || 0}%</div>
                         </div>
 
                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex flex-col items-center justify-center">
                             <div className="text-blue-600 text-4xl mb-2">📊</div>
-                            <div className="text-sm text-gray-500 uppercase font-bold">Overall Average</div>
+                            <div className="text-sm text-gray-500 uppercase font-bold">{t('average')}</div>
                             <div className="text-2xl font-bold text-gray-800">{studentStats.overallAverage.toFixed(1)}%</div>
                         </div>
 
                         <div className="bg-red-50 p-4 rounded-xl border border-red-200 flex flex-col items-center justify-center">
                             <div className="text-red-500 text-4xl mb-2">🎯</div>
-                            <div className="text-sm text-gray-500 uppercase font-bold">Needs Focus</div>
+                            <div className="text-sm text-gray-500 uppercase font-bold">{t('needs_focus')}</div>
                             <div className="text-xl font-bold text-gray-800">{studentStats.worstSubject?.subject || '-'}</div>
                             <div className="text-sm font-bold text-red-600">{studentStats.worstSubject?.percentage.toFixed(1) || 0}%</div>
                         </div>
@@ -276,7 +251,7 @@ const ParentDashboardPage = () => {
 
             {/* 3. Detailed Grades */}
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-blue-600 pl-3">Detailed Grades</h3>
+                <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-blue-600 pl-3">{t('detailed_grades')}</h3>
                 
                 {grades.length > 0 ? (
                     <div className="space-y-12">
@@ -292,12 +267,15 @@ const ParentDashboardPage = () => {
                             const semesterMax = processedGrades.reduce((sum, g) => sum + g.subjectTotalMax, 0);
                             const semesterAvg = semesterMax > 0 ? ((semesterObtained / semesterMax) * 100).toFixed(1) : 0;
 
+                            // Display "1st Semester" or "2nd Semester" translated
+                            const displaySemester = semester === 'First Semester' ? t('sem_1') : t('sem_2');
+
                             return (
                                 <div key={semester} className="border rounded-xl overflow-hidden shadow-sm">
                                     <div className="bg-blue-900 text-white p-4 flex justify-between items-center">
-                                        <h4 className="text-lg font-bold">Semester: {semester}</h4>
+                                        <h4 className="text-lg font-bold">{t('semester')}: {displaySemester}</h4>
                                         <div className="text-sm bg-blue-800 px-3 py-1 rounded border border-blue-700 min-w-20 text-center">
-                                            Rank: <strong>{rankBySemester[semester] || '...'}</strong>
+                                            {t('rank')}: <strong>{rankBySemester[semester] || '...'}</strong>
                                         </div>
                                     </div>
 
@@ -305,11 +283,10 @@ const ParentDashboardPage = () => {
                                         <table className="min-w-full border-collapse">
                                             <thead>
                                                 <tr>
-                                                    <th className={`${tableHeader} w-1/4`}>Subject</th>
-                                                    <th className={tableHeader}>Month</th>
-                                                    <th className={tableHeader}>Assessment</th>
-                                                    <th className={`${tableHeader} text-right`}>Score</th>
-                                                    <th className={`${tableHeader} text-center bg-gray-100`}>Subject Total</th>
+                                                    <th className={`${tableHeader} w-1/4`}>{t('subject')}</th>
+                                                    <th className={tableHeader}>{t('assessment')}</th>
+                                                    <th className={`${tableHeader} text-right`}>{t('score')}</th>
+                                                    <th className={`${tableHeader} text-center bg-gray-100`}>{t('total')}</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-white">
@@ -322,8 +299,7 @@ const ParentDashboardPage = () => {
                                                                     {grade.subject.name}
                                                                 </td>
                                                             )}
-                                                            <td className={tableCell}>{assess.monthName || '-'}</td>
-                                                            <td className={tableCell}>{assess.testName || 'No assessments'}</td>
+                                                            <td className={tableCell}>{assess.testName || '-'}</td>
                                                             <td className={`${tableCell} text-right font-mono`}>{assess.score !== undefined ? `${assess.score} / ${assess.totalMarks}` : '-'}</td>
                                                             {index === 0 && (
                                                                 <td rowSpan={rows.length} className={`${tableCell} font-bold text-center align-middle bg-gray-50 text-blue-900 border-l border-gray-200`}>
@@ -336,12 +312,12 @@ const ParentDashboardPage = () => {
                                             </tbody>
                                             <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                                                 <tr>
-                                                    <td colSpan={3} className="px-4 py-3 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">Grand Total:</td>
-                                                    <td colSpan={2} className="px-4 py-3 font-bold text-center text-lg text-gray-900">{semesterObtained.toFixed(1)} / {semesterMax}</td>
+                                                    <td colSpan={3} className="px-4 py-3 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">{t('grand_total')}:</td>
+                                                    <td className="px-4 py-3 font-bold text-center text-lg text-gray-900">{semesterObtained.toFixed(1)} / {semesterMax}</td>
                                                 </tr>
                                                 <tr>
-                                                    <td colSpan={3} className="px-4 py-2 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">Average:</td>
-                                                    <td colSpan={2} className="px-4 py-2 font-bold text-center text-blue-600 text-lg">{semesterAvg}%</td>
+                                                    <td colSpan={3} className="px-4 py-2 font-bold text-right text-gray-600 uppercase text-xs tracking-wider">{t('average')}:</td>
+                                                    <td className="px-4 py-2 font-bold text-center text-blue-600 text-lg">{semesterAvg}%</td>
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -351,27 +327,27 @@ const ParentDashboardPage = () => {
                         })}
                     </div>
                 ) : (
-                    <div className="text-center p-10 bg-gray-50 rounded-lg text-gray-500">No grades recorded yet.</div>
+                    <div className="text-center p-10 bg-gray-50 rounded-lg text-gray-500">{t('no_grades')}</div>
                 )}
             </div>
 
             {/* 4. Comments */}
             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold text-gray-700 mb-4 border-l-4 border-yellow-500 pl-3">Teacher's Comments</h3>
+                <h3 className="text-xl font-bold text-gray-700 mb-4 border-l-4 border-yellow-500 pl-3">{t('teacher_comments')}</h3>
                 {reports.length > 0 ? (
                     <div className="grid gap-4">
                         {reports.map(report => (
                             <div key={report._id} className="p-4 border rounded-lg bg-yellow-50 border-yellow-100">
                                 <div className="flex justify-between mb-2">
-                                    <h4 className="font-bold text-yellow-800">{report.semester}</h4>
+                                    <h4 className="font-bold text-yellow-800">{report.semester === 'First Semester' ? t('sem_1') : t('sem_2')}</h4>
                                     <span className="text-xs text-yellow-600">{report.academicYear}</span>
                                 </div>
-                                <p className="text-sm text-gray-700 italic">"{report.teacherComment || 'No comment provided.'}"</p>
+                                <p className="text-sm text-gray-700 italic">"{report.teacherComment || '...'}"</p>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p className="text-gray-500 italic">No comments available.</p>
+                    <p className="text-gray-500 italic">{t('no_comments')}</p>
                 )}
             </div>
         </div>

@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import subjectService from '../services/subjectService';
 import assessmentTypeService from '../services/assessmentTypeService';
 import gradeService from '../services/gradeService';
 import authService from '../services/authService';
 import userService from '../services/userService';
 import studentService from '../services/studentService';
-
-// --- CHANGED: Import the new Service ---
 import offlineGradeService from '../services/offlineGradeService'; 
 import offlineAssessmentService from '../services/offlineAssessmentService';
 
 const GradeSheetPage = () => {
+  const { t } = useTranslation(); // <--- Initialize Hook
   const location = useLocation();
   const assessmentTypeFromLink = location.state?.assessmentType || null;
   const subjectFromLink = location.state?.subject || null;
@@ -27,7 +27,6 @@ const GradeSheetPage = () => {
   const [sheetData, setSheetData] = useState(null);
   const [scores, setScores] = useState({});
 
-  // --- UI State ---
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -52,13 +51,13 @@ const GradeSheetPage = () => {
         setAcademicYear(currentYear);
         setSubjects(subjectsToDisplay);
       } catch {
-        setError('Failed to load subjects.');
+        setError(t('error'));
       }
     };
     loadSubjects();
-  }, [currentUser.role]);
+  }, [currentUser.role, t]);
 
-  // --- Load Assessment Types When Subject Selected ---
+  // --- Load Assessment Types ---
   useEffect(() => {
       const fetchAssessments = async () => {
           if (!selectedSubject) return;
@@ -66,7 +65,6 @@ const GradeSheetPage = () => {
           let onlineAssessments = [];
           let offlineAssessments = [];
 
-          // 1. Try fetching online data
           if (navigator.onLine) {
               try {
                   const res = await assessmentTypeService.getBySubject(selectedSubject);
@@ -76,12 +74,9 @@ const GradeSheetPage = () => {
               }
           }
 
-          // 2. Fetch offline data
           const allLocal = offlineAssessmentService.getLocalAssessments();
-          // Filter only ones matching the selected subject
           offlineAssessments = allLocal.filter(a => a.subject === selectedSubject);
 
-          // 3. Merge them (Online + Offline)
           setAssessmentTypes([...onlineAssessments, ...offlineAssessments]);
       };
 
@@ -89,53 +84,40 @@ const GradeSheetPage = () => {
   }, [selectedSubject]);
 
   // --- Load Grade Sheet ---
-  // --- Load Grade Sheet (Handles both Online & Offline/Temp IDs) ---
   const handleLoadSheet = async () => {
     if (!selectedAssessment) return;
     
     setLoading(true);
     setError(null);
 
-    // CASE 1: OFFLINE / TEMPORARY ASSESSMENT
     if (selectedAssessment.toString().startsWith('TEMP_')) {
       console.log("Loading offline assessment locally...");
 
       try {
-        // 1. Get the Assessment Details from Local Storage
         const localAssessments = offlineAssessmentService.getLocalAssessments();
         const currentAssessment = localAssessments.find(a => a._id === selectedAssessment);
 
-        if (!currentAssessment) {
-          throw new Error("Offline assessment data not found.");
-        }
+        if (!currentAssessment) throw new Error("Offline assessment data not found.");
 
-        // 2. Find the Subject to know which Grade Level we need
         const currentSubject = subjects.find(s => s._id === selectedSubject);
-        if (!currentSubject) {
-          throw new Error("Subject details not found.");
-        }
+        if (!currentSubject) throw new Error("Subject details not found.");
 
-        // 3. Fetch Students (Expects cached data)
         const studentRes = await studentService.getAllStudents();
         
-        // --- FIX START: VALIDATE STUDENT DATA ---
-        // If the service worker returns an error object or empty data, handle it safely
         if (!studentRes.data || !Array.isArray(studentRes.data.data)) {
-            throw new Error("Student list not found in cache. You must view the 'Students' page while online at least once.");
+             throw new Error("Student list not cached. Please view 'Students List' while online once.");
         }
+        
         const allStudents = studentRes.data.data;
-        // --- FIX END ---
 
-        // 4. Filter students for this Grade Level
         const classStudents = allStudents
           .filter(s => s.gradeLevel === currentSubject.gradeLevel)
           .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
         if (classStudents.length === 0) {
-          throw new Error(`No students found locally for ${currentSubject.gradeLevel}.`);
+          throw new Error(`No students found for ${currentSubject.gradeLevel}.`);
         }
 
-        // 5. Construct Mock Sheet Data
         const mockSheetData = {
           assessmentType: currentAssessment,
           students: classStudents.map(s => ({
@@ -146,27 +128,20 @@ const GradeSheetPage = () => {
           }))
         };
 
-        // 6. Update State
         setSheetData(mockSheetData);
-        
         const initialScores = {};
-        mockSheetData.students.forEach(s => {
-          initialScores[s._id] = '';
-        });
+        mockSheetData.students.forEach(s => { initialScores[s._id] = ''; });
         setScores(initialScores);
 
       } catch (err) {
         console.error(err);
-        // Show a helpful message to the user
-        setError(err.message || "Could not generate local sheet.");
+        setError(err.message || t('error'));
       } finally {
         setLoading(false);
       }
-      
-      return; // Stop here
+      return;
     }
 
-    // CASE 2: NORMAL ONLINE FLOW
     try {
       const response = await gradeService.getGradeSheet(selectedAssessment);
       setSheetData(response.data);
@@ -179,13 +154,12 @@ const GradeSheetPage = () => {
 
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'Failed to load grade sheet.');
+      setError(t('error'));
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Preselect Subject & Assessment if Coming from Link ---
   useEffect(() => {
     if (subjectFromLink && assessmentTypeFromLink) {
       setSelectedSubject(subjectFromLink.id);
@@ -193,7 +167,6 @@ const GradeSheetPage = () => {
     }
   }, [subjectFromLink, assessmentTypeFromLink]);
 
-  // --- Auto Load Sheet if Coming From Link ---
   useEffect(() => {
     if (subjectFromLink && assessmentTypeFromLink) {
       setTimeout(() => {
@@ -202,18 +175,18 @@ const GradeSheetPage = () => {
     }
   }, [assessmentTypeFromLink]);
 
-  // --- Handle Input Change ---
   const handleScoreChange = (studentId, value) => {
+    if (sheetData && Number(value) > sheetData.assessmentType.totalMarks) {
+        return;
+    }
     setScores(prevScores => ({ ...prevScores, [studentId]: value }));
   };
 
-  // --- UPDATED: Save Grade Sheet (Offline Aware) ---
-  // --- UPDATED: Save Grade Sheet ---
+  // --- SAVE ---
   const handleSave = async () => {
     if (saveDisabled) return;
     setSaveDisabled(true);
 
-    // 1. Prepare Payload
     const scoresPayload = Object.keys(scores)
       .filter(id => scores[id] !== '' && scores[id] !== null)
       .map(id => ({ studentId: id, score: Number(scores[id]) }));
@@ -226,50 +199,42 @@ const GradeSheetPage = () => {
       scores: scoresPayload,
     };
 
-    // ---------------------------------------------------------
-    // CRITICAL FIX: Check if this is a Temporary Offline Assessment
-    // ---------------------------------------------------------
+    // Case A: TEMP ID
     if (selectedAssessment.toString().startsWith('TEMP_')) {
         try {
-            console.log("Saving grades for temporary assessment to queue...");
-            // Always save to queue, even if online. 
-            // The SyncStatus component handles swapping the TEMP ID for a Real ID later.
             offlineGradeService.addToQueue(payload);
-            
-            alert('✅ Grades saved locally! \n\nSince this is a new offline assessment, please click the "Sync" button to upload both the Assessment and the Grades to the server.');
+            // Translated Alert
+            alert(`✅ ${t('success_save')} (Offline). \n\n${t('sync_now')}`);
             setSaveDisabled(false);
         } catch (e) {
-            console.error(e);
-            alert("Error saving to local storage.");
+            alert(t('error'));
             setSaveDisabled(false);
         }
-        return; // STOP HERE. Do not send to backend.
+        return; 
     }
-    // ---------------------------------------------------------
 
-    // 2. Normal Save (For existing real assessments)
+    // Case B: Real ID
     if (!navigator.onLine) {
-        // --- OFFLINE MODE ---
         try {
             offlineGradeService.addToQueue(payload);
-            alert('📴 No Internet. Grades saved to device.\n\nClick the "Sync" button when you are back online!');
+            // Translated Alert
+            alert(`${t('saved_offline_msg')}`);
             setSaveDisabled(false); 
         } catch (e) {
-            alert("Error saving to local storage.");
+            alert(t('error'));
             setSaveDisabled(false);
         }
     } else {
-        // --- ONLINE MODE ---
         try {
             await gradeService.saveGradeSheet(payload);
-            alert('✅ Grades saved to server successfully!');
+            // Translated Alert
+            alert(t('saved_online_msg'));
             setSaveDisabled(false);
         } catch (err) {
             console.error(err);
-            // Fallback: If server fails, offer offline save
-            if(window.confirm("Server Error! Save offline instead?")) {
+            if(window.confirm(`${t('error')} ${t('save')} offline?`)) {
                 offlineGradeService.addToQueue(payload);
-                alert("Saved offline.");
+                alert(t('success_save'));
             }
             setSaveDisabled(false);
         }
@@ -283,23 +248,23 @@ const GradeSheetPage = () => {
         <Link
           to={'/subject-roster'}
           state={{subjectId: selectedSubject}}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md"
+          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md text-center block"
         >
-          Marklist
+          {t('class_roster')} / Marklist
         </Link>
 
-        <h2 className="text-2xl font-bold text-gray-800 mt-4">Grade Entry Sheet</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mt-4">{t('grade_entry_title')}</h2>
 
-        {/* Subject & Assessment Selection */}
         <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          {/* Subject Select */}
           <div>
-            <label className="font-bold block mb-1 text-sm">Subject</label>
+            <label className="font-bold block mb-1 text-sm">{t('subject')}</label>
             <select
               onChange={(e) => setSelectedSubject(e.target.value)}
               value={selectedSubject}
               className="w-full p-2 border rounded-md"
             >
-              <option value="">Select Subject</option>
+              <option value="">-- {t('select_subject')} --</option>
               {subjects.map(s => (
                 <option key={s._id} value={s._id}>
                   {s.name} ({s.gradeLevel})
@@ -308,25 +273,27 @@ const GradeSheetPage = () => {
             </select>
           </div>
 
+          {/* Assessment Select */}
           <div>
-            <label className="font-bold block mb-1 text-sm">Assessment</label>
+            <label className="font-bold block mb-1 text-sm">{t('assessment')}</label>
             <select
               onChange={(e) => setSelectedAssessment(e.target.value)}
               value={selectedAssessment}
               className="w-full p-2 border rounded-md"
               disabled={!selectedSubject}
             >
-              <option value="">Select Assessment</option>
+              <option value="">-- {t('select_assessment')} --</option>
               {assessmentTypes.map(at => (
                 <option key={at._id} value={at._id}>
-                  {at.month} - {at.name}
+                  {at._id.startsWith('TEMP_') ? `[Offline] ` : ''}{at.month} - {at.name}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Academic Year */}
           <div>
-            <label className="font-bold block mb-1 text-sm">Academic Year</label>
+            <label className="font-bold block mb-1 text-sm">{t('academic_year')}</label>
             <input
               type="text"
               value={academicYear}
@@ -335,13 +302,13 @@ const GradeSheetPage = () => {
             />
           </div>
 
-          <div className="flex justify-between px-3 w-full">
+          <div className="flex justify-between px-3 w-full md:col-span-3">
             <button
               onClick={handleLoadSheet}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md disabled:bg-blue-300"
               disabled={!selectedAssessment || loading}
             >
-              {loading && sheetData === null ? 'Loading...' : 'Load Grade Sheet'}
+              {loading && sheetData === null ? t('loading') : t('load_sheet')}
             </button>
           </div>
         </div>
@@ -352,55 +319,54 @@ const GradeSheetPage = () => {
           </div>
         )}
 
-        {/* --- Subject Info if Coming from Link --- */}
+        {/* --- Subject Info --- */}
         {subjectFromLink && (
           <div className="bg-gray-100 border rounded p-4 mt-4">
-            <h3 className="font-semibold text-gray-800">Subject Information</h3>
-            <p><strong>Name:</strong> {subjectFromLink.name}</p>
-            <p><strong>Grade:</strong> {subjectFromLink.gradeLevel}</p>
-            {subjectFromLink.type && <p><strong>Type:</strong> {subjectFromLink.type}</p>}
+            <h3 className="font-semibold text-gray-800">{t('subject_info')}</h3>
+            <p><strong>{t('full_name')}:</strong> {subjectFromLink.name}</p>
+            <p><strong>{t('grade')}:</strong> {subjectFromLink.gradeLevel}</p>
           </div>
         )}
 
         {/* --- Grade Sheet Table --- */}
         {sheetData && (
           <div className="animate-fade-in mt-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 border-b pb-2">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">
-                  Scores for:{' '}
-                  <span className="text-pink-600">{sheetData.assessmentType.name}</span>
+                  {t('scores_for')} <span className="text-pink-600">{sheetData.assessmentType.name}</span>
+                  <span className="text-sm text-gray-500 ml-2">({sheetData.assessmentType.month})</span>
                 </h3>
                 <p className="text-sm text-gray-500">
-                  Total Marks: {sheetData.assessmentType.totalMarks}
+                  {t('total_marks')}: {sheetData.assessmentType.totalMarks}
                 </p>
               </div>
               <button
                 onClick={handleSave}
-                className={`bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg ${
+                className={`bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg shadow ${
                     saveDisabled ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 disabled={loading}
                 >
-                {loading ? 'Saving...' : 'Save All Grades'}
+                {loading ? t('loading') : t('save_all')}
               </button>
             </div>
 
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 border">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Student Name
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">
+                      {t('full_name')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Score
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">
+                      {t('score')}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sheetData.students.map(student => (
-                    <tr key={student._id} className="hover:bg-gray-50">
+                    <tr key={student._id} className="hover:bg-pink-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
                         {student.fullName}
                       </td>
@@ -411,8 +377,8 @@ const GradeSheetPage = () => {
                           onChange={(e) => handleScoreChange(student._id, e.target.value)}
                           max={sheetData.assessmentType.totalMarks}
                           min="0"
-                          placeholder={`out of ${sheetData.assessmentType.totalMarks}`}
-                          className="w-32 text-center border rounded-md p-1 focus:ring-2 focus:ring-pink-500"
+                          placeholder={`/ ${sheetData.assessmentType.totalMarks}`}
+                          className="w-24 text-center border-2 border-gray-300 rounded-md p-1 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 font-bold"
                         />
                       </td>
                     </tr>
