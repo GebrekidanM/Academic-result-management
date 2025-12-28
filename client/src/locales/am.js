@@ -298,6 +298,18 @@ principal_signature: "የርዕሰ መምህር ፊርማ",
 emergency_contact: "የአደጋ ጊዜ ተጠሪ",
 generate_ids: "መታወቂያዎችን አዘጋጅ",
 id_header_placeholder: "ፍሪደም አካዳሚ",
-cards_per_page: "ካርዶች በአንድ ገጽ (8 ይመከራል)"
+cards_per_page: "ካርዶች በአንድ ገጽ (8 ይመከራል)",
+monthly_progress: "ወርሃዊ የውጤት ሂደት",
+performance_trend: "የውጤት አዝማሚያ",
+September: "መስከረም",
+October: "ጥቅምት",
+November: "ህዳር",
+December: "ታህሳስ",
+January: "ጥር",
+February: "የካቲት",
+March: "መጋቢት",
+April: "ሚያዝያ",
+May: "ግንቦት",
+June: "ሰኔ"
   }
 };

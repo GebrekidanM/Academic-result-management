@@ -302,6 +302,21 @@ principal_signature: "Mallattoo Daarektaraa",
 emergency_contact: "Bilbila Yeroo Rakkoo",
 generate_ids: "Waraqaa Eenyummaa Uumi",
 id_header_placeholder: "Akkaadaamii Freedom",
-cards_per_page: "Baay'ina Fuula Tokkorratti (8 Gorfama)"
+cards_per_page: "Baay'ina Fuula Tokkorratti (8 Gorfama)",
+// --- Monthly Progress Graph ---
+    monthly_progress: "Raawwii Barnootaa Ji'aa",
+    performance_trend: "Adeemsa Raawwii",
+    
+    // Months
+    September: "Fulbaana",
+    October: "Onkololeessa",
+    November: "Sadaasa",
+    December: "Muddee",
+    January: "Amajjii",
+    February: "Guraandhala",
+    March: "Bitootessa",
+    April: "Ebla",
+    May: "Caamsaa",
+    June: "Waxabajjii"
   }
 };

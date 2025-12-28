@@ -11,14 +11,26 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend,
+  Filler
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+// Register Chart components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const ParentDashboardPage = () => {
     const { t } = useTranslation(); // <--- Initialize Hook
@@ -41,11 +53,8 @@ const ParentDashboardPage = () => {
                         behavioralReportService.getReportsByStudent(currentStudent._id)
                     ]);
 
-                    if (studentRes.status === 'fulfilled') {
-                        setStudent(studentRes.value.data.data);
-                    } else {
-                        throw new Error('Could not fetch student profile.');
-                    }
+                    if (studentRes.status === 'fulfilled') setStudent(studentRes.value.data.data);
+                    else throw new Error('Could not fetch student profile.');
 
                     if (gradesRes.status === 'fulfilled') setGrades(gradesRes.value.data.data);
                     if (reportsRes.status === 'fulfilled') setReports(reportsRes.value.data.data);
@@ -80,16 +89,14 @@ const ParentDashboardPage = () => {
                         gradeLevel: student.gradeLevel
                     });
                     newRanks[sem] = res.data.rank;
-                } catch (err) { 
-                    newRanks[sem] = '-'; 
-                }
+                } catch (err) { newRanks[sem] = '-'; }
             }
             setRankBySemester(newRanks);
         };
         fetchRanks();
     }, [student, grades]);
 
-    // 3. Analytics Logic
+    // --- 3. SUBJECT ANALYTICS (Best/Worst) ---
     const studentStats = useMemo(() => {
         if (!grades.length) return null;
 
@@ -106,11 +113,10 @@ const ParentDashboardPage = () => {
 
             if (totalMax > 0) {
                 if (!subjectPerformance[g.subject.name]) {
-                    subjectPerformance[g.subject.name] = { score: 0, max: 0, count: 0 };
+                    subjectPerformance[g.subject.name] = { score: 0, max: 0 };
                 }
                 subjectPerformance[g.subject.name].score += totalScore;
                 subjectPerformance[g.subject.name].max += totalMax;
-                subjectPerformance[g.subject.name].count += 1;
             }
         });
 
@@ -128,25 +134,67 @@ const ParentDashboardPage = () => {
         return {
             bestSubject: performanceArray[0],
             worstSubject: performanceArray[performanceArray.length - 1],
-            allSubjects: performanceArray,
             overallAverage: overallAverage
         };
     }, [grades]);
 
+    // --- 4. MONTHLY TREND ANALYTICS (Smart Graph) ---
+    const monthlyTrendData = useMemo(() => {
+        if (!grades || grades.length === 0) return null;
+
+        // Standard School Year Order
+        const monthOrder = [
+            "September", "October", "November", "December", 
+            "January", "February", "March", "April", "May", "June"
+        ];
+
+        const monthlyTotals = {};
+
+        grades.forEach(grade => {
+            grade.assessments.forEach(assess => {
+                const month = assess.assessmentType?.month;
+                const score = assess.score || 0;
+                const max = assess.assessmentType?.totalMarks || 0;
+
+                if (month && max > 0) {
+                    if (!monthlyTotals[month]) {
+                        monthlyTotals[month] = { obtained: 0, max: 0 };
+                    }
+                    monthlyTotals[month].obtained += score;
+                    monthlyTotals[month].max += max;
+                }
+            });
+        });
+
+        const labels = [];
+        const dataPoints = [];
+
+        monthOrder.forEach(month => {
+            if (monthlyTotals[month]) {
+                labels.push(t(month)); // Translate Month Name
+                const pct = (monthlyTotals[month].obtained / monthlyTotals[month].max) * 100;
+                dataPoints.push(pct.toFixed(1));
+            }
+        });
+
+        return { labels, dataPoints };
+    }, [grades, t]);
+
     // --- Chart Config ---
     const chartData = {
-        labels: studentStats?.allSubjects.map(s => s.subject) || [],
+        labels: monthlyTrendData?.labels || [],
         datasets: [
             {
-                label: 'Performance (%)',
-                data: studentStats?.allSubjects.map(s => s.percentage.toFixed(1)) || [],
-                backgroundColor: studentStats?.allSubjects.map(s => 
-                    s.percentage >= 80 ? 'rgba(34, 197, 94, 0.6)' : 
-                    s.percentage >= 50 ? 'rgba(59, 130, 246, 0.6)' : 
-                    'rgba(239, 68, 68, 0.6)'
-                ),
-                borderColor: 'rgba(200, 200, 200, 1)',
-                borderWidth: 1,
+                label: t('performance_trend') + ' (%)',
+                data: monthlyTrendData?.dataPoints || [],
+                borderColor: 'rgb(79, 70, 229)', // Indigo
+                backgroundColor: 'rgba(79, 70, 229, 0.2)', // Light fill
+                pointBackgroundColor: '#fff',
+                pointBorderColor: 'rgb(79, 70, 229)',
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                fill: true,
+                tension: 0.4, // Smooth curve
             },
         ],
     };
@@ -155,11 +203,26 @@ const ParentDashboardPage = () => {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-            y: { beginAtZero: true, max: 100, grid: { borderDash: [2, 2] } },
-            x: { grid: { display: false } }
+            y: {
+                beginAtZero: true,
+                max: 100,
+                grid: { borderDash: [2, 2] },
+                title: { display: true, text: '%' }
+            },
+            x: {
+                grid: { display: false }
+            }
         },
-        plugins: { legend: { display: false } }
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (context) => `${t('average')}: ${context.raw}%`
+                }
+            }
+        }
     };
+
 
     // --- Helpers ---
     const calculateAge = (dob) => {
@@ -195,11 +258,11 @@ const ParentDashboardPage = () => {
     return (
         <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
             
-            {/* 1. Student Info */}
+            {/* 1. Student Info Card */}
             <div className="bg-white p-6 rounded-xl shadow-md mb-8 flex flex-col md:flex-row gap-8 items-center md:items-start border-l-4 border-blue-600">
                 <div className="flex-shrink-0">
                     {student.imageUrl ? (
-                        <img src={student.imageUrl} alt={student.fullName} className="w-32 h-32 rounded-full object-cover border-4 border-gray-100 shadow-sm" />
+                        <img src={student.imageUrl} alt={student.fullName} className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-sm" />
                     ) : (
                         <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold">No Photo</div>
                     )}
@@ -216,11 +279,12 @@ const ParentDashboardPage = () => {
                 </div>
             </div>
 
-            {/* 2. Insights */}
+            {/* 2. Insights & Monthly Trend Graph */}
             {studentStats && (
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                     <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-purple-600 pl-3">{t('performance_insights')}</h3>
                     
+                    {/* Insights Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div className="bg-green-50 p-4 rounded-xl border border-green-200 flex flex-col items-center justify-center">
                             <div className="text-green-600 text-4xl mb-2">🏆</div>
@@ -243,9 +307,17 @@ const ParentDashboardPage = () => {
                         </div>
                     </div>
 
-                    <div className="h-64 w-full">
-                        <Bar data={chartData} options={chartOptions} />
-                    </div>
+                    
+
+                    {/* NEW: Monthly Progress Graph */}
+                    {monthlyTrendData && monthlyTrendData.labels.length > 0 && (
+                        <div className="mt-8 border-t pt-6">
+                            <h4 className="text-sm font-bold text-gray-500 uppercase mb-4">{t('monthly_progress')}</h4>
+                            <div className="h-64 w-full">
+                                <Line data={chartData} options={chartOptions} />
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -266,8 +338,6 @@ const ParentDashboardPage = () => {
                             const semesterObtained = processedGrades.reduce((sum, g) => sum + g.finalScore, 0);
                             const semesterMax = processedGrades.reduce((sum, g) => sum + g.subjectTotalMax, 0);
                             const semesterAvg = semesterMax > 0 ? ((semesterObtained / semesterMax) * 100).toFixed(1) : 0;
-
-                            // Display "1st Semester" or "2nd Semester" translated
                             const displaySemester = semester === 'First Semester' ? t('sem_1') : t('sem_2');
 
                             return (

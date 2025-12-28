@@ -314,7 +314,23 @@ principal_signature: "ፊርማ ርእሰ መምህር",
 emergency_contact: "ናይ ሓደጋ ግዜ ተወካሲ",
 generate_ids: "መታወቂ ኣዳልው",
 id_header_placeholder: "ፍሪደም ኣካዳሚ",
-cards_per_page: "ካርዲ ኣብ ሓደ ገጽ (8 ይምረጽ)"
+cards_per_page: "ካርዲ ኣብ ሓደ ገጽ (8 ይምረጽ)",
+
+// --- Monthly Progress Graph ---
+    monthly_progress: "ወርሓዊ ኣፈጻጽማ ትምህርቲ",
+    performance_trend: "ኣንፈት ኣፈጻጽማ",
+    
+    // Months
+    September: "መስከረም",
+    October: "ጥቅምቲ",
+    November: "ሕዳር",
+    December: "ታሕሳስ",
+    January: "ጥሪ",
+    February: "ለካቲት",
+    March: "መጋቢት",
+    April: "ሚያዝያ",
+    May: "ግንቦት",
+    June: "ሰነ"
 
   }
 };

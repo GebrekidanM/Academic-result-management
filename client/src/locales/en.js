@@ -296,6 +296,18 @@ principal_signature: "Principal's Signature",
 emergency_contact: "Emergency Contact",
 generate_ids: "Generate IDs",
 id_header_placeholder: "Freedom Academy",
-cards_per_page: "Cards Per Page (8 Recommended)"
+cards_per_page: "Cards Per Page (8 Recommended)",
+monthly_progress: "Monthly Academic Progress",
+performance_trend: "Performance Trend",
+September: "September",
+October: "October",
+November: "November",
+December: "December",
+January: "January",
+February: "February",
+March: "March",
+April: "April",
+May: "May",
+June: "June"
   }
 };
