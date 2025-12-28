@@ -257,6 +257,20 @@ no_duties_assigned: "Hojii homaatuu isiniif hin kennamne. Maaloo bulchiinsa dubb
 Go:"Bani",
 teachers_directory: "Galmee Barsiisotaa",
 subjects_taught: "Gosa Barnootaa Barsiisan",
-filter_by: "Kanaan Calali"
+filter_by: "Kanaan Calali",
+// --- Subject Management ---
+    manage_subjects: "Bulchiinsa Gosa Barnootaa",
+    search_grade_placeholder: "Sadarkaa Kutaa Galchi (fkn. Kutaa 4)",
+    load_subjects: "Gosoota Barnootaa Fidi",
+    import_excel: "Excel irraa fidi",
+    existing_subjects: "Gosoota Barnootaa Jiran",
+    add_new_subject_to: "Gosa Barnootaa Haaraa Dabali",
+    subject_name_placeholder: "fkn. Saayinsii Wal-makaa",
+    subject_code_placeholder: "fkn. Sci-04",
+    no_subjects_found: "Sadarkaa kanaaf gosti barnootaa homaatuu hin argamne.",
+    subjects_for: "Gosoota Barnootaa kan",
+    delete_confirm: "Gosa barnootaa kana haquu barbaaddaa?",
+    failed_add_subject: "Gosa barnootaa dabaluun hin danda'amne.",
+    failed_delete_subject: "Gosa barnootaa haquun hin danda'amne.",
   }
 };

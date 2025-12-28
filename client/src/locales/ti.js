@@ -270,6 +270,20 @@ subject_code_placeholder: "ምሳሌ፡ Math-01",
 no_subjects_found: "ለዚህ ክፍል ምንም የትምህርት ዓይነት አልተገኘም።",
 subjects_for: "የትምህርት ዓይነቶች ለ",
 delete_confirm: "ይህን የትምህርት ዓይነት ለመሰረዝ እርግጠኛ ነዎት?",
+// --- Subject Management ---
+    manage_subjects: "ምምሕዳር ዓይነታት ትምህርቲ",
+    search_grade_placeholder: "ክፍሊ ኣእትው (ንኣብነት፡ ክፍሊ 4)",
+    load_subjects: "ዓይነታት ትምህርቲ ኣምጽእ",
+    import_excel: "ካብ Excel ኣእቱ",
+    existing_subjects: "ዘለዉ ዓይነታት ትምህርቲ",
+    add_new_subject_to: "ሓዲሽ ዓይነት ትምህርቲ ወስኽ ናብ",
+    subject_name_placeholder: "ንኣብነት፡ ዝተወሃሃደ ሳይንስ",
+    subject_code_placeholder: "ንኣብነት፡ Sci-04",
+    no_subjects_found: "ነዚ ክፍሊ ዝኾኑ ዓይነታት ትምህርቲ ኣይተረኽቡን።",
+    subjects_for: "ዓይነታት ትምህርቲ ናይ",
+    delete_confirm: "ነዚ ዓይነት ትምህርቲ ክትሰርዞ ርግጸኛ ዲኻ?",
+    failed_add_subject: "ዓይነት ትምህርቲ ምውሳኽ ኣይተኻእለን።",
+    failed_delete_subject: "ዓይነት ትምህርቲ ምሰራስ ኣይተኻእለን።",
 
   }
 };
