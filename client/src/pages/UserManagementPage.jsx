@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import userService from '../services/userService';
 
 const UserManagementPage = () => {
-    // --- State ---
+    const { t } = useTranslation(); // <--- Initialize
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -20,38 +21,30 @@ const UserManagementPage = () => {
                 const response = await userService.getAll();
                 setUsers(response.data);
             } catch (err) {
-                setError('Failed to fetch users.');
+                setError(t('error'));
             } finally {
                 setLoading(false);
             }
         };
         fetchUsers();
-    }, []);
+    }, [t]);
 
     // --- Filtering Logic ---
     const filteredUsers = useMemo(() => {
         return users.filter(user => {
-            // 1. Search (Name or Username)
             const searchMatch = 
                 user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                 user.username.toLowerCase().includes(searchTerm.toLowerCase());
-            
-            // 2. Role Filter
             const roleMatch = filterRole === '' || user.role === filterRole;
-
-            // 3. Level Filter
             const levelMatch = filterLevel === '' || user.schoolLevel === filterLevel;
-
             return searchMatch && roleMatch && levelMatch;
         }).sort((a, b) => {
-            // Sort Admins first, then by Name
             if (a.role === 'admin' && b.role !== 'admin') return -1;
             if (a.role !== 'admin' && b.role === 'admin') return 1;
             return a.fullName.localeCompare(b.fullName);
         });
     }, [users, searchTerm, filterRole, filterLevel]);
 
-    // --- Helper: Role Colors ---
     const getRoleBadge = (role) => {
         switch (role) {
             case 'admin': return 'bg-red-100 text-red-800 border-red-200';
@@ -61,7 +54,6 @@ const UserManagementPage = () => {
         }
     };
 
-    // --- Helper: Level Colors ---
     const getLevelBadge = (level) => {
         switch (level) {
             case 'kg': return 'bg-pink-100 text-pink-800';
@@ -72,17 +64,17 @@ const UserManagementPage = () => {
     };
 
     const handleDelete = async (user) => {
-        if (window.confirm(`Are you sure you want to delete ${user.fullName}?`)) {
+        if (window.confirm(`${t('delete')} ${user.fullName}?`)) {
             try {
                 await userService.deleteUser(user._id);
                 setUsers(prev => prev.filter(u => u._id !== user._id));
             } catch (err) {
-                alert('Delete failed.');
+                alert(t('error'));
             }
         }
     };
 
-    if (loading) return <div className="p-10 text-center text-gray-500">Loading Users...</div>;
+    if (loading) return <div className="p-10 text-center text-gray-500">{t('loading')}</div>;
     if (error) return <div className="p-10 text-center text-red-500">{error}</div>;
 
     return (
@@ -92,56 +84,50 @@ const UserManagementPage = () => {
                 {/* --- Header Section --- */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
+                        <h1 className="text-3xl font-bold text-gray-800">{t('manage_staff')}</h1>
                         <p className="text-sm text-gray-500 mt-1">
-                            Total Users: <span className="font-bold text-black">{filteredUsers.length}</span> / {users.length}
+                            {t('total')}: <span className="font-bold text-black">{filteredUsers.length}</span> / {users.length}
                         </p>
                     </div>
                     <div className="flex gap-3 mt-4 md:mt-0">
                         <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors flex items-center gap-2">
-                            <span>+</span> Add User
+                            <span>+</span> {t('add')}
                         </Link>
                         <Link to="/admin/users/import" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors flex items-center gap-2">
-                            <span>↑</span> Import Excel
+                            <span>↑</span> {t('import_excel')}
                         </Link>
                     </div>
                 </div>
 
                 {/* --- Search & Filter Bar --- */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-4">
-                    
-                    {/* Search Input */}
                     <div className="relative flex-grow">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
                         <input 
                             type="text" 
-                            placeholder="Search by name or username..." 
-                            className="w-full pl-10 pr-4 py-2  rounded-lg  focus:outline-none"
+                            placeholder={t('search_placeholder')} 
+                            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-
-                    {/* Role Filter */}
                     <select 
-                        className="p-2 rounded-lg bg-gray-200 focus:outline-none"
+                        className="p-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={filterRole}
                         onChange={(e) => setFilterRole(e.target.value)}
                     >
-                        <option value="">All Roles</option>
-                        <option value="admin">Admins</option>
-                        <option value="teacher">Teachers</option>
+                        <option value="">{t('role')}: {t('total')}</option>
+                        <option value="admin">Admin</option>
+                        <option value="teacher">Teacher</option>
                         <option value="staff">Staff</option>
                     </select>
-
-                    {/* Level Filter */}
                     <select 
-                        className="p-2 rounded-lg bg-gray-200 focus:outline-none"
+                        className="p-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={filterLevel}
                         onChange={(e) => setFilterLevel(e.target.value)}
                     >
-                        <option value="">All Levels</option>
-                        <option value="kg">Kindergarten</option>
+                        <option value="">{t('grade_level')}: {t('total')}</option>
+                        <option value="kg">KG</option>
                         <option value="primary">Primary</option>
                         <option value="High School">High School</option>
                     </select>
@@ -153,20 +139,18 @@ const UserManagementPage = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">User</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Role & Level</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">Assignments</th>
-                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('full_name')}</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('role')}</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">{t('academics')}</th>
+                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{t('actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {filteredUsers.map(user => (
                                     <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                                        
-                                        {/* Name & Avatar */}
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
-                                                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm">
+                                                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm uppercase">
                                                     {user.fullName.charAt(0)}
                                                 </div>
                                                 <div className="ml-4">
@@ -177,8 +161,6 @@ const UserManagementPage = () => {
                                                 </div>
                                             </div>
                                         </td>
-
-                                        {/* Role & School Level */}
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-col gap-1 items-start">
                                                 <span className={`px-2 py-1 text-xs font-bold rounded-full border uppercase ${getRoleBadge(user.role)}`}>
@@ -191,8 +173,6 @@ const UserManagementPage = () => {
                                                 )}
                                             </div>
                                         </td>
-
-                                        {/* Assignments (Chips instead of list) */}
                                         <td className="px-6 py-4">
                                             <div className="flex flex-wrap gap-2">
                                                 {user.homeroomGrade && (
@@ -212,17 +192,15 @@ const UserManagementPage = () => {
                                                 )}
                                             </div>
                                         </td>
-
-                                        {/* Actions */}
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <Link to={`/admin/users/${user._id}`} className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded hover:bg-blue-100 transition-colors mr-2">
-                                                Edit
+                                                {t('edit')}
                                             </Link>
                                             <button 
                                                 onClick={() => handleDelete(user)}
                                                 className="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded hover:bg-red-100 transition-colors"
                                             >
-                                                Delete
+                                                {t('delete')}
                                             </button>
                                         </td>
                                     </tr>
@@ -232,7 +210,7 @@ const UserManagementPage = () => {
                     </div>
                     {filteredUsers.length === 0 && (
                         <div className="p-10 text-center text-gray-500">
-                            No users found matching your search filters.
+                            {t('no_data_select_filters')}
                         </div>
                     )}
                 </div>

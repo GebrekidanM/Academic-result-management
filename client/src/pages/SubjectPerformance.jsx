@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import analyticsService from '../services/analyticsService';
 import authService from '../services/authService';
 import userService from '../services/userService';
 import subjectService from '../services/subjectService';
 
 const SubjectPerformance = () => {
+  const { t } = useTranslation(); // <--- Initialize Hook
   const [currentUser] = useState(authService.getCurrentUser());
   const [availableGrades, setAvailableGrades] = useState([]);
   
@@ -23,44 +25,35 @@ const SubjectPerformance = () => {
     const loadConfiguration = async () => {
       try {
         let uniqueGrades = [];
+        
         // CASE 1: ADMIN, STAFF, PRINCIPAL
-        if (currentUser.role === 'admin' || currentUser.role === 'staff') {
+        if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
           const res = await subjectService.getAllSubjects();
           const allSubjects = res.data.data || res.data;
-          
-          // Get all unique grades first
           let allGrades = [...new Set(allSubjects.map(s => s.gradeLevel))];
-          // --- FILTER BASED ON SCHOOL LEVEL FOR STAFF ---
+
+          // Filter by School Level for Staff
           if (currentUser.role === 'staff' && currentUser.schoolLevel) {
-             const level = currentUser.schoolLevel.toLowerCase();
-
-             if (level === 'kg') {
-                 // Keep only KG/Nursery
-                 allGrades = allGrades.filter(g => /^Kg/i.test(g));
-             } 
-             else if (level === 'primary') {
-                 // Keep Grade 1-8 (e.g., Grade 1, Grade 8A)
-                 allGrades = allGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
-             } 
-             else if (level === 'high school') {
-                 // Keep Grade 9-12
-                 allGrades = allGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
-             }
-             // if level is 'all', keep everything
+               const level = currentUser.schoolLevel.toLowerCase();
+               if (level === 'kg') {
+                   allGrades = allGrades.filter(g => /^(kg|nursery)/i.test(g));
+               } else if (level === 'primary') {
+                   allGrades = allGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
+               } else if (level === 'high school') {
+                   allGrades = allGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
+               }
           }
-
           uniqueGrades = allGrades.sort();
         } 
-        // CASE 2: TEACHER (Based on Subjects)
+        // CASE 2: TEACHER
         else {
           const res = await userService.getProfile();
-          // Extract grades from subjects taught
-          uniqueGrades = [...new Set(res.data.subjectsTaught.map(a => a.subject?.gradeLevel).filter(Boolean))].sort();
+          if (res.data.subjectsTaught) {
+             uniqueGrades = [...new Set(res.data.subjectsTaught.map(a => a.subject?.gradeLevel).filter(Boolean))].sort();
+          }
         }
 
         setAvailableGrades(uniqueGrades);
-        
-        // Auto-select first grade if available
         if (uniqueGrades.length > 0) {
             setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
         }
@@ -117,49 +110,48 @@ const SubjectPerformance = () => {
     );
   };
 
-  if (loadingConfig) return <div className="p-10 text-center">Loading...</div>;
+  if (loadingConfig) return <div className="p-10 text-center">{t('loading')}</div>;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md min-h-screen">
       
-      {/* === PRINTABLE WRAPPER (Triggers Landscape CSS) === */}
+      {/* === PRINTABLE WRAPPER === */}
       <div id="printable-area" className="print-landscape">
           
-          {/* HEADER */}
           <div className="flex justify-between items-center mb-6 border-b pb-4">
             <h2 className="text-2xl font-bold text-gray-800">
-                Subject Performance: {filters.gradeLevel}
+                {t('subject_performance')}: {filters.gradeLevel}
             </h2>
             <button 
               onClick={() => window.print()}
               className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold print:hidden"
             >
-              🖨️ Print
+              🖨️ {t('print')}
             </button>
           </div>
 
           {/* FILTERS (Hidden on Print) */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-gray-50 p-4 rounded border print:hidden">
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase">Grade Level</label>
+              <label className="text-xs font-bold text-gray-500 uppercase">{t('grade_level')}</label>
               <select name="gradeLevel" value={filters.gradeLevel} onChange={handleChange} className="w-full p-2 border rounded">
                 {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase">Semester</label>
+              <label className="text-xs font-bold text-gray-500 uppercase">{t('semester')}</label>
               <select name="semester" value={filters.semester} onChange={handleChange} className="w-full p-2 border rounded">
-                <option value="First Semester">First Semester</option>
-                <option value="Second Semester">Second Semester</option>
+                <option value="First Semester">{t('sem_1')}</option>
+                <option value="Second Semester">{t('sem_2')}</option>
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase">Year</label>
+              <label className="text-xs font-bold text-gray-500 uppercase">{t('academic_year')}</label>
               <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} className="w-full p-2 border rounded"/>
             </div>
             <div className="flex items-end">
               <button onClick={fetchReport} disabled={loading} className="w-full bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700">
-                {loading ? "Analyzing..." : "Analyze Subjects"}
+                {loading ? t('loading') : t('analytics')}
               </button>
             </div>
           </div>
@@ -172,29 +164,29 @@ const SubjectPerformance = () => {
                   
                   {/* Row 1: Metrics */}
                   <tr>
-                    <th rowSpan="3" className="px-2 py-2 text-center text-xs font-bold uppercase border-r border-gray-500 w-10 bg-gray-900">Rank</th>
-                    <th rowSpan="3" className="px-2 py-2 text-left text-xs font-bold uppercase border-r border-gray-500 w-40 bg-gray-900">Subject</th>
+                    <th rowSpan="3" className="px-2 py-2 text-center text-xs font-bold uppercase border-r border-gray-500 w-10 bg-gray-900">{t('rank')}</th>
+                    <th rowSpan="3" className="px-2 py-2 text-left text-xs font-bold uppercase border-r border-gray-500 w-40 bg-gray-900">{t('subject')}</th>
                     
-                    <th rowSpan="3" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-500">Avg %</th>
-                    <th rowSpan="3" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-500">Pass Rate</th>
+                    <th rowSpan="3" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-500">{t('average')} %</th>
+                    <th rowSpan="3" className="px-1 py-2 text-center text-xs font-bold uppercase border-r border-gray-500">{t('pass_rate')}</th>
                     
-                    <th colSpan="12" className="px-2 py-1 text-center text-sm font-bold uppercase border-b border-gray-500 bg-gray-700">Score Distribution</th>
+                    <th colSpan="12" className="px-2 py-1 text-center text-sm font-bold uppercase border-b border-gray-500 bg-gray-700">{t('score_distribution')}</th>
                   </tr>
 
                   {/* Row 2: Ranges */}
                   <tr className="bg-gray-700 text-white text-[10px] uppercase">
-                    <th colSpan="3" className="py-1 border-r border-gray-500 bg-red-900">&lt; 50% (Fail)</th>
+                    <th colSpan="3" className="py-1 border-r border-gray-500 bg-red-900">&lt; 50%</th>
                     <th colSpan="3" className="py-1 border-r border-gray-500 bg-yellow-700">50 - 75%</th>
                     <th colSpan="3" className="py-1 border-r border-gray-500 bg-blue-800">75 - 90%</th>
-                    <th colSpan="3" className="py-1 bg-green-800">&gt; 90% (Top)</th>
+                    <th colSpan="3" className="py-1 bg-green-800">&gt; 90%</th>
                   </tr>
 
                   {/* Row 3: Sub-columns */}
                   <tr className="bg-gray-200 text-gray-800 text-[9px] font-bold">
                     {[1, 2, 3, 4].map((i) => (
                       <React.Fragment key={i}>
-                        <th className="py-1 border-r border-gray-400">M</th>
-                        <th className="py-1 border-r border-gray-400">F</th>
+                        <th className="py-1 border-r border-gray-400">{t('M')}</th>
+                        <th className="py-1 border-r border-gray-400">{t('F')}</th>
                         <th className="py-1 border-r-2 border-gray-500 bg-gray-300">%</th>
                       </React.Fragment>
                     ))}
@@ -245,7 +237,7 @@ const SubjectPerformance = () => {
               </table>
             </div>
           ) : (
-            !loading && <p className="text-center text-gray-500 mt-10 no-print">No data available. Click Analyze.</p>
+            !loading && <p className="text-center text-gray-500 mt-10 no-print">{t('no_data_select_filters')}</p>
           )}
       </div> 
     </div>

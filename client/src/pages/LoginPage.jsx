@@ -125,9 +125,9 @@ const LoginPage = () => {
                             required
                             value={formData.role}
                         >
-                            <option value="">-- Select Role --</option>
-                            <option value="parent">Parent / Student</option>
-                            <option value="staff">Staff / Admin / Teacher</option>
+                            <option value="">-- {t('select_Role')} --</option>
+                            <option value="parent">{t('admin_staff')}</option>
+                            <option value="staff">{t('parent_guardian')}</option>
                         </select>
                     </div>
 
