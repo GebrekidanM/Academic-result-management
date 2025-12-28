@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useTranslation } from 'react-i18next'; // <--- Import Hook
+import { useTranslation } from 'react-i18next'; 
 import studentAuthService from '../services/studentAuthService';
 import studentService from '../services/studentService';
 import gradeService from '../services/gradeService';
 import behavioralReportService from '../services/behavioralReportService';
 import rankService from '../services/rankService';
 
-// --- CHART IMPORTS ---
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,20 +19,10 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
-// Register Chart components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 const ParentDashboardPage = () => {
-    const { t } = useTranslation(); // <--- Initialize Hook
+    const { t } = useTranslation(); 
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
     const [reports, setReports] = useState([]);
@@ -96,7 +85,7 @@ const ParentDashboardPage = () => {
         fetchRanks();
     }, [student, grades]);
 
-    // --- 3. SUBJECT ANALYTICS (Best/Worst) ---
+    // --- 3. SUBJECT ANALYTICS (Best/Worst & Overall) ---
     const studentStats = useMemo(() => {
         if (!grades.length) return null;
 
@@ -138,16 +127,31 @@ const ParentDashboardPage = () => {
         };
     }, [grades]);
 
-    // --- 4. MONTHLY TREND ANALYTICS (Smart Graph) ---
+    // --- 4. NEW: INSIGHTS BUCKETS (Critical, Average, Good, Excellent) ---
+    const insights = useMemo(() => {
+        if (!grades || grades.length === 0) return null;
+        const categories = { critical: [], average: [], good: [], excellent: [] };
+
+        grades.forEach(grade => {
+            const subjectName = grade.subject?.name || "Unknown";
+            const totalScore = grade.assessments.reduce((acc, curr) => acc + curr.score, 0);
+            const totalMax = grade.assessments.reduce((acc, curr) => acc + (curr.assessmentType?.totalMarks || 0), 0);
+            const percentage = totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
+
+            const item = { name: subjectName, pct: percentage.toFixed(1) };
+
+            if (percentage < 60) categories.critical.push(item);
+            else if (percentage < 75) categories.average.push(item);
+            else if (percentage < 90) categories.good.push(item);
+            else categories.excellent.push(item);
+        });
+        return categories;
+    }, [grades]);
+
+    // --- 5. MONTHLY TREND ANALYTICS ---
     const monthlyTrendData = useMemo(() => {
         if (!grades || grades.length === 0) return null;
-
-        // Standard School Year Order
-        const monthOrder = [
-            "September", "October", "November", "December", 
-            "January", "February", "March", "April", "May", "June"
-        ];
-
+        const monthOrder = ["September", "October", "November", "December", "January", "February", "March", "April", "May", "June"];
         const monthlyTotals = {};
 
         grades.forEach(grade => {
@@ -157,9 +161,7 @@ const ParentDashboardPage = () => {
                 const max = assess.assessmentType?.totalMarks || 0;
 
                 if (month && max > 0) {
-                    if (!monthlyTotals[month]) {
-                        monthlyTotals[month] = { obtained: 0, max: 0 };
-                    }
+                    if (!monthlyTotals[month]) monthlyTotals[month] = { obtained: 0, max: 0 };
                     monthlyTotals[month].obtained += score;
                     monthlyTotals[month].max += max;
                 }
@@ -168,61 +170,40 @@ const ParentDashboardPage = () => {
 
         const labels = [];
         const dataPoints = [];
-
         monthOrder.forEach(month => {
             if (monthlyTotals[month]) {
-                labels.push(t(month)); // Translate Month Name
+                labels.push(t(month));
                 const pct = (monthlyTotals[month].obtained / monthlyTotals[month].max) * 100;
                 dataPoints.push(pct.toFixed(1));
             }
         });
-
         return { labels, dataPoints };
     }, [grades, t]);
 
-    // --- Chart Config ---
     const chartData = {
         labels: monthlyTrendData?.labels || [],
-        datasets: [
-            {
-                label: t('performance_trend') + ' (%)',
-                data: monthlyTrendData?.dataPoints || [],
-                borderColor: 'rgb(79, 70, 229)', // Indigo
-                backgroundColor: 'rgba(79, 70, 229, 0.2)', // Light fill
-                pointBackgroundColor: '#fff',
-                pointBorderColor: 'rgb(79, 70, 229)',
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                fill: true,
-                tension: 0.4, // Smooth curve
-            },
-        ],
+        datasets: [{
+            label: t('performance_trend') + ' (%)',
+            data: monthlyTrendData?.dataPoints || [],
+            borderColor: 'rgb(79, 70, 229)',
+            backgroundColor: 'rgba(79, 70, 229, 0.2)',
+            pointBackgroundColor: '#fff',
+            pointBorderColor: 'rgb(79, 70, 229)',
+            pointRadius: 6,
+            fill: true,
+            tension: 0.4,
+        }],
     };
 
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-            y: {
-                beginAtZero: true,
-                max: 100,
-                grid: { borderDash: [2, 2] },
-                title: { display: true, text: '%' }
-            },
-            x: {
-                grid: { display: false }
-            }
+            y: { beginAtZero: true, max: 100, grid: { borderDash: [2, 2] }, title: { display: true, text: '%' } },
+            x: { grid: { display: false } }
         },
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: (context) => `${t('average')}: ${context.raw}%`
-                }
-            }
-        }
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${t('average')}: ${c.raw}%` } } }
     };
-
 
     // --- Helpers ---
     const calculateAge = (dob) => {
@@ -252,6 +233,9 @@ const ParentDashboardPage = () => {
     if (error) return <div className="p-10 text-center text-red-500 font-bold">{error}</div>;
     if (!student) return null;
 
+    // UI Constants
+    const sectionWrapper = "bg-white p-6 rounded-lg shadow-md mb-8";
+    const sectionTitle = "text-xl font-bold text-gray-700";
     const tableHeader = "px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase bg-gray-50 border-b border-gray-200";
     const tableCell = "px-4 py-3 text-sm border-b border-gray-100 text-gray-700";
 
@@ -259,32 +243,29 @@ const ParentDashboardPage = () => {
         <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
             
             {/* 1. Student Info Card */}
-            <div className="bg-white p-6 rounded-xl shadow-md mb-8 flex flex-col md:flex-row gap-8 items-center md:items-start border-l-4 border-blue-600">
-                <div className="flex-shrink-0">
-                    {student.imageUrl ? (
+            <div className={`${sectionWrapper} border-l-4 border-blue-600`}>
+                <div className="flex flex-col sm:flex-row justify-between items-start">
+                    <div className="flex items-center gap-6">
                         <img src={student.imageUrl} alt={student.fullName} className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-sm" />
-                    ) : (
-                        <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold">No Photo</div>
-                    )}
-                </div>
-                <div className="flex-grow text-center md:text-left">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">{student.fullName}</h2>
-                    <p className="text-gray-500 mb-4 font-medium">{t('grade')}: {student.gradeLevel} | {t('id_no')}: {student.studentId}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-600">
-                        <p><strong>{t('age')}:</strong> {calculateAge(student.dateOfBirth)}</p>
-                        <p><strong>{t('parent_name')}:</strong> {student.motherName}</p>
-                        <p><strong>{t('contact')}:</strong> {student.motherContact}</p>
-                        <p><strong>{t('status')}:</strong> <span className="text-green-600 font-bold">{t('active')}</span></p>
+                        <div>
+                            <h2 className="text-3xl font-bold text-gray-800">{student.fullName}</h2>
+                            <p className="text-gray-500 mt-1 text-sm font-mono">{t('grade')}: {student.gradeLevel} | {t('id_no')}: {student.studentId}</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-600">
+                                <p><strong>{t('age')}:</strong> {calculateAge(student.dateOfBirth)}</p>
+                                <p><strong>{t('parent_name')}:</strong> {student.motherName}</p>
+                                <p><strong>{t('contact')}:</strong> {student.motherContact}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* 2. Insights & Monthly Trend Graph */}
+            {/* 2. Insights & Monthly Trend */}
             {studentStats && (
-                <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-                    <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-purple-600 pl-3">{t('performance_insights')}</h3>
+                <div className={`${sectionWrapper} border-l-4 border-purple-600`}>
+                    <h3 className={`${sectionTitle} mb-6 pl-3`}>{t('performance_insights')}</h3>
                     
-                    {/* Insights Cards */}
+                    {/* Top Stats */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div className="bg-green-50 p-4 rounded-xl border border-green-200 flex flex-col items-center justify-center">
                             <div className="text-green-600 text-4xl mb-2">🏆</div>
@@ -307,11 +288,42 @@ const ParentDashboardPage = () => {
                         </div>
                     </div>
 
-                    
+                    {/* --- NEW: DETAILED INSIGHTS BUCKETS --- */}
+                    {insights && (
+                        <div className="mb-8 border-t pt-6">
+                             <h4 className="text-sm font-bold text-gray-500 uppercase mb-4">{t('academic_insights')} ({t('score_distribution')})</h4>
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <h4 className="text-red-800 font-bold text-sm uppercase mb-2 border-b border-red-200 pb-1">⚠️ {t('critical_range')}</h4>
+                                    {insights.critical.length > 0 ? (
+                                        <ul className="space-y-1">{insights.critical.map((s, i) => <li key={i} className="text-sm flex justify-between text-red-700"><span>{s.name}</span> <strong>{s.pct}%</strong></li>)}</ul>
+                                    ) : <p className="text-xs text-gray-400 italic">{t('no_subjects_in_range')}</p>}
+                                </div>
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <h4 className="text-yellow-800 font-bold text-sm uppercase mb-2 border-b border-yellow-200 pb-1">⚖️ {t('average_range')}</h4>
+                                    {insights.average.length > 0 ? (
+                                        <ul className="space-y-1">{insights.average.map((s, i) => <li key={i} className="text-sm flex justify-between text-yellow-900"><span>{s.name}</span> <strong>{s.pct}%</strong></li>)}</ul>
+                                    ) : <p className="text-xs text-gray-400 italic">{t('no_subjects_in_range')}</p>}
+                                </div>
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h4 className="text-blue-800 font-bold text-sm uppercase mb-2 border-b border-blue-200 pb-1">👍 {t('good_range')}</h4>
+                                    {insights.good.length > 0 ? (
+                                        <ul className="space-y-1">{insights.good.map((s, i) => <li key={i} className="text-sm flex justify-between text-blue-900"><span>{s.name}</span> <strong>{s.pct}%</strong></li>)}</ul>
+                                    ) : <p className="text-xs text-gray-400 italic">{t('no_subjects_in_range')}</p>}
+                                </div>
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <h4 className="text-green-800 font-bold text-sm uppercase mb-2 border-b border-green-200 pb-1">🌟 {t('excellent_range')}</h4>
+                                    {insights.excellent.length > 0 ? (
+                                        <ul className="space-y-1">{insights.excellent.map((s, i) => <li key={i} className="text-sm flex justify-between text-green-900"><span>{s.name}</span> <strong>{s.pct}%</strong></li>)}</ul>
+                                    ) : <p className="text-xs text-gray-400 italic">{t('no_subjects_in_range')}</p>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                    {/* NEW: Monthly Progress Graph */}
+                    {/* Monthly Graph */}
                     {monthlyTrendData && monthlyTrendData.labels.length > 0 && (
-                        <div className="mt-8 border-t pt-6">
+                        <div className="border-t pt-6">
                             <h4 className="text-sm font-bold text-gray-500 uppercase mb-4">{t('monthly_progress')}</h4>
                             <div className="h-64 w-full">
                                 <Line data={chartData} options={chartOptions} />
@@ -321,9 +333,9 @@ const ParentDashboardPage = () => {
                 </div>
             )}
 
-            {/* 3. Detailed Grades */}
-            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h3 className="text-xl font-bold text-gray-700 mb-6 border-l-4 border-blue-600 pl-3">{t('detailed_grades')}</h3>
+            {/* 3. Detailed Grades Tables */}
+            <div className={`${sectionWrapper} border-l-4 border-blue-600`}>
+                <h3 className={`${sectionTitle} mb-6 pl-3`}>{t('detailed_grades')}</h3>
                 
                 {grades.length > 0 ? (
                     <div className="space-y-12">
@@ -402,8 +414,8 @@ const ParentDashboardPage = () => {
             </div>
 
             {/* 4. Comments */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold text-gray-700 mb-4 border-l-4 border-yellow-500 pl-3">{t('teacher_comments')}</h3>
+            <div className={`${sectionWrapper} border-l-4 border-yellow-500`}>
+                <h3 className={`${sectionTitle} mb-6 pl-3`}>{t('teacher_comments')}</h3>
                 {reports.length > 0 ? (
                     <div className="grid gap-4">
                         {reports.map(report => (
