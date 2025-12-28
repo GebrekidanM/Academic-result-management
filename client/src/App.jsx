@@ -40,7 +40,7 @@ import EditReportPage from './pages/EditReportPage';
 import GradeSheetPage from './pages/GradeSheetPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
-
+import StudentIDPage from './pages/StudentIDPage';
 // 5. Admin-Only Pages
 import UserManagementPage from './pages/UserManagementPage';
 import UserEditPage from './pages/UserEditPage';
@@ -90,7 +90,6 @@ function App() {
           
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/events/generator" element={<EventCardGenerator />} />
             <Route path="/at-risk" element={<AtRiskStudents />} />
             <Route path="/allsubjectAnalysis" element={<AllSubjectAnalytics/>}/>
             <Route path='/subject-performance' element={<SubjectPerformance/>}/>
@@ -112,6 +111,8 @@ function App() {
             
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
+              <Route path="/id-cards" element={<StudentIDPage />} />
+              <Route path="/events/generator" element={<EventCardGenerator />} />
               <Route path='/otherprofile' element={<UserProfileEditPage/>}/>
               <Route path="/subjects" element={<SubjectListPage />} />
               <Route path="/subjects/add" element={<AddSubjectPage />} />

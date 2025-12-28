@@ -90,14 +90,25 @@ const Navbar = ({ isOpen, setIsOpen }) => {
             {currentUser && (
               <>
                 {/* 1. Students Link */}
-                <NavLink to="/students" className={navLinkClass} onClick={closeMenu}>
-                    {t('students_list')}
-                </NavLink>
                 
-                {/* 2. Event Cards */}
-                <NavLink to="/events/generator" className={navLinkClass} onClick={closeMenu}>
-                    {t('event_cards')}
-                </NavLink>
+                {currentUser.role ==="teacher" ?
+                     <NavLink to="/students" className={navLinkClass} onClick={closeMenu}>
+                          {t('students_list')}
+                      </NavLink>
+                       
+                 :<NavDropdown title={`⚙️ ${t('students')}`}>
+                      <NavLink to="/students" className={dropdownLinkClass} onClick={closeMenu}>
+                          {t('students_list')}
+                      </NavLink>
+                      
+                      <NavLink to="/events/generator" className={dropdownLinkClass} onClick={closeMenu}>
+                          {t('event_cards')}
+                      </NavLink>
+                      <NavLink to="/id-cards" className={dropdownLinkClass} onClick={closeMenu}>
+                          🪪 ID Cards
+                      </NavLink>
+                </NavDropdown>}
+                
 
                 {/* 3. ACADEMICS Dropdown */}
                 <NavDropdown title={`📝 ${t('academics')}`}>
@@ -147,7 +158,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
           
           {/* Language Switcher */}
           <div className="mt-4 md:mt-0 md:ml-4">
-              <LanguageSwitcher />
+              <LanguageSwitcher closeMenu={closeMenu}/>
            </div>
 
           {/* Logout Button */}

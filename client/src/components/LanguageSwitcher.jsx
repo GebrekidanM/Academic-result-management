@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const LanguageSwitcher = () => {
+const LanguageSwitcher = ({closeMenu}) => {
   const { i18n } = useTranslation();
 
   const changeLanguage = (e) => {
@@ -16,10 +16,10 @@ const LanguageSwitcher = () => {
         className="appearance-none bg-gray-800 text-white border border-gray-600 hover:border-gray-400 px-4 py-1 pr-8 rounded leading-tight focus:outline-none focus:shadow-outline text-sm font-bold cursor-pointer"
         style={{ textAlignLast: 'center' }}
       >
-        <option value="en">🇺🇸 English</option>
-        <option value="am">🇪🇹 አማርኛ</option>
-        <option value="om">🌳 Afaan Oromoo</option>
-        <option value="ti">⛰️ ትግርኛ</option>
+        <option value="en"onClick={closeMenu}>🇺🇸 English</option>
+        <option value="am" onClick={closeMenu}>🇪🇹 አማርኛ</option>
+        <option value="om" onClick={closeMenu}>🌳 Afaan Oromoo</option>
+        <option value="ti" onClick={closeMenu}>⛰️ ትግርኛ</option>
       </select>
       
       {/* Custom Arrow Icon for the select box */}

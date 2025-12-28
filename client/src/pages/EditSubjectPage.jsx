@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // <--- Import Hook
+import { useTranslation } from 'react-i18next';
 import subjectService from '../services/subjectService';
 
 const EditSubjectPage = () => {
-    const { t } = useTranslation(); // <--- Initialize
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const [isOnline, setIsOnline] = useState(navigator.onLine);

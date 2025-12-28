@@ -1,9 +1,10 @@
-// src/pages/RegisterPage.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import authService from '../services/authService';
 
 const RegisterPage = () => {
+    const { t } = useTranslation(); // <--- Initialize
     const navigate = useNavigate();
     const currentUser = authService.getCurrentUser();
     
@@ -37,21 +38,19 @@ const RegisterPage = () => {
         setLoading(true);
         setError(null);
         try {
-            // Directly use adminRegister since this page is now protected
             await authService.adminRegister(formData);
-            alert('New user created successfully!');
+            alert(t('user_created_success')); // Translated alert
             navigate('/admin/users');
         } catch (err)  {
-            setError(err.response?.data?.message || 'User creation failed.');
+            setError(err.response?.data?.message || t('user_creation_failed'));
             setLoading(false);
         }
     };
 
-    // If not authorized (and before redirect happens), return null to show nothing
     if (!isAuthorized) return null;
 
     // --- Tailwind CSS class strings ---
-    const cardContainer = "min-h-screen flex items-center justify-center bg-gray-100";
+    const cardContainer = "min-h-screen flex items-center justify-center bg-gray-100 p-4";
     const formCard = "bg-white p-8 rounded-xl shadow-lg w-full max-w-md";
     const formTitle = "text-3xl font-bold text-center text-gray-800 mb-2";
     const formSubtitle = "text-center text-sm text-gray-500 mb-6";
@@ -65,50 +64,50 @@ const RegisterPage = () => {
     return (
         <div className={cardContainer}>
             <div className={formCard}>
-                <h2 className={formTitle}>Create New User</h2>
+                <h2 className={formTitle}>{t('create_new_user')}</h2>
                 <p className={formSubtitle}>
-                    Create a new teacher, staff, or admin account.
+                    {t('create_user_subtitle')}
                 </p>
                 
                 <form onSubmit={handleSubmit}>
                     <div className={inputGroup}>
-                        <label htmlFor="fullName" className={inputLabel}>Full Name</label>
+                        <label htmlFor="fullName" className={inputLabel}>{t('full_name')}</label>
                         <input id="fullName" type="text" name="fullName" value={formData.fullName} className={textInput} onChange={handleChange} required />
                     </div>
                     <div className={inputGroup}>
-                        <label htmlFor="username" className={inputLabel}>Username</label>
+                        <label htmlFor="username" className={inputLabel}>{t('username')}</label>
                         <input id="username" type="text" name="username" value={formData.username} className={textInput} onChange={handleChange} required />
                     </div>
                     <div className={inputGroup}>
-                        <label htmlFor="password" className={inputLabel}>Password</label>
+                        <label htmlFor="password" className={inputLabel}>{t('password')}</label>
                         <input id="password" type="password" name="password" value={formData.password} className={textInput} onChange={handleChange} required />
                     </div>
                     
-                    {/* Role Selection is always visible now */}
+                    {/* Role Selection */}
                     <div className={inputGroup}>
-                        <label htmlFor="role" className={inputLabel}>Role</label>
+                        <label htmlFor="role" className={inputLabel}>{t('role')}</label>
                         <select id="role" name="role" value={formData.role} onChange={handleChange} className={textInput}>
-                            <option value="teacher">Teacher</option>
-                            <option value="admin">Admin</option>
-                            <option value="staff">Staff</option>
+                            <option value="teacher">{t('teachers')}</option>
+                            <option value="admin">{t('admin')}</option>
+                            <option value="staff">{t('staff')}</option>
                         </select>
                     </div>
 
-                    {/* School Level Selection is always visible now */}
+                    {/* School Level Selection */}
                     <div className={inputGroup}>
-                        <label htmlFor="schoolLevel" className={inputLabel}>School Level</label>
+                        <label htmlFor="schoolLevel" className={inputLabel}>{t('school_level')}</label>
                         <select id="schoolLevel" name="schoolLevel" value={formData.schoolLevel} onChange={handleChange} className={textInput} required>
-                            <option value="" disabled>Select school level</option>
-                            <option value="kg">Kindergarten</option>
-                            <option value="primary">Primary</option>
-                            <option value="High School">High School</option>
-                            <option value="all">All Levels (Admins)</option>
+                            <option value="" disabled>{t('select_school_level')}</option>
+                            <option value="kg">{t('section_kg')}</option>
+                            <option value="primary">{t('section_primary')}</option>
+                            <option value="High School">{t('section_high_school')}</option>
+                            <option value="all">{t('level_all')}</option>
                         </select>
                     </div>
 
                     <div className="mt-6">
                         <button type="submit" className={submitButton} disabled={loading}>
-                            {loading ? 'Processing...' : 'Create User'}
+                            {loading ? t('processing') : t('create_user_btn')}
                         </button>
                     </div>
 
@@ -117,7 +116,7 @@ const RegisterPage = () => {
                 
                 <p className="text-center text-sm text-gray-600 mt-6">
                     <Link to="/admin/users" className={bottomLink}>
-                        ← Back to User Management
+                        ← {t('back_to_user_mgmt')}
                     </Link>
                 </p>
             </div>
