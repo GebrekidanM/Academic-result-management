@@ -317,6 +317,18 @@ cards_per_page: "Baay'ina Fuula Tokkorratti (8 Gorfama)",
     March: "Bitootessa",
     April: "Ebla",
     May: "Caamsaa",
-    June: "Waxabajjii"
+    June: "Waxabajjii",
+    certificate_generator: "Waraqaa Ragaa Qopheessuu",
+certificate_of_excellence: "Waraqaa Ragaa Barnootaa",
+awarded_to: "Waraqaan kun kan kennameef",
+for_achieving: "Sadarkaa kana argachuu isaaf/isheef",
+in_grade: "Kutaa",
+rank_1: "Sadarkaa 1ffaa",
+rank_2: "Sadarkaa 2ffaa",
+rank_3: "Sadarkaa 3ffaa",
+principal_signature: "Mallattoo Daarektaraa",
+date_awarded: "Guyyaa Kenname",
+generate_certificates: "Waraqaa Ragaa Uumi",
+no_top_students: "Sadarkaan hin qophoofne."
   }
 };

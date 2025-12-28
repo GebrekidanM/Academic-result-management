@@ -330,7 +330,19 @@ cards_per_page: "ካርዲ ኣብ ሓደ ገጽ (8 ይምረጽ)",
     March: "መጋቢት",
     April: "ሚያዝያ",
     May: "ግንቦት",
-    June: "ሰነ"
+    June: "ሰነ",
+    certificate_generator: "ሰርተፍኬት መዳለዊ",
+certificate_of_excellence: "ናይ ብሉጽ ውጽኢት ሰርተፍኬት",
+awarded_to: "እዚ ሰርተፍኬት ዝወሃቦ ዘሎ",
+for_achieving: "በዚ ደረጃ ስለዝዛዘመ",
+in_grade: "ኣብ ክፍሊ",
+rank_1: "1ይ ደረጃ",
+rank_2: "2ይ ደረጃ",
+rank_3: "3ይ ደረጃ",
+principal_signature: "ፊርማ ርእሰ መምህር",
+date_awarded: "ዝተወሃበሉ ዕለት",
+generate_certificates: "ሰርተፍኬት ኣዳልው",
+no_top_students: "ናይዚ ክፍሊ ደረጃ ኣይተሰርሐን።"
 
   }
 };

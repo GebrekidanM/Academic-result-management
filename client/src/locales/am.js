@@ -310,6 +310,18 @@ February: "የካቲት",
 March: "መጋቢት",
 April: "ሚያዝያ",
 May: "ግንቦት",
-June: "ሰኔ"
+June: "ሰኔ",
+certificate_generator: "የምስክር ወረቀት ማዘጋጃ",
+certificate_of_excellence: "የላቀ ውጤት የምስክር ወረቀት",
+awarded_to: "ይህ የምስክር ወረቀት የተሰጠው ለ",
+for_achieving: "በዚህ ደረጃ በማጠናቀቁ",
+in_grade: "በክፍል",
+rank_1: "1ኛ ደረጃ",
+rank_2: "2ኛ ደረጃ",
+rank_3: "3ኛ ደረጃ",
+principal_signature: "የርዕሰ መምህር ፊርማ",
+date_awarded: "የተሰጠበት ቀን",
+generate_certificates: "ሰርተፍኬቶችን አዘጋጅ",
+no_top_students: "ለዚህ ክፍል ደረጃ አልተሰራም።"
   }
 };

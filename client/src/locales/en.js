@@ -321,6 +321,11 @@ rank_3: "3rd Place",
 principal_signature: "Principal's Signature",
 date_awarded: "Date Awarded",
 generate_certificates: "Generate Certificates",
-no_top_students: "No rankings found for this class yet."
+no_top_students: "No rankings found for this class yet.",
+with_average: "with an Average of",
+certificate_body_en: "This certificate is proudly awarded to",
+achievement_en: "For achieving",
+certificate_body_am: "ይህ የሽልማት ወረቀት ለ",
+achievement_am: "በማስተማር ውጤት ላይ ለማሳደግ",
   }
 };
