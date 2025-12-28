@@ -59,6 +59,8 @@ import SubjectPerformance from './pages/SubjectPerformance';
 import AtRiskStudents from './pages/AtRiskStudents';
 import AllSubjectAnalytics from './pages/AllSubjectAnalytics';
 
+import CertificatePage from './pages/CertificatePage';
+
 function App() {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -111,6 +113,7 @@ function App() {
             
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
+              <Route path="/certificates" element={<CertificatePage />} />
               <Route path="/id-cards" element={<StudentIDPage />} />
               <Route path="/events/generator" element={<EventCardGenerator />} />
               <Route path='/otherprofile' element={<UserProfileEditPage/>}/>

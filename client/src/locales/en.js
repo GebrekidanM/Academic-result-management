@@ -308,6 +308,19 @@ February: "February",
 March: "March",
 April: "April",
 May: "May",
-June: "June"
+June: "June",
+// ... existing keys
+certificate_generator: "Certificate Generator",
+certificate_of_excellence: "Certificate of Excellence",
+awarded_to: "This certificate is proudly awarded to",
+for_achieving: "For achieving",
+in_grade: "in Grade",
+rank_1: "1st Place",
+rank_2: "2nd Place",
+rank_3: "3rd Place",
+principal_signature: "Principal's Signature",
+date_awarded: "Date Awarded",
+generate_certificates: "Generate Certificates",
+no_top_students: "No rankings found for this class yet."
   }
 };

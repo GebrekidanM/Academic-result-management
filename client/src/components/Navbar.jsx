@@ -107,6 +107,9 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                       <NavLink to="/id-cards" className={dropdownLinkClass} onClick={closeMenu}>
                           🪪 ID Cards
                       </NavLink>
+                      <NavLink to="/certificates" className={dropdownLinkClass} onClick={closeMenu}>
+                          🏆 Certificates
+                      </NavLink>
                 </NavDropdown>}
                 
 
