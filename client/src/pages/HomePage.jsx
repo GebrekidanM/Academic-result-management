@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next'; // <--- Import Hook
+import { useTranslation } from 'react-i18next'; 
 import userService from '../services/userService';
 import authService from '../services/authService';
 import dashboardService from '../services/dashboardService';
-
 import IsAdmin from './HomePage/IsAdmin';
 import IsStaff from './HomePage/IsStaff';
 import LoggedOut from './HomePage/LoggedOut';
 
 // --- Helper Component for the Level Badge ---
 const LevelBadge = ({ level }) => {
-    const { t } = useTranslation(); // <--- Hook inside helper
+    const { t } = useTranslation(); 
     if (!level) return null;
 
     let colorClass = "bg-gray-100 text-gray-800"; 

@@ -6,8 +6,7 @@ self.skipWaiting()
 clientsClaim()
 
 // 2. PRECACHE BUILD ARTIFACTS
-// This fixes the build error! Vite injects the list of files here.
-// It automatically caches index.html, main.js, css, etc.
+
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
 

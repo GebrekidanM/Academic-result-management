@@ -5,10 +5,6 @@ const path = require('path');
 const connectDB = require('./config/db');
 const User = require('./models/User');
 
-// --- Connect to MongoDB ---
-// We will connect inside the start function now
-// connectDB(); 
-
 const app = express();
 
 // --- Middleware ---
@@ -70,9 +66,8 @@ const startServer = async () => {
 
     } catch (error) {
         console.error("Failed to start server:", error);
-        process.exit(1); // Only exit if DB connection fails completely
+        process.exit(1); 
     }
 };
 
-// Execute the startup
 startServer();
