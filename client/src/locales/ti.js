@@ -342,7 +342,20 @@ rank_3: "3ይ ደረጃ",
 principal_signature: "ፊርማ ርእሰ መምህር",
 date_awarded: "ዝተወሃበሉ ዕለት",
 generate_certificates: "ሰርተፍኬት ኣዳልው",
-no_top_students: "ናይዚ ክፍሊ ደረጃ ኣይተሰርሐን።"
+no_top_students: "ናይዚ ክፍሊ ደረጃ ኣይተሰርሐን።",
+// --- Landing Page / Logged Out ---
+    welcome_to: "እንቋዕ ናብ",
+    school_management_system: "ስርዓት ምምሕዳር ቤት ትምህርቲ ብደሓን መጻእኩም",
+    hero_description: "ትምህርቲ ተምሃሮ፣ ሪፖርታትን ርክብ ቤት ትምህርቲ ምስ ወለድን ብዘይ ጸገም ንምምሕዳር ዝተዳለወ፣ ብዘይ ኢንተርነት ዝሰርሕ ዘመናዊ መድረኽ እዩ።",
+    powerful_features: "ዓበይቲ መለለዪታት",
+    feature_reporting_title: "ሁሉን ዝሓዘ ሪፖርት",
+    feature_reporting_desc: "ጽቡቕ ዝኾነን ንሕትመት ዝዳሎን ሪፖርት ካርድን ዝርዝር ሮስተርን ብኣውቶማቲክ ስሌት የዳልሉ።",
+    feature_offline_title: "ብዘይ ኢንተርነት ናይ ምስራሕ ዓቅሚ",
+    feature_offline_desc: "ብዘይ ኢንተርነት ይሰርሕ! መምህራን ኣብ ዝኾነ ቦታ ኮይኖም ውጽኢት ክምልኡን ክፍልታት ከምሓድሩን ይኽእሉ፣ ኢንተርኔት ምስ ረኸቡ ድማ የተሓሕዝዎ (Sync)።",
+    feature_security_title: "ኣብ ግደ ዝተመርኮሰ ድሕነት",
+    feature_security_desc: "ንምምሕዳር፣ መምህራን፣ ሰራሕተኛታትን ወለድን ውሑስ ዝኾነ ምቁጽጻር መእተዊ።",
+    demo_title: "ቀጥታ ዴሞ (Demo) ፈትኑ",
+    demo_desc: "በቲ ኣቐዲሙ ዝተዳለወ ናይ ዴሞ መእተዊ ንምእታው ኣብ ታሕቲ ዘሎ መልጎም (Button) ጠውቑ።",
 
   }
 };

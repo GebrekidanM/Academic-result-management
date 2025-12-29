@@ -329,6 +329,19 @@ rank_3: "Sadarkaa 3ffaa",
 principal_signature: "Mallattoo Daarektaraa",
 date_awarded: "Guyyaa Kenname",
 generate_certificates: "Waraqaa Ragaa Uumi",
-no_top_students: "Sadarkaan hin qophoofne."
+no_top_students: "Sadarkaan hin qophoofne.",
+// --- Landing Page / Logged Out ---
+    welcome_to: "Baga gara",
+    school_management_system: "Sirna Bulchiinsa Mana Barumsaa dhuftan",
+    hero_description: "Sirna ammayyaa, toora malee (offline) hojjetuu fi barnoota barattootaa, ripoortotaa fi qunnamtii maatii haala salphaan bulchuuf kan qophaa'edha.",
+    powerful_features: "Amaloota Ciccimoo",
+    feature_reporting_title: "Gabaasa Guutuu",
+    feature_reporting_desc: "Kaardii ripoortii bareedaa fi maxxansamuu danda'u, akkasumas tarree daree bal'aa herrega ofumaan hojjetu wajjin qopheessa.",
+    feature_offline_title: "Dandeettii Offline",
+    feature_offline_desc: "Interneetii malee ni hojjeta! Barsiisonni eessattis qabxii galchuu fi daree bulchuu danda'u, yeroo onlaayinii ta'an wal-qabsiisu.",
+    feature_security_title: "Nageenya Gahee Irratti Hundaa'e",
+    feature_security_desc: "To'annoo seensaa eegamaa Bulchitootaaf, Barsiisotaaf, Hojjettootaa fi Maatiif.",
+    demo_title: "Deemoolee Kallattiin Ilaali",
+    demo_desc: "Eenyummeessituu deemoo dursee qophaa'een seenuuf buttonii armaan gadii tuqi.",
   }
 };
