@@ -341,5 +341,18 @@ desc_parents_body: "Track your child's academic progress, rank, and behavioral r
 
 desc_admins_title: "Total Control",
 desc_admins_body: "Manage students, staff, and curriculum effortlessly. Generate ID cards, rosters, and statistical reports in seconds.",
+demo_title: "Explore the Live Demo",
+    demo_desc: "Click a button below to automatically log in with pre-defined demo credentials.",
+    // --- Landing Page ---
+    welcome_to: "Welcome to",
+    school_management_system: "School Management System",
+    hero_description: "A modern, offline-first platform designed to seamlessly manage student academics, reports, and school-parent communications.",
+    powerful_features: "Powerful Features",
+    feature_reporting_title: "Comprehensive Reporting",
+    feature_reporting_desc: "Generate beautiful, printable report cards and detailed class rosters with automatic calculations.",
+    feature_offline_title: "Offline Capability",
+    feature_offline_desc: "Works without internet! Teachers can enter grades and manage classes anywhere, syncing when online.",
+    feature_security_title: "Role-Based Security",
+    feature_security_desc: "Secure access control for Admins, Teachers, Staff, and Parents."
   }
 };
