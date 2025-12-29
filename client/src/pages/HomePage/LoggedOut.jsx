@@ -2,7 +2,7 @@ import React from 'react'
 
 function LoggedOut() {
   return (
-    <div className="bg-gray-50">
+        <div className="bg-gray-50">
             {/* --- Hero Section --- */}
             <div className="text-center py-20 md:py-32 px-4">
                 <h1 className="text-4xl md:text-6xl font-extrabold text-gray-800 tracking-tight">
@@ -48,8 +48,36 @@ function LoggedOut() {
                     </div>
                 </div>
             </div>
+
+            {/* --- Demo Login Section --- */}
+            <div className="bg-gray-800 text-white py-16">
+                <div className="container mx-auto text-center px-6">
+                    <h2 className="text-3xl font-bold mb-4">Explore the Live Demo</h2>
+                    <p className="text-gray-300 mb-8">Click a button below to automatically log in with pre-defined demo credentials and experience the system firsthand.</p>
+                    <div className="flex flex-col md:flex-row justify-center items-center gap-6">
+                        <button
+                            onClick={() => navigate('/login', { state: { username: 'admin', password: 'admin@123' } })}
+                            className="w-full md:w-auto bg-pink-600 hover:bg-pink-500 font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
+                            Login as Administrator
+                        </button>
+                        <button
+                            onClick={() => navigate('/login', { state: { username: 'bchebud', password: 'Bchebud@123' } })}
+                            className="w-full md:w-auto bg-gray-600 hover:bg-gray-500 font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
+                            Login as Teacher
+                        </button>
+                        <button
+                            onClick={() => navigate('/login', { state: { username: 'bchebud', password: 'Bchebud@123' } })}
+                            className="w-full md:w-auto bg-gray-600 hover:bg-gray-500 font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
+                            Login as Parent
+                        </button>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-8">
+                        (Parents can log in at the <Link to="/parent-login" className="text-pink-400 hover:underline">Parent Portal</Link>)
+                    </p>
+                </div>
+            </div>
         </div>
-  )
+    );
 }
 
 export default LoggedOut
