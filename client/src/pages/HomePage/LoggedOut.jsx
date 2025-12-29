@@ -1,83 +1,165 @@
-import React from 'react'
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 function LoggedOut() {
-    const navigate = useNavigate()
-  return (
-        <div className="bg-gray-50">
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+    
+    // --- STATE FOR DYNAMIC DESCRIPTION ---
+    const [activeTab, setActiveTab] = useState('teachers'); // 'teachers', 'parents', 'admins'
+
+    // Helper for navigation
+    const handleDemoLogin = (role, username, password) => {
+        navigate('/login', { 
+            state: { 
+                autoFill: { username, password, role } 
+            } 
+        });
+    };
+
+    // --- DYNAMIC CONTENT CONFIGURATION ---
+    const content = {
+        teachers: {
+            title: t('desc_teachers_title'),
+            body: t('desc_teachers_body'),
+            icon: "👩‍🏫",
+            color: "bg-blue-100 text-blue-600",
+            borderColor: "border-blue-500"
+        },
+        parents: {
+            title: t('desc_parents_title'),
+            body: t('desc_parents_body'),
+            icon: "👨‍👩‍👧‍👦",
+            color: "bg-green-100 text-green-600",
+            borderColor: "border-green-500"
+        },
+        admins: {
+            title: t('desc_admins_title'),
+            body: t('desc_admins_body'),
+            icon: "⚙️",
+            color: "bg-purple-100 text-purple-600",
+            borderColor: "border-purple-500"
+        }
+    };
+
+    return (
+        <div className="bg-gray-50 min-h-screen font-sans">
+            
             {/* --- Hero Section --- */}
-            <div className="text-center py-20 md:py-32 px-4">
-                <h1 className="text-4xl md:text-6xl font-extrabold text-gray-800 tracking-tight">
-                    Welcome to <span className="text-pink-600">Nitsuh</span>
+            <div className="text-center py-16 md:py-24 px-4 bg-white border-b border-gray-200">
+                <h1 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight mb-2">
+                    {t('welcome_to')} <span className="text-blue-900 transparent bg-clip-text bg-gradient-to-r from-blue-900 to-blue-600">{t('app_name')}</span>
                 </h1>
-                <h2 className="text-4xl md:text-6xl font-extrabold text-gray-800 tracking-tight mt-2">
-                    School Management System
+                <h2 className="text-xl md:text-3xl font-bold text-gray-500 tracking-tight">
+                    {t('school_management_system')}
                 </h2>
-                <p className="mt-6 max-w-2xl mx-auto text-lg text-gray-600">
-                    A modern, real-time platform designed to seamlessly manage student academics, reports, and school-parent communications.
+                <p className="mt-6 max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
+                    {t('hero_description')}
                 </p>
             </div>
 
-            {/* --- Features Section --- */}
-            <div className="py-16 bg-white">
+            {/* --- NEW: DYNAMIC DESCRIPTION SECTION --- */}
+            <div className="py-16 px-4 max-w-5xl mx-auto">
+                <h3 className="text-3xl font-bold text-center text-gray-800 mb-8">
+                    {t('about_section_title')}
+                </h3>
+
+                {/* Tabs */}
+                <div className="flex justify-center gap-4 mb-8 flex-wrap">
+                    <button 
+                        onClick={() => setActiveTab('teachers')}
+                        className={`px-6 py-2 rounded-full font-bold transition-all ${activeTab === 'teachers' ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-white text-gray-600 border hover:bg-gray-100'}`}
+                    >
+                        {t('about_tab_teachers')}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('parents')}
+                        className={`px-6 py-2 rounded-full font-bold transition-all ${activeTab === 'parents' ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-white text-gray-600 border hover:bg-gray-100'}`}
+                    >
+                        {t('about_tab_parents')}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('admins')}
+                        className={`px-6 py-2 rounded-full font-bold transition-all ${activeTab === 'admins' ? 'bg-purple-600 text-white shadow-lg scale-105' : 'bg-white text-gray-600 border hover:bg-gray-100'}`}
+                    >
+                        {t('about_tab_admins')}
+                    </button>
+                </div>
+
+                {/* Dynamic Content Card */}
+                <div className={`bg-white rounded-2xl p-8 shadow-xl border-l-8 ${content[activeTab].borderColor} transition-all duration-300 transform`}>
+                    <div className="flex flex-col md:flex-row items-center gap-6">
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl ${content[activeTab].color}`}>
+                            {content[activeTab].icon}
+                        </div>
+                        <div className="text-center md:text-left">
+                            <h4 className="text-2xl font-bold text-gray-800 mb-2">
+                                {content[activeTab].title}
+                            </h4>
+                            <p className="text-gray-600 text-lg">
+                                {content[activeTab].body}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* --- Features Grid (Existing) --- */}
+            <div className="py-16 bg-white border-t border-gray-200">
                 <div className="container mx-auto px-6">
-                    <h3 className="text-3xl font-bold text-center text-gray-800 mb-12">Powerful Features for a Modern School</h3>
+                    <h3 className="text-3xl font-bold text-center text-gray-800 mb-12">{t('powerful_features')}</h3>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {/* Feature 1 */}
-                        <div className="text-center p-6 border border-gray-200 rounded-lg">
-                            <div className="text-pink-500 mb-4">
-                                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                            </div>
-                            <h4 className="font-bold text-xl mb-2">Comprehensive Reporting</h4>
-                            <p className="text-gray-600">Generate beautiful, printable report cards and detailed class rosters with automatic calculations for totals, averages, and ranks.</p>
+                        <div className="text-center p-8 bg-gray-50 rounded-xl hover:shadow-lg transition-shadow">
+                            <div className="text-4xl mb-4">📊</div>
+                            <h4 className="font-bold text-xl mb-2 text-gray-800">{t('feature_reporting_title')}</h4>
+                            <p className="text-gray-600">{t('feature_reporting_desc')}</p>
                         </div>
-                        {/* Feature 2 */}
-                        <div className="text-center p-6 border border-gray-200 rounded-lg">
-                            <div className="text-pink-500 mb-4">
-                                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2V7a2 2 0 012-2h2m8-4H5a2 2 0 00-2 2v10a2 2 0 002 2h11l4 4V7a2 2 0 00-2-2z" /></svg>
-                            </div>
-                            <h4 className="font-bold text-xl mb-2">Real-Time Notifications</h4>
-                            <p className="text-gray-600">Keep administrators and homeroom teachers instantly informed with in-app and push notifications for important events like grade updates.</p>
+                        <div className="text-center p-8 bg-gray-50 rounded-xl hover:shadow-lg transition-shadow">
+                            <div className="text-4xl mb-4">📴</div>
+                            <h4 className="font-bold text-xl mb-2 text-gray-800">{t('feature_offline_title')}</h4>
+                            <p className="text-gray-600">{t('feature_offline_desc')}</p>
                         </div>
-                        {/* Feature 3 */}
-                        <div className="text-center p-6 border border-gray-200 rounded-lg">
-                            <div className="text-pink-500 mb-4">
-                                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                            </div>
-                            <h4 className="font-bold text-xl mb-2">Role-Based Security</h4>
-                            <p className="text-gray-600">A secure system with distinct roles for Admins, Teachers, and Parents, ensuring users only see the information relevant to them.</p>
+                        <div className="text-center p-8 bg-gray-50 rounded-xl hover:shadow-lg transition-shadow">
+                            <div className="text-4xl mb-4">🔒</div>
+                            <h4 className="font-bold text-xl mb-2 text-gray-800">{t('feature_security_title')}</h4>
+                            <p className="text-gray-600">{t('feature_security_desc')}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* --- Demo Login Section --- */}
-            <div className="bg-gray-800 text-white py-16">
+            <div className="bg-gray-900 text-white py-16">
                 <div className="container mx-auto text-center px-6">
-                    <h2 className="text-3xl font-bold mb-4">Explore the Live Demo</h2>
-                    <p className="text-gray-300 mb-8">Click a button below to automatically log in with pre-defined demo credentials and experience the system firsthand.</p>
-                    <div className="flex flex-col md:flex-row justify-center items-center gap-6">
+                    <h2 className="text-3xl font-bold mb-4">{t('demo_title')}</h2>
+                    <p className="text-gray-400 mb-8 max-w-xl mx-auto">{t('demo_desc')}</p>
+                    
+                    <div className="flex flex-col md:flex-row justify-center items-center gap-4">
                         <button
-                            onClick={() => navigate('/login', { state: { username: 'admin', password: 'admin@123' } })}
-                            className="w-full md:w-auto bg-pink-600 hover:bg-pink-500 font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
-                            Login as Administrator
+                            onClick={() => handleDemoLogin('staff', 'admin', 'admin123')}
+                            className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 font-bold py-3 px-8 rounded-lg shadow-lg"
+                        >
+                            Login as Admin
                         </button>
                         <button
-                            onClick={() => navigate('/login', { state: { username: 'bchebud', password: 'Bchebud@123' } })}
-                            className="w-full md:w-auto bg-gray-600 hover:bg-gray-500 font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
+                            onClick={() => handleDemoLogin('staff', 'teacher', 'teacher123')}
+                            className="w-full md:w-auto bg-gray-700 hover:bg-gray-600 font-bold py-3 px-8 rounded-lg shadow-lg"
+                        >
                             Login as Teacher
                         </button>
                         <button
-                            onClick={() => navigate('/login', { state: { username: 'bchebud', password: 'Bchebud@123' } })}
-                            className="w-full md:w-auto bg-gray-600 hover:bg-gray-500 font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
+                            onClick={() => handleDemoLogin('parent', 'FKS-2018-001', '123456')}
+                            className="w-full md:w-auto bg-gray-700 hover:bg-gray-600 font-bold py-3 px-8 rounded-lg shadow-lg"
+                        >
                             Login as Parent
                         </button>
                     </div>
-                    
                 </div>
             </div>
         </div>
     );
 }
 
-export default LoggedOut
+export default LoggedOut;

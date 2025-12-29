@@ -327,5 +327,19 @@ certificate_body_en: "This certificate is proudly awarded to",
 achievement_en: "For achieving",
 certificate_body_am: "ይህ የሽልማት ወረቀት ለ",
 achievement_am: "በማስተማር ውጤት ላይ ለማሳደግ",
+// ... existing keys
+about_section_title: "One System, Solutions for Everyone",
+about_tab_teachers: "For Teachers",
+about_tab_parents: "For Parents",
+about_tab_admins: "For Admins",
+
+desc_teachers_title: "Work Without Limits",
+desc_teachers_body: "No internet? No problem. Enter grades, manage attendance, and prepare reports completely offline. Sync when you connect.",
+
+desc_parents_title: "Stay Connected",
+desc_parents_body: "Track your child's academic progress, rank, and behavioral reports instantly from your phone. No need to wait for paper cards.",
+
+desc_admins_title: "Total Control",
+desc_admins_body: "Manage students, staff, and curriculum effortlessly. Generate ID cards, rosters, and statistical reports in seconds.",
   }
 };

@@ -322,6 +322,20 @@ rank_3: "3ኛ ደረጃ",
 principal_signature: "የርዕሰ መምህር ፊርማ",
 date_awarded: "የተሰጠበት ቀን",
 generate_certificates: "ሰርተፍኬቶችን አዘጋጅ",
-no_top_students: "ለዚህ ክፍል ደረጃ አልተሰራም።"
+no_top_students: "ለዚህ ክፍል ደረጃ አልተሰራም።",
+// ... existing keys
+about_section_title: "አንድ ሲስተም፣ ለሁሉም መፍትሄ",
+about_tab_teachers: "ለመምህራን",
+about_tab_parents: "ለወላጆች",
+about_tab_admins: "ለአስተዳደር",
+
+desc_teachers_title: "ያለ ገደብ ይስሩ",
+desc_teachers_body: "ኢንተርኔት የለም? ችግር የለም። ውጤት ይሙሉ፣ ሪፖርት ያዘጋጁ። ኢንተርኔት ሲያገኙ መረጃው ይተላለፋል።",
+
+desc_parents_title: "ከምንም በላይ ቅርበት",
+desc_parents_body: "የልጅዎን ውጤት፣ ደረጃ እና የባህሪ ሪፖርት በስልክዎ ይከታተሉ። ለወረቀት ሪፖርት መጠበቅ አይጠበቅብዎትም።",
+
+desc_admins_title: "ሙሉ ቁጥጥር",
+desc_admins_body: "ተማሪዎችን፣ ሰራተኞችን እና ስርዓተ-ትምህርቱን በቀላሉ ያስተዳድሩ። መታወቂያዎችን እና ሮስተሮችን በሰከንዶች ውስጥ ያዘጋጁ።",
   }
 };
