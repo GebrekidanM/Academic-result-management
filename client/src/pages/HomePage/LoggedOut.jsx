@@ -1,7 +1,8 @@
 import React from 'react'
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 function LoggedOut() {
+    const navigate = useNavigate()
   return (
         <div className="bg-gray-50">
             {/* --- Hero Section --- */}
@@ -72,9 +73,7 @@ function LoggedOut() {
                             Login as Parent
                         </button>
                     </div>
-                    <p className="text-sm text-gray-500 mt-8">
-                        (Parents can log in at the <Link to="/parent-login" className="text-pink-400 hover:underline">Parent Portal</Link>)
-                    </p>
+                    
                 </div>
             </div>
         </div>
