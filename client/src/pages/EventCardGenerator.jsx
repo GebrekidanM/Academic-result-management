@@ -7,18 +7,21 @@ import userService from '../services/userService';
 const EventCardGenerator = () => {
     const { t } = useTranslation();
     
+    // --- STATE ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [allStudents, setAllStudents] = useState([]);
     const [availableGrades, setAvailableGrades] = useState([]);
     const [selectedGrade, setSelectedGrade] = useState('');
     const [loading, setLoading] = useState(true);
 
+    // --- CARD CONFIGURATION ---
     const [eventTitle, setEventTitle] = useState(t('default_event_title') || 'EVENT TITLE');
     const [bodyMessage, setBodyMessage] = useState(t('default_event_msg') || 'You are invited.');
     const [footerText, setFooterText] = useState(t('default_event_footer') || 'ADMIT ONE'); 
     
     const [cardsPerPage, setCardsPerPage] = useState(4); 
     const [customLogo, setCustomLogo] = useState(null); 
+    const [watermarkImage, setWatermarkImage] = useState(null); // <--- NEW STATE
 
     // --- 1. FETCH DATA ---
     useEffect(() => {
@@ -57,6 +60,7 @@ const EventCardGenerator = () => {
         loadData();
     }, [currentUser]);
 
+    // --- 2. FILTER ---
     const targetStudents = useMemo(() => {
         if (!selectedGrade) return [];
         return allStudents
@@ -64,6 +68,7 @@ const EventCardGenerator = () => {
             .sort((a, b) => a.fullName.localeCompare(b.fullName));
     }, [selectedGrade, allStudents]);
 
+    // --- 3. IMAGE UPLOAD HANDLERS ---
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -72,6 +77,15 @@ const EventCardGenerator = () => {
         }
     };
 
+    const handleWatermarkUpload = (e) => { // <--- NEW HANDLER
+        const file = e.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setWatermarkImage(url);
+        }
+    };
+
+    // --- 4. PAGINATION ---
     const pages = useMemo(() => {
         if (!targetStudents.length) return [];
         const chunks = [];
@@ -81,29 +95,27 @@ const EventCardGenerator = () => {
         return chunks;
     }, [targetStudents, cardsPerPage]);
 
-    // --- DYNAMIC STYLING HELPERS ---
-    
-    // 1. Grid Gap Logic (Tighter for 8 cards)
+    // --- 5. GRID CONFIGURATION ---
     const getGridClass = () => {
         switch (Number(cardsPerPage)) {
             case 2: return "grid-cols-1 grid-rows-2 gap-y-10"; 
             case 4: return "grid-cols-2 grid-rows-2 gap-6";   
             case 6: return "grid-cols-2 grid-rows-3 gap-4";   
-            case 8: return "grid-cols-2 grid-rows-4 gap-y-2 gap-x-4"; // Very tight vertical gap
+            case 8: return "grid-cols-2 grid-rows-4 gap-y-2 gap-x-4";
             default: return "grid-cols-2 gap-6";
         }
     };
 
-    // 2. Element Sizing Logic (Mini vs Normal)
+    // Element Sizing Logic
     const isMini = cardsPerPage >= 8;
 
     const size = {
         title: isMini ? "text-lg" : "text-2xl md:text-3xl",
         schoolName: isMini ? "text-[8px] tracking-wide" : "text-[10px] tracking-[0.2em]",
         logo: isMini ? "h-6 w-6" : "h-10 w-10",
-        photoContainer: isMini ? "w-14 h-16" : "w-20 h-24", // Smaller photo box
+        photoContainer: isMini ? "w-14 h-16" : "w-20 h-24",
         name: isMini ? "text-sm" : "text-xl",
-        gradeLabel: isMini ? "text-[9px] px-2 py-0" : "text-[10px] px-3 py-0.5",
+        gradeLabel: isMini ? "text-[8px] px-2 py-0" : "text-[10px] px-3 py-0.5",
         message: isMini ? "text-[10px] leading-tight" : "text-xs leading-snug",
         padding: isMini ? "px-3 py-1" : "px-6 py-2",
         headerPadding: isMini ? "pt-2 pb-1" : "pt-4 pb-2",
@@ -111,8 +123,7 @@ const EventCardGenerator = () => {
     };
 
     const flexType = () => {
-
-        return cardsPerPage <= 4 ? "flex-col items-center justify-center" : "flex-row items-center ";
+        return cardsPerPage <= 4 ? "flex-col items-center justify-center" : "flex-row items-center";
     };
 
     if (loading) return <div className="p-10 text-center">{t('loading')}</div>;
@@ -126,7 +137,6 @@ const EventCardGenerator = () => {
                 @media print {
                     @page { 
                         size: A4 portrait; 
-                        /* Tighter margins to fit 4 rows */
                         margin: 8mm; 
                     }
                     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -134,11 +144,10 @@ const EventCardGenerator = () => {
                     
                     .print-page {
                         width: 100%;
-                        /* A4 height is 297mm. Minus 16mm margin = ~280mm safe area. */
                         height: 280mm; 
                         page-break-after: always;
                         display: grid;
-                        align-content: stretch; /* Stretch to fill space */
+                        align-content: stretch; 
                     }
                     .print-page:last-child { page-break-after: auto; }
                 }
@@ -147,7 +156,6 @@ const EventCardGenerator = () => {
                     border: 3px double #1e3a8a;
                     position: relative;
                 }
-                /* Thin inner gold line */
                 .ceremonial-border::after {
                     content: '';
                     position: absolute;
@@ -159,7 +167,6 @@ const EventCardGenerator = () => {
 
             {/* --- CONTROLS (Hidden on Print) --- */}
             <div className="no-print bg-white p-6 rounded-xl shadow-lg mb-8 border border-gray-200 max-w-6xl mx-auto">
-                {/* ... (Controls UI remains the same) ... */}
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">🎖️ {t('event_generator_title')}</h2>
                     <button onClick={() => window.print()} disabled={!selectedGrade} className="bg-gradient-to-r from-blue-800 to-blue-900 text-white px-6 py-2 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50">
@@ -182,17 +189,27 @@ const EventCardGenerator = () => {
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">3. {t('design')}</label>
-                        <div className="flex gap-2">
-                             <select className="border p-2 rounded w-1/2 text-sm bg-gray-50" value={cardsPerPage} onChange={(e) => setCardsPerPage(Number(e.target.value))}>
+                        <div className="flex flex-col gap-2">
+                             <select className="border p-2 rounded w-full text-sm bg-gray-50" value={cardsPerPage} onChange={(e) => setCardsPerPage(Number(e.target.value))}>
                                 <option value={2}>{t('layout_2')}</option>
                                 <option value={4}>{t('layout_4')}</option>
                                 <option value={6}>{t('layout_6')}</option>
                                 <option value={8}>{t('layout_8')}</option>
                             </select>
-                            <div className="relative w-1/2">
+                            
+                            {/* LOGO UPLOAD */}
+                            <div className="relative w-full">
                                 <input type="file" id="logoUpload" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                                <label htmlFor="logoUpload" className="block w-full border border-dashed border-gray-400 p-2 rounded text-center text-sm cursor-pointer hover:bg-gray-50">
+                                <label htmlFor="logoUpload" className="block w-full border border-dashed border-blue-400 p-2 rounded text-center text-sm cursor-pointer hover:bg-blue-50 text-blue-800">
                                     📷 {customLogo ? t('change_logo') : t('upload_logo')}
+                                </label>
+                            </div>
+
+                            {/* WATERMARK UPLOAD */}
+                            <div className="relative w-full">
+                                <input type="file" id="watermarkUpload" className="hidden" accept="image/*" onChange={handleWatermarkUpload} />
+                                <label htmlFor="watermarkUpload" className="block w-full border border-dashed border-gray-400 p-2 rounded text-center text-sm cursor-pointer hover:bg-gray-50 text-gray-600">
+                                    🖼️ {watermarkImage ? "Change Background" : "Upload Background"}
                                 </label>
                             </div>
                         </div>
@@ -208,10 +225,10 @@ const EventCardGenerator = () => {
                             {pageStudents.map((student) => (
                                 <div key={student._id} className="relative bg-[#fffdf5] ceremonial-border rounded-lg flex flex-col overflow-hidden break-inside-avoid print:break-inside-avoid shadow-sm h-full">
                                     
-                                    {/* Watermark */}
-                                    {customLogo && (
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-[0.05] pointer-events-none">
-                                            <img src={customLogo} className="w-3/4 h-3/4 object-contain grayscale blur-[1px]" alt="" />
+                                    {/* --- WATERMARK (BACKGROUND) --- */}
+                                    {watermarkImage && (
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-[0.20] pointer-events-none">
+                                            <img src={watermarkImage} className="w-full h-full object-cover grayscale" alt="" />
                                         </div>
                                     )}
 
@@ -259,7 +276,6 @@ const EventCardGenerator = () => {
                                             <div className={`inline-flex items-center ${size.gradeLabel} rounded-full bg-blue-50 border border-blue-100 font-bold uppercase text-blue-800 tracking-wide mb-1 mt-1`}>
                                                 {student.gradeLevel}
                                             </div>
-                                            {/* Hide separator line if mini to save space */}
                                             {!isMini && <div className="w-10 h-px bg-gradient-to-r from-transparent via-yellow-500 to-transparent mx-auto mb-1"></div>}
                                             
                                             <p className={`${size.message} font-serif italic text-gray-600 px-1`}>
@@ -271,7 +287,7 @@ const EventCardGenerator = () => {
                                     {/* --- FOOTER --- */}
                                     <div className={`z-10 bg-gradient-to-r from-blue-900 to-indigo-900 text-white ${size.footerPadding} flex justify-between items-center text-[9px] uppercase tracking-widest shadow-inner mt-auto`}>
                                         <span className="opacity-80 font-mono">{student.studentId}</span>
-                                        <span className="font-bold text-yellow-400 drop-shadow-md">{footerText}</span>
+                                        <span className="font-bold text-orange-500 drop-shadow-md">{footerText}</span>
                                     </div>
 
                                 </div>

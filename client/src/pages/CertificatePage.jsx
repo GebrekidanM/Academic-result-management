@@ -211,10 +211,8 @@ const CertificatePage = () => {
                                     {student.fullName}
                                 </h2>
 
-                                {/* 3. Achievement Details (English & Amharic Side by Side) */}
                                 <div className="flex w-full justify-between items-center px-10 gap-4 mt-2">
                                     
-                                    {/* English Side */}
                                     <div className="text-right flex-1">
                                         <p className="font-serif text-gray-700 text-lg">
                                             For achieving <span className={`font-bold px-2 py-0.5 rounded border ${getRankColor(stats.rank)}`}>{stats.rank === 1 ? '1st' : stats.rank === 2 ? '2nd' : '3rd'} Place</span>

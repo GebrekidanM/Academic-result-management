@@ -15,7 +15,7 @@ const StudentIDPage = () => {
 
     // --- Configuration ---
     const [schoolName, setSchoolName] = useState('FREEDOM KG & PRIMARY SCHOOL');
-    const [validDate, setValidDate] = useState('June 2024');
+    const [validDate, setValidDate] = useState('June 2026');
     const [customLogo, setCustomLogo] = useState(null);
     
     // --- 1. Fetch Data ---
@@ -189,7 +189,7 @@ const StudentIDPage = () => {
                                             <h3 className="font-bold text-xs uppercase truncate" style={{fontFamily: 'Oswald, sans-serif'}}>
                                                 {schoolName}
                                             </h3>
-                                            <p className="text-[8px] uppercase tracking-widest text-yellow-400">
+                                            <p className="text-[8px] uppercase tracking-widest text-red-400 font-bold">
                                                 {t('id_title')}
                                             </p>
                                         </div>
