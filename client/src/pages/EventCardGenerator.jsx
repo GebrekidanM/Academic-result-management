@@ -15,77 +15,45 @@ const EventCardGenerator = () => {
     const [loading, setLoading] = useState(true);
 
     // --- CARD CONFIGURATION ---
-    const [eventTitle, setEventTitle] = useState(t('default_event_title') || 'EVENT TITLE');
-    const [bodyMessage, setBodyMessage] = useState(t('default_event_msg') || 'You are invited.');
-    const [footerText, setFooterText] = useState(t('default_event_footer') || 'ADMIT ONE'); 
+    const [eventTitle, setEventTitle] = useState('CONGRATULATIONS');
+    const [bodyMessage, setBodyMessage] = useState('We are proud of your great achievement!');
+    const [footerText, setFooterText] = useState('Thank You'); 
     
-    const [cardsPerPage, setCardsPerPage] = useState(4); 
+    // Fixed: 4 cards per A4 page (A6 Size)
+    const cardsPerPage = 4; 
+    
     const [customLogo, setCustomLogo] = useState(null); 
-    const [watermarkImage, setWatermarkImage] = useState(null); // <--- NEW STATE
+    const [coverLogo, setCoverLogo] = useState(null);
 
     // --- 1. FETCH DATA ---
     useEffect(() => {
         const loadData = async () => {
             try {
                 const res = await studentService.getAllStudents();
-                const students = res.data.data;
-                setAllStudents(students);
+                setAllStudents(res.data.data);
 
                 let allowed = [];
                 if (['admin', 'staff'].includes(currentUser.role)) {
-                    const uniqueGrades = [...new Set(students.map(s => s.gradeLevel))].sort();
-                    const level = currentUser.schoolLevel ? currentUser.schoolLevel.toLowerCase() : 'all';
-                    if (currentUser.role === 'admin' || level === 'all') allowed = uniqueGrades;
-                    else if (level === 'kg') allowed = uniqueGrades.filter(g => /^(kg|nursery)/i.test(g));
-                    else if (level === 'primary') allowed = uniqueGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
-                    else if (level === 'high school') allowed = uniqueGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
+                    const uniqueGrades = [...new Set(res.data.data.map(s => s.gradeLevel))].sort();
+                    allowed = uniqueGrades;
                 } else if (currentUser.role === 'teacher') {
-                    try {
-                        const profile = await userService.getProfile();
-                        const gradeSet = new Set();
-                        if (profile.data.homeroomGrade) gradeSet.add(profile.data.homeroomGrade);
-                        profile.data.subjectsTaught?.forEach(s => s.subject && gradeSet.add(s.subject.gradeLevel));
-                        allowed = Array.from(gradeSet).sort();
-                    } catch (e) {
-                        allowed = [...new Set(students.map(s => s.gradeLevel))].sort();
-                    }
+                    const profile = await userService.getProfile();
+                    const gradeSet = new Set();
+                    if (profile.data.homeroomGrade) gradeSet.add(profile.data.homeroomGrade);
+                    allowed = Array.from(gradeSet).sort();
                 }
                 setAvailableGrades(allowed);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
+            } catch (err) { console.error(err); } finally { setLoading(false); }
         };
         loadData();
     }, [currentUser]);
 
-    // --- 2. FILTER ---
+    // --- 2. FILTER & PAGINATION ---
     const targetStudents = useMemo(() => {
         if (!selectedGrade) return [];
-        return allStudents
-            .filter(s => s.gradeLevel === selectedGrade)
-            .sort((a, b) => a.fullName.localeCompare(b.fullName));
+        return allStudents.filter(s => s.gradeLevel === selectedGrade).sort((a, b) => a.fullName.localeCompare(b.fullName));
     }, [selectedGrade, allStudents]);
 
-    // --- 3. IMAGE UPLOAD HANDLERS ---
-    const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const url = URL.createObjectURL(file);
-            setCustomLogo(url);
-        }
-    };
-
-    const handleWatermarkUpload = (e) => { // <--- NEW HANDLER
-        const file = e.target.files[0];
-        if (file) {
-            const url = URL.createObjectURL(file);
-            setWatermarkImage(url);
-        }
-    };
-
-    // --- 4. PAGINATION ---
     const pages = useMemo(() => {
         if (!targetStudents.length) return [];
         const chunks = [];
@@ -95,211 +63,247 @@ const EventCardGenerator = () => {
         return chunks;
     }, [targetStudents, cardsPerPage]);
 
-    // --- 5. GRID CONFIGURATION ---
-    const getGridClass = () => {
-        switch (Number(cardsPerPage)) {
-            case 2: return "grid-cols-1 grid-rows-2 gap-y-10"; 
-            case 4: return "grid-cols-2 grid-rows-2 gap-6";   
-            case 6: return "grid-cols-2 grid-rows-3 gap-4";   
-            case 8: return "grid-cols-2 grid-rows-4 gap-y-2 gap-x-4";
-            default: return "grid-cols-2 gap-6";
-        }
+    // --- HANDLERS ---
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) setCustomLogo(URL.createObjectURL(file));
     };
 
-    // Element Sizing Logic
-    const isMini = cardsPerPage >= 8;
-
-    const size = {
-        title: isMini ? "text-lg" : "text-2xl md:text-3xl",
-        schoolName: isMini ? "text-[8px] tracking-wide" : "text-[10px] tracking-[0.2em]",
-        logo: isMini ? "h-6 w-6" : "h-10 w-10",
-        photoContainer: isMini ? "w-14 h-16" : "w-20 h-24",
-        name: isMini ? "text-sm" : "text-xl",
-        gradeLabel: isMini ? "text-[8px] px-2 py-0" : "text-[10px] px-3 py-0.5",
-        message: isMini ? "text-[10px] leading-tight" : "text-xs leading-snug",
-        padding: isMini ? "px-3 py-1" : "px-6 py-2",
-        headerPadding: isMini ? "pt-2 pb-1" : "pt-4 pb-2",
-        footerPadding: isMini ? "py-1 px-3" : "py-2 px-5",
-    };
-
-    const flexType = () => {
-        return cardsPerPage <= 4 ? "flex-col items-center justify-center" : "flex-row items-center";
+    const handleCoverUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) setCoverLogo(URL.createObjectURL(file));
     };
 
     if (loading) return <div className="p-10 text-center">{t('loading')}</div>;
 
     return (
-        <div className="bg-gray-200 min-h-screen p-6 font-sans print:bg-white print:p-0">
+        <div className="bg-gray-100 min-h-screen p-6 font-sans print:bg-white print:p-0">
             
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&family=Caveat:wght@700&family=Great+Vibes&family=Cinzel:wght@700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
 
                 @media print {
                     @page { 
-                        size: A4 portrait; 
-                        margin: 8mm; 
+                        size: A4 landscape; 
+                        margin: 0; 
                     }
-                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
                     .no-print { display: none !important; }
                     
-                    .print-page {
-                        width: 100%;
-                        height: 280mm; 
+                    /* The Page Container */
+                    .print-sheet {
+                        width: 297mm;
+                        height: 210mm;
                         page-break-after: always;
                         display: grid;
-                        align-content: stretch; 
+                        grid-template-columns: 1fr 1fr; /* 2 Wide */
+                        grid-template-rows: 1fr 1fr;    /* 2 High */
+                        padding: 0; 
+                        gap: 0; 
                     }
-                    .print-page:last-child { page-break-after: auto; }
+                    
+                    /* Fix Shadows/Gradients for Print */
+                    .shadow-xl, .shadow-lg, .shadow-md, .shadow-sm {
+                        box-shadow: none !important;
+                        border: 1px solid #ddd !important;
+                    }
+                    .backdrop-blur-sm, .blur-3xl {
+                        filter: none !important;
+                        backdrop-filter: none !important;
+                        display: none !important; /* Hide decorative blobs on print to save ink/confusion */
+                    }
                 }
                 
-                .ceremonial-border {
-                    border: 3px double #1e3a8a;
+                /* --- CARD DESIGN --- */
+                .postcard-container {
+                    width: 100%;
+                    height: 100%;
+                    position: relative;
+                    overflow: hidden;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    border: 1px dotted #e5e7eb; /* Cutting Guide */
+                }
+
+                /* FRONT DESIGN */
+                .card-front {
+                    background: white;
+                    width: 100%; height: 100%;
+                    display: flex;
+                    flex-direction: row;
                     position: relative;
                 }
-                .ceremonial-border::after {
-                    content: '';
-                    position: absolute;
-                    top: 3px; left: 3px; right: 3px; bottom: 3px;
-                    border: 1px solid #d4af37;
-                    pointer-events: none;
+
+                /* BACK DESIGN */
+                .card-back {
+                    background: #fff;
+                    width: 100%; height: 100%;
+                    display: flex;
+                    flex-direction: row;
+                    padding: 10px;
+                }
+
+                .back-left {
+                    width: 40%;
+                    border-right: 1px dashed #ccc;
+                    padding-right: 10px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    text-align: center;
+                }
+
+                .back-right {
+                    width: 60%;
+                    padding-left: 10px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
                 }
             `}</style>
 
             {/* --- CONTROLS (Hidden on Print) --- */}
             <div className="no-print bg-white p-6 rounded-xl shadow-lg mb-8 border border-gray-200 max-w-6xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">🎖️ {t('event_generator_title')}</h2>
-                    <button onClick={() => window.print()} disabled={!selectedGrade} className="bg-gradient-to-r from-blue-800 to-blue-900 text-white px-6 py-2 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50">
-                        🖨️ {t('print')}
+                    <h2 className="text-2xl font-bold text-gray-800">📇 Postcard Generator (A6)</h2>
+                    <button onClick={() => window.print()} disabled={!selectedGrade} className="bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-800 disabled:opacity-50">
+                        🖨️ Print
                     </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">1. {t('audience')}</label>
-                        <select className="w-full border p-2 rounded bg-gray-50" value={selectedGrade} onChange={(e) => setSelectedGrade(e.target.value)}>
+                        <select className="w-full border p-2 rounded" value={selectedGrade} onChange={(e) => setSelectedGrade(e.target.value)}>
                             <option value="">-- {t('select_class')} --</option>
                             {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">2. {t('content')}</label>
-                        <input type="text" placeholder={t('card_title_placeholder')} value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} className="w-full border p-2 rounded mb-2 font-bold" />
-                        <textarea placeholder={t('card_body_placeholder')} value={bodyMessage} onChange={(e) => setBodyMessage(e.target.value)} className="w-full border p-2 rounded mb-2 text-sm h-12 resize-none" />
-                        <input type="text" placeholder={t('card_footer_placeholder')} value={footerText} onChange={(e) => setFooterText(e.target.value)} className="w-full border p-2 rounded text-sm" />
+                        <input type="text" placeholder="Front Text (e.g. Thank You)" value={footerText} onChange={(e) => setFooterText(e.target.value)} className="w-full border p-2 rounded mb-2 font-bold" />
+                        <input type="text" placeholder="Back Header (e.g. CONGRATS)" value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} className="w-full border p-2 rounded mb-2 font-bold" />
+                        <textarea placeholder="Back Message..." value={bodyMessage} onChange={(e) => setBodyMessage(e.target.value)} className="w-full border p-2 rounded text-sm h-12" />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">3. {t('design')}</label>
-                        <div className="flex flex-col gap-2">
-                             <select className="border p-2 rounded w-full text-sm bg-gray-50" value={cardsPerPage} onChange={(e) => setCardsPerPage(Number(e.target.value))}>
-                                <option value={2}>{t('layout_2')}</option>
-                                <option value={4}>{t('layout_4')}</option>
-                                <option value={6}>{t('layout_6')}</option>
-                                <option value={8}>{t('layout_8')}</option>
-                            </select>
-                            
-                            {/* LOGO UPLOAD */}
-                            <div className="relative w-full">
-                                <input type="file" id="logoUpload" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                                <label htmlFor="logoUpload" className="block w-full border border-dashed border-blue-400 p-2 rounded text-center text-sm cursor-pointer hover:bg-blue-50 text-blue-800">
-                                    📷 {customLogo ? t('change_logo') : t('upload_logo')}
-                                </label>
-                            </div>
-
-                            {/* WATERMARK UPLOAD */}
-                            <div className="relative w-full">
-                                <input type="file" id="watermarkUpload" className="hidden" accept="image/*" onChange={handleWatermarkUpload} />
-                                <label htmlFor="watermarkUpload" className="block w-full border border-dashed border-gray-400 p-2 rounded text-center text-sm cursor-pointer hover:bg-gray-50 text-gray-600">
-                                    🖼️ {watermarkImage ? "Change Background" : "Upload Background"}
-                                </label>
-                            </div>
-                        </div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">3. Images</label>
+                        <label className="block w-full border border-dashed border-blue-400 p-2 rounded text-center text-sm cursor-pointer hover:bg-blue-50 text-blue-800 font-bold mb-2">
+                            📷 {customLogo ? t('change_logo') : t('upload_logo')}
+                            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                        </label>
+                        <label className="block w-full border border-dashed border-gray-400 p-2 rounded text-center text-sm cursor-pointer hover:bg-gray-50 text-gray-600">
+                            🖼️ {coverLogo ? "Change Cover" : "Upload Cover"}
+                            <input type="file" className="hidden" accept="image/*" onChange={handleCoverUpload} />
+                        </label>
                     </div>
                 </div>
             </div>
 
             {/* --- PREVIEW AREA --- */}
             {selectedGrade ? (
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center gap-10">
                     {pages.map((pageStudents, pageIndex) => (
-                        <div key={pageIndex} className={`print-page ${getGridClass()} grid bg-white shadow-2xl mb-8 print:shadow-none print:mb-0`}>
-                            {pageStudents.map((student) => (
-                                <div key={student._id} className="relative bg-[#fffdf5] ceremonial-border rounded-lg flex flex-col overflow-hidden break-inside-avoid print:break-inside-avoid shadow-sm h-full">
-                                    
-                                    {/* --- WATERMARK (BACKGROUND) --- */}
-                                    {watermarkImage && (
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-[0.20] pointer-events-none">
-                                            <img src={watermarkImage} className="w-full h-full object-cover grayscale" alt="" />
-                                        </div>
-                                    )}
+                        <React.Fragment key={pageIndex}>
+                            
+                            {/* === PAGE 1: FRONTS (4 Cards) === */}
+                            <div className="print-sheet bg-white shadow-xl print:shadow-none grid grid-cols-2 grid-rows-2 w-[297mm] h-[210mm] mb-10">
+                                {pageStudents.map((student) => (
+                                    <div key={`front-${student._id}`} className="postcard-container p-2">
+                                        <div className="card-front relative w-full h-full rounded-lg overflow-hidden border border-gray-200">
+                                            
+                                            {/* Decorative Background (Screen Only) */}
+                                            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 print:bg-white"></div>
+                                            <div className="absolute -top-10 -left-10 w-44 h-44 bg-pink-200 rounded-full blur-3xl opacity-60 print:hidden"></div>
+                                            <div className="absolute -bottom-10 -right-10 w-44 h-44 bg-blue-200 rounded-full blur-3xl opacity-60 print:hidden"></div>
 
-                                    {/* --- HEADER --- */}
-                                    <div className={`relative z-10 text-center ${size.headerPadding}`}>
-                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-yellow-500 via-yellow-300 to-yellow-600 rounded-b-lg shadow-sm"></div>
+                                            {/* LEFT HALF: Title & Logo */}
+                                            <div className="relative z-10 w-1/2 h-full flex flex-col items-center justify-center p-4 text-center bg-white/80 print:bg-white">
+                                                {customLogo && <img src={customLogo} alt="Logo" className="h-12 w-12 object-contain mb-3" />}
+                                                
+                                                <h1 className="text-3xl font-extrabold text-gray-800 tracking-wide font-script leading-none">
+                                                    {footerText}
+                                                </h1>
+                                                
+                                                <div className="w-12 h-1 bg-blue-600 my-3 rounded-full print:bg-black"></div>
+                                                
+                                                <p className="text-[10px] font-bold text-blue-900 uppercase tracking-[0.2em]">
+                                                    {t('app_name')}
+                                                </p>
+                                            </div>
 
-                                        {customLogo && (
-                                            <img src={customLogo} alt="Logo" className={`${size.logo} object-contain mx-auto mb-1`} />
-                                        )}
-
-                                        <h3 className={`${size.schoolName} font-bold text-gray-400 uppercase`}>
-                                            {t('app_name')}
-                                        </h3>
-
-                                        <h2
-                                            className={`${size.title} font-bold text-blue-900 tracking-wide mt-0.5 drop-shadow-sm`}
-                                            style={{ fontFamily: '"Cinzel", serif' }}
-                                        >
-                                            {eventTitle}
-                                        </h2>
-                                    </div>
-
-                                    {/* --- BODY --- */}
-                                    <div className={`z-10 flex-1 flex ${flexType()} ${size.padding} gap-3`}>
-                                        
-                                        {/* Photo Frame */}
-                                        <div className="shrink-0 relative group">
-                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-lg blur opacity-30"></div>
-                                            <div className={`relative ${size.photoContainer} rounded-lg overflow-hidden shadow-md border-2 border-white bg-white`}>
-                                                {student.imageUrl ? (
-                                                    <img src={student.imageUrl} alt="" className="w-full h-full object-cover" />
+                                            {/* RIGHT HALF: Cover Image */}
+                                            <div className="w-1/2 h-full relative overflow-hidden bg-gray-100 print:border-l print:border-gray-200">
+                                                {coverLogo ? (
+                                                    <img src={coverLogo} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-[8px] text-gray-400">No Photo</div>
+                                                    <div className="flex items-center justify-center h-full text-gray-400 text-xs">No Cover Image</div>
                                                 )}
                                             </div>
-                                        </div>
 
-                                        {/* Text Info */}
-                                        <div className="flex-1 text-center">
-                                            <p className="text-[8px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">{t('presented_to')}</p>
-                                            <h3 className={`${size.name} font-bold text-gray-900 leading-none tracking-wide`} style={{ fontFamily: '"Playfair Display", serif' }}>
-                                                {student.fullName}
-                                            </h3>
-                                            <div className={`inline-flex items-center ${size.gradeLabel} rounded-full bg-blue-50 border border-blue-100 font-bold uppercase text-blue-800 tracking-wide mb-1 mt-1`}>
-                                                {student.gradeLevel}
-                                            </div>
-                                            {!isMini && <div className="w-10 h-px bg-gradient-to-r from-transparent via-yellow-500 to-transparent mx-auto mb-1"></div>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* === PAGE 2: BACKS (4 Cards) === */}
+                            <div className="print-sheet bg-white shadow-xl print:shadow-none grid grid-cols-2 grid-rows-2 w-[297mm] h-[210mm]">
+                                {pageStudents.map((student) => (
+                                    <div key={`back-${student._id}`} className="postcard-container p-2">
+                                        <div className="card-back rounded-lg border border-gray-200">
                                             
-                                            <p className={`${size.message} font-serif italic text-gray-600 px-1`}>
-                                                “{bodyMessage}”
-                                            </p>
+                                            {/* Left: Message */}
+                                            <div className="back-left bg-gradient-to-br from-blue-50 to-white print:bg-white">
+                                                <h3 className="text-sm font-extrabold text-blue-800 uppercase tracking-widest mb-1">{eventTitle}</h3>
+                                                <div className="text-xl mb-2">🎉</div>
+                                                <p className="text-[10px] font-serif italic text-gray-700 leading-relaxed px-1">
+                                                    "{bodyMessage}"
+                                                </p>
+                                                <div className="mt-auto pt-2 w-full text-center">
+                                                    <p className="text-[8px] text-gray-400 uppercase font-bold">From</p>
+                                                    <p className="text-[10px] font-bold text-black border-b border-gray-300 pb-1">{t('app_name')}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Right: Student Details (Centered Photo) */}
+                                            <div className="back-right bg-white">
+                                                
+                                                {/* Large Photo */}
+                                                <div className="w-24 h-28 rounded-md overflow-hidden border-[3px] border-blue-200 shadow-sm bg-gray-200 mb-2 relative print:border-black print:shadow-none">
+                                                    {student.imageUrl ? (
+                                                        <img src={student.imageUrl} alt="" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-[9px] text-gray-400">Photo</div>
+                                                    )}
+                                                </div>
+
+                                                {/* Info */}
+                                                <h2 className="text-lg font-bold text-gray-900 leading-tight font-script">
+                                                    {student.fullName}
+                                                </h2>
+                                                <div className="flex gap-2 mt-1">
+                                                    <span className="text-[9px] bg-gray-100 px-2 py-0.5 rounded border text-gray-600 print:border-black">
+                                                        {student.gradeLevel}
+                                                    </span>
+                                                    <span className="text-[9px] bg-gray-100 px-2 py-0.5 rounded border text-gray-600 print:border-black">
+                                                        {student.studentId}
+                                                    </span>
+                                                </div>
+
+                                            </div>
+
                                         </div>
                                     </div>
+                                ))}
+                            </div>
 
-                                    {/* --- FOOTER --- */}
-                                    <div className={`z-10 bg-gradient-to-r from-blue-900 to-indigo-900 text-white ${size.footerPadding} flex justify-between items-center text-[9px] uppercase tracking-widest shadow-inner mt-auto`}>
-                                        <span className="opacity-80 font-mono">{student.studentId}</span>
-                                        <span className="font-bold text-orange-500 drop-shadow-md">{footerText}</span>
-                                    </div>
-
-                                </div>
-                            ))}
-                        </div>
+                        </React.Fragment>
                     ))}
                 </div>
             ) : (
-                <div className="text-center mt-20">
-                    <div className="inline-block p-8 border-4 border-dashed border-gray-300 rounded-2xl bg-white text-gray-400 font-bold text-xl">
-                        {t('select_grade_msg')}
-                    </div>
+                <div className="text-center p-20 text-gray-400 border-4 border-dashed border-gray-300 rounded-xl bg-white">
+                    Select a grade to generate A6 postcards.
                 </div>
             )}
         </div>
