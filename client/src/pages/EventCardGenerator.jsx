@@ -154,7 +154,7 @@ const EventCardGenerator = () => {
                 .card-wrapper:nth-child(1) { border-right: 1px dashed #ddd; border-bottom: 1px dashed #ddd; }
                 .card-wrapper:nth-child(2) { border-bottom: 1px dashed #ddd; }
                 .card-wrapper:nth-child(3) { border-right: 1px dashed #ddd; }
-                .font-script { font-family: 'Great Vibes', cursive; }
+                .font-script { font-family: 'Caveat', cursive; }
 
 
                 .card-inner { width: 100%; height: 100%; position: relative; overflow: hidden; }
@@ -245,13 +245,13 @@ const EventCardGenerator = () => {
                                 
                                 {pageStudents.map((student) => (
                                     <div key={`front-${student._id}`} className="card-wrapper">
-                                        <div className="card-inner flex bg-slate-900 text-white">
+                                        <div className="card-inner flex bg-slate-500 text-white">
                                             <div className="w-[55%] p-6 flex flex-col justify-center relative z-10">
                                                 <div className="absolute -top-10 -left-10 w-32 h-32 bg-slate-800 rounded-full opacity-50"></div>
                                                 {customLogo && <img src={customLogo} alt="Logo" className="h-8 w-auto mb-6 object-contain self-start relative z-10" />}
                                                 
                                                 <div className="relative z-10">
-                                                    <p className="font-sans-body text-[10px] font-bold text-amber-500 uppercase tracking-[0.25em] mb-2 ">{eventTitle}</p>
+                                                    <p className="font-sans-body text-[10px] font-bold text-yellow-400 uppercase tracking-[0.25em] mb-2 ">{eventTitle}</p>
                                                     <h1 className="font-serif-display text-4xl text-white leading-none mb-4">{footerText}</h1>
                                                     <div className="w-12 h-1 bg-amber-500"></div>
                                                 </div>
@@ -276,40 +276,40 @@ const EventCardGenerator = () => {
                             </div>
 
                             {/* === SIDE B: BACKS === */}
-                            <div className="print-sheet bg-white shadow-2xl print:shadow-none relative">
+                            <div className="print-sheet bg-state-600 shadow-2xl print:shadow-none relative">
                                 <div className="absolute -top-6 left-0 text-xs text-gray-400 font-mono no-print">Page {pageIndex + 1} - Backs</div>
 
                                 {reorderForBackSide(pageStudents).map((student, idx) => (
                                     <div key={student ? `back-${student._id}` : `empty-${idx}`} className="card-wrapper">
                                         {!student ? <div className="card-inner bg-white"/> : (
                                             /* Split Layout */
-                                            <div className="card-inner flex flex-row relative">
+                                            <div className="card-inner bg-slate-600 flex flex-row relative">
                                                 
                                                 {/* Left: Message */}
-                                                <div className="w-1/2 p-6 flex flex-col justify-center bg-white">
+                                                <div className="w-1/2 p-6 flex-1  flex flex-col gap-4 justify-center bg-white">
                                                     <p className="font-serif-display italic text-lg text-slate-800 leading-snug mb-4">"{bodyMessage}"</p>
-                                                    <div className="mt-auto">
-                                                        <p className="font-sans-body text-[8px] text-amber-600 uppercase font-bold tracking-wider">Authorized Signature</p>
+                                                    <div className="">
+                                                        <p className="font-sans-body text-[8px] text-amber-600 uppercase right-2 font-bold tracking-wider">Authorized Signature</p>
                                                         <div className="font-serif-display text-sm text-slate-900 mt-1">{t('app_name')}</div>
                                                     </div>
                                                 </div>
 
                                                 {/* Right: Student Info (Color) */}
                                                 <div className="w-1/2 p-4 flex flex-col items-center justify-center bg-slate-900 text-white relative">
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 z-0"></div>
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-400 to-slate-700 z-0"></div>
                                                     <div className="z-10 flex flex-col items-center w-full">
-                                                        <div className="w-24 h-24 mb-3 rounded-lg border-2 border-amber-500 overflow-hidden shadow-lg bg-gray-200">
+                                                        <div className="w-32 h-32 mb-6 rounded-lg border-2 border-amber-500 rotate-5 overflow-hidden shadow-lg bg-gray-200">
                                                             {student.imageUrl ? (
                                                                 <img src={student.imageUrl} 
                                                                      onError={(e) => {e.target.style.display='none'; e.target.nextSibling.style.display='flex'}} 
-                                                                     alt="" className="w-full h-full object-cover" />
+                                                                     alt="" className="w-full h-full rotate-5 object-cover" />
                                                             ) : null}
                                                             <div className="w-full h-full flex items-center justify-center text-slate-400" style={{display: student.imageUrl ? 'none' : 'flex'}}>
                                                                 <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                                                             </div>
                                                         </div>
                                                         <div className="text-center">
-                                                            <div className="font-serif-display text-lg font-bold leading-tight mb-1 truncate px-2 font-script">{student.fullName}</div>
+                                                            <div className="font-serif-display text-italic text-lg font-bold leading-tight mb-1 truncate px-2">{student.fullName}</div>
                                                             <div className="inline-block bg-amber-500 text-slate-900 text-[10px] font-bold px-3 py-0.5 rounded mt-1">
                                                                 Grade {student.gradeLevel}
                                                             </div>
