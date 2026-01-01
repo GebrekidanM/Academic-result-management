@@ -118,8 +118,7 @@ const EventCardGenerator = () => {
         <div className="bg-gray-50 min-h-screen p-6 font-sans print:bg-white print:p-0">
             
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
-
+                @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cinzel:wght@700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Ethiopic:wght@400;700&display=swap');
                 @media print {
                     @page { 
                         size: A4 landscape; 
@@ -155,6 +154,8 @@ const EventCardGenerator = () => {
                 .card-wrapper:nth-child(1) { border-right: 1px dashed #ddd; border-bottom: 1px dashed #ddd; }
                 .card-wrapper:nth-child(2) { border-bottom: 1px dashed #ddd; }
                 .card-wrapper:nth-child(3) { border-right: 1px dashed #ddd; }
+                .font-script { font-family: 'Great Vibes', cursive; }
+
 
                 .card-inner { width: 100%; height: 100%; position: relative; overflow: hidden; }
             `}</style>
@@ -250,7 +251,7 @@ const EventCardGenerator = () => {
                                                 {customLogo && <img src={customLogo} alt="Logo" className="h-8 w-auto mb-6 object-contain self-start relative z-10" />}
                                                 
                                                 <div className="relative z-10">
-                                                    <p className="font-sans-body text-[10px] font-bold text-amber-500 uppercase tracking-[0.25em] mb-2">{eventTitle}</p>
+                                                    <p className="font-sans-body text-[10px] font-bold text-amber-500 uppercase tracking-[0.25em] mb-2 ">{eventTitle}</p>
                                                     <h1 className="font-serif-display text-4xl text-white leading-none mb-4">{footerText}</h1>
                                                     <div className="w-12 h-1 bg-amber-500"></div>
                                                 </div>
@@ -308,7 +309,7 @@ const EventCardGenerator = () => {
                                                             </div>
                                                         </div>
                                                         <div className="text-center">
-                                                            <div className="font-serif-display text-lg font-bold leading-tight mb-1 truncate px-2">{student.fullName}</div>
+                                                            <div className="font-serif-display text-lg font-bold leading-tight mb-1 truncate px-2 font-script">{student.fullName}</div>
                                                             <div className="inline-block bg-amber-500 text-slate-900 text-[10px] font-bold px-3 py-0.5 rounded mt-1">
                                                                 Grade {student.gradeLevel}
                                                             </div>
