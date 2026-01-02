@@ -30,7 +30,7 @@ app.use('/api/student-auth', require('./routes/studentAuthRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/delete-password', require('./deletePassword'));
-
+app.use('/api/library', require('./routes/LibraryRoutes'));
 // --- Models ---
 const Grade = require('./models/Grade');
 

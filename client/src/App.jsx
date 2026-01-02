@@ -41,6 +41,7 @@ import GradeSheetPage from './pages/GradeSheetPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
 import StudentIDPage from './pages/StudentIDPage';
+import LibraryPage from './pages/LibraryPage';
 // 5. Admin-Only Pages
 import UserManagementPage from './pages/UserManagementPage';
 import UserEditPage from './pages/UserEditPage';
@@ -138,6 +139,7 @@ function App() {
           {/* === 4. UNIVERSAL LOGGED-IN ROUTES === */}
           <Route element={<UniversalRoute />}>
             <Route path="/students/:id/report" element={<ReportCardPage />} />
+            <Route path="/library" element={<LibraryPage />} />
           </Route>
         </Routes>
       </main>

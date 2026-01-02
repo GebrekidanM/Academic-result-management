@@ -342,7 +342,17 @@ rank_3: "3ይ ደረጃ",
 principal_signature: "ፊርማ ርእሰ መምህር",
 date_awarded: "ዝተወሃበሉ ዕለት",
 generate_certificates: "ሰርተፍኬት ኣዳልው",
-no_top_students: "ናይዚ ክፍሊ ደረጃ ኣይተሰርሐን።"
+no_top_students: "ናይዚ ክፍሊ ደረጃ ኣይተሰርሐን።",
+// --- Library ---
+    school_library: "ቤተ-መጻሕፍቲ ቤት ትምህርቲ",
+    upload_resource: "መጽሓፍ ጽዓን",
+    search_title: "ብርእሲ ድለ...",
+    all_grades: "ኩሎም ክፍሊታት",
+    filter_subject: "ብዓይነት ትምህርቲ ፈልይ...",
+    upload_new_material: "ሓዲሽ መጽሓፍ/ጽሑፍ ጽዓን",
+    uploading: "ይጽዕን ኣሎ...",
+    submit_upload: "ጽዓን",
+    read: "ኣንብብ / ኣውርድ"
 
   }
 };

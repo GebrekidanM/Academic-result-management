@@ -329,6 +329,16 @@ rank_3: "Sadarkaa 3ffaa",
 principal_signature: "Mallattoo Daarektaraa",
 date_awarded: "Guyyaa Kenname",
 generate_certificates: "Waraqaa Ragaa Uumi",
-no_top_students: "Sadarkaan hin qophoofne."
+no_top_students: "Sadarkaan hin qophoofne.",
+// --- Library ---
+    school_library: "Mana Kitaabaa",
+    upload_resource: "Kitaaba Fe'i",
+    search_title: "Matadureen Barbaadi...",
+    all_grades: "Kutaalee Hunda",
+    filter_subject: "Gosa Barnootaan Calali...",
+    upload_new_material: "Barreeffama Haaraa Fe'i",
+    uploading: "Fe'aa jira...",
+    submit_upload: "Galchi",
+    read: "Dubbisi / Buufadhu"
   }
 };

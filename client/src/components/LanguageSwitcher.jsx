@@ -20,6 +20,8 @@ const LanguageSwitcher = ({closeMenu}) => {
         <option value="am" onClick={closeMenu}>🇪🇹 አማርኛ</option>
         <option value="om" onClick={closeMenu}>🌳 Afaan Oromoo</option>
         <option value="ti" onClick={closeMenu}>⛰️ ትግርኛ</option>
+        <option value="so" onClick={closeMenu}>🇸🇴 Soomaali</option>
+        <option value="af" onClick={closeMenu}>🇩🇯 Qafaraf</option>
       </select>
       
       {/* Custom Arrow Icon for the select box */}

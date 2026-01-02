@@ -322,6 +322,16 @@ rank_3: "3ኛ ደረጃ",
 principal_signature: "የርዕሰ መምህር ፊርማ",
 date_awarded: "የተሰጠበት ቀን",
 generate_certificates: "ሰርተፍኬቶችን አዘጋጅ",
-no_top_students: "ለዚህ ክፍል ደረጃ አልተሰራም።"
+no_top_students: "ለዚህ ክፍል ደረጃ አልተሰራም።",
+// --- Library ---
+    school_library: "የትምህርት ቤት ቤተ-መጽሐፍት",
+    upload_resource: "መጽሐፍ/መርጃ ጫን",
+    search_title: "በርዕስ ይፈልጉ...",
+    all_grades: "ሁሉም ክፍሎች",
+    filter_subject: "በትምህርት ዓይነት አጣራ...",
+    upload_new_material: "አዲስ የትምህርት መርጃ ጫን",
+    uploading: "በመጫን ላይ...",
+    submit_upload: "ጫን (Upload)",
+    read: "አንብብ / አውርድ"
   }
 };

@@ -327,5 +327,15 @@ certificate_body_en: "This certificate is proudly awarded to",
 achievement_en: "For achieving",
 certificate_body_am: "ይህ የሽልማት ወረቀት ለ",
 achievement_am: "በማስተማር ውጤት ላይ ለማሳደግ",
+
+school_library: "School Library",
+upload_resource: "Upload Resource",
+search_title: "Search by Title...",
+all_grades: "All Grades",
+filter_subject: "Filter Subject...",
+upload_new_material: "Upload New Material",
+uploading: "Uploading...",
+submit_upload: "Submit Upload",
+read: "Read / Download"
   }
 };

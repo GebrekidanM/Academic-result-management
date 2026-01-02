@@ -3,8 +3,10 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { en } from "./locales/en";
 import { am } from "./locales/am";
-import { om } from "./locales/om"; // <--- Import Oromo
-import { ti } from "./locales/ti"; // <--- Import Tigrinya
+import { om } from "./locales/om"; 
+import { ti } from "./locales/ti"; 
+import { so } from "./locales/so";
+import { af } from "./locales/af";
 
 i18n
   .use(LanguageDetector)
@@ -13,8 +15,10 @@ i18n
     resources: {
       en: en,
       am: am,
-      om: om, // <--- Add here
-      ti: ti  // <--- Add here
+      om: om,
+      ti: ti,
+      so:so,
+      af:af
     },
     fallbackLng: "en",
     interpolation: {

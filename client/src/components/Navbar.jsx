@@ -68,7 +68,6 @@ const Navbar = ({ isOpen, setIsOpen }) => {
   return (
     <nav className="bg-gray-900 min-h-[4rem] p-2 shadow-lg sticky top-0 z-50 font-sans print:hidden">
       <div className="container mx-auto flex items-center justify-between flex-wrap">
-        
         {/* Logo */}
         <div className="flex items-center flex-shrink-0 text-white mr-6">
           <Link to={currentUser ? "/" : "/parent/dashboard"} onClick={closeMenu} className="font-bold text-xl tracking-tight flex items-center gap-2">
@@ -158,6 +157,18 @@ const Navbar = ({ isOpen, setIsOpen }) => {
               </>
             )}
           </div>
+
+          {/* Library Link */}
+          {
+            (currentUser || currentStudent) ? (
+              <div className="mt-4 md:mt-0 md:ml-4">
+                <NavLink to="/library" className={navLinkClass} onClick={closeMenu}>
+                  📚 {t('school_library')}
+                </NavLink>
+              </div>
+            ): null
+          }
+          
           
           {/* Language Switcher */}
           <div className="mt-4 md:mt-0 md:ml-4">
@@ -166,7 +177,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
 
           {/* Logout Button */}
           <div className="mt-4 md:mt-0 md:ml-4">
-            {currentUser || currentStudent ? (
+            {(currentUser || currentStudent )? (
               <button
                 onClick={handleLogout}
                 className="w-full md:w-auto bg-red-600 text-white font-bold py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm"
