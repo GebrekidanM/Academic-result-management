@@ -6,7 +6,6 @@ import authService from '../services/authService';
 const LibraryPage = () => {
     const { t } = useTranslation();
     const [currentUser] = useState(authService.getCurrentUser());
-    
     // --- Data State ---
     const [resources, setResources] = useState([]);
     const [filteredResources, setFilteredResources] = useState([]);
@@ -25,8 +24,8 @@ const LibraryPage = () => {
         type: 'Book', 
         gradeLevel: '', 
         subject: '', 
-        file: null,    // The PDF/Doc
-        cover: null    // The Cover Image
+        file: null,    
+        cover: null    
     });
 
     // --- 1. LOAD DATA ---
@@ -132,7 +131,7 @@ const LibraryPage = () => {
         return `${SERVER_URL}${path}`;
     };
 
-    const canUpload = ['admin', 'teacher', 'staff'].includes(currentUser.role);
+    const canUpload = ['admin', 'teacher', 'staff'].includes(currentUser?.role);
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen font-sans">
@@ -307,7 +306,7 @@ const LibraryPage = () => {
                                             <span>👀</span> {t('read')}
                                         </a>
                                         
-                                        {(currentUser.role === 'admin' || currentUser._id === item.uploadedBy?._id) && (
+                                        {(currentUser?.role === 'admin' || currentUser?._id === item.uploadedBy?._id) && (
                                             <button 
                                                 onClick={() => handleDelete(item._id)} 
                                                 className="px-3 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200 transition-colors"
