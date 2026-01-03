@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import NotificationPermission from './components/NotificationPermission';
 // --- Component Imports ---
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute'; 
@@ -77,6 +78,7 @@ function App() {
       });
     }
   }, []);
+  
 
   return (
     <div className="bg-gray-100 min-h-screen relative"> {/* Added relative for positioning */}
@@ -84,6 +86,7 @@ function App() {
       {/* --- 3. ADD OFFLINE UI HERE --- */}
       <SyncStatus /> 
       {/* ----------------------------- */}
+      <NotificationPermission />
 
       <Navbar isOpen={isOpen} setIsOpen={setIsOpen}/> 
       

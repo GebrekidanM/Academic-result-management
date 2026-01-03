@@ -331,15 +331,34 @@ exports.getTeachers = async (req,res) => {
     }
 }
 
-// @route POST /api/users/subscribe
+// @desc    Save Push Subscription
+// @route   POST /api/users/subscribe
 exports.saveSubscription = async (req, res) => {
-    const subscription = req.body;
-    const user = await User.findById(req.user._id);
-    if (user) {
-        user.pushSubscription = subscription;
-        await user.save();
-        res.status(201).json({});
-    } else {
-        res.status(404);
+    try {
+        const subscription = req.body;
+        const userId = req.user._id;
+
+        // Determine if it's a Student or User based on middleware
+        // (You might need logic here if you have separate collections)
+        // For now assuming User model:
+        const User = require('../models/User'); 
+        const Student = require('../models/Student');
+
+        let user = await User.findById(userId);
+        if (!user) {
+            user = await Student.findById(userId);
+        }
+
+        if (user) {
+            user.pushSubscription = subscription;
+            await user.save();
+            console.log(`🔔 Subscription saved for ${user.fullName}`);
+            res.status(201).json({});
+        } else {
+            res.status(404).json({ message: "User not found" });
+        }
+    } catch (error) {
+        console.error("Sub Error:", error);
+        res.status(500).json({ message: "Server Error" });
     }
 };
