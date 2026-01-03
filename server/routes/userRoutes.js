@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { getUsersBySchoolLevel, getUserById,getTeachers ,updateUser,getUserProfile ,bulkCreateUsers,updateUserProfile, deleteUser, updateOtherUserProfile} = require('../controllers/userController');
+const { getUsersBySchoolLevel, getUserById,saveSubscription ,getTeachers ,updateUser,getUserProfile ,bulkCreateUsers,updateUserProfile, deleteUser, updateOtherUserProfile} = require('../controllers/userController');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
 const { protect, authorize } = require('../middleware/authMiddleware');
-
+router.post('/subscribe', protect, saveSubscription)
 router.post('/upload', protect, authorize('admin','staff'), upload.single('usersFile'), bulkCreateUsers);
 router.route('/profile')
     .get(protect, getUserProfile)

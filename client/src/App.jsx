@@ -1,7 +1,8 @@
 // src/App.js
 import React, { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 // --- Component Imports ---
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute'; 
@@ -61,6 +62,7 @@ import AtRiskStudents from './pages/AtRiskStudents';
 import AllSubjectAnalytics from './pages/AllSubjectAnalytics';
 
 import CertificatePage from './pages/CertificatePage';
+import SendNotificationPage from './pages/SendNotificationPage';
 
 function App() {
   const [isOpen, setIsOpen] = useState(false);
@@ -114,6 +116,7 @@ function App() {
             
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
+              <Route path='send_notification' element={<SendNotificationPage/>}/>
               <Route path="/certificates" element={<CertificatePage />} />
               <Route path="/id-cards" element={<StudentIDPage />} />
               <Route path="/events/generator" element={<EventCardGenerator />} />
@@ -140,11 +143,12 @@ function App() {
           <Route element={<UniversalRoute />}>
             <Route path="/students/:id/report" element={<ReportCardPage />} />
             <Route path="/library" element={<LibraryPage />} />
+            
           </Route>
         </Routes>
       </main>
       <OfflineBanner /> 
-
+      <ToastContainer position="top-right" autoClose={5000} />
     </div>
   );
 }

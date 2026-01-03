@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './NotificationBell';
 
 const NavDropdown = ({ title, children }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -71,7 +72,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
         {/* Logo */}
         <div className="flex items-center flex-shrink-0 text-white mr-6">
           <Link to={currentUser ? "/" : "/parent/dashboard"} onClick={closeMenu} className="font-bold text-xl tracking-tight flex items-center gap-2">
-            🏫 {t('app_name')}
+            {t('app_name')}
           </Link>
         </div>
 
@@ -152,6 +153,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     <NavLink to="/admin/users" className={dropdownLinkClass} onClick={closeMenu}>
                         {t('manage_staff')}
                     </NavLink>
+                    <NavLink to="send_notification" className={dropdownLinkClass} onClick={closeMenu}>Send Notification</NavLink>
                   </NavDropdown>
                 )}
               </>
@@ -161,11 +163,14 @@ const Navbar = ({ isOpen, setIsOpen }) => {
           {/* Library Link */}
           {
             (currentUser || currentStudent) ? (
+              <>
               <div className="mt-4 md:mt-0 md:ml-4">
                 <NavLink to="/library" className={navLinkClass} onClick={closeMenu}>
                   📚 {t('school_library')}
                 </NavLink>
               </div>
+              <NotificationBell />
+              </>
             ): null
           }
           

@@ -31,6 +31,7 @@ app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/delete-password', require('./deletePassword'));
 app.use('/api/library', require('./routes/LibraryRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 // --- Models ---
 const Grade = require('./models/Grade');
 

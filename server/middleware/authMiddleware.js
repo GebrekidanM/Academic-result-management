@@ -75,34 +75,49 @@ exports.isHomeroomTeacherOrAdmin = (req, res, next) => {
 
     return res.status(403).json({ message: 'Forbidden: You are not the homeroom teacher for this grade.' });
 };
+
 exports.isHomeroomTeacherForStudent = async (req, res, next) => {
-    if (req.user.role === 'admin'||req.user.role === 'staff') {
+    if (req.user.role === 'admin' || req.user.role === 'staff') {
         return next();
     }
 
-    const studentId = req.body.studentId || req.params.studentId;
-    if (!studentId) {
-        if (req.params.reportId) {
-            const report = await behavioralReportService.getReportById(req.params.reportId);
-            if(report) studentId = report.student.toString();
+    let studentId = req.body.studentId || req.params.studentId;
+
+    // If no studentId provided, check if we are dealing with a Report ID (e.g. Delete/Edit Report)
+    if (!studentId && req.params.reportId) {
+        try {
+            const report = await BehavioralReport.findById(req.params.reportId);
+            if (report) {
+                studentId = report.student.toString();
+            }
+        } catch (err) {
+            return res.status(404).json({ message: 'Report not found.' });
         }
-        if (!studentId) return res.status(400).json({ message: 'Student ID is required.' });
     }
 
-    const student = await Student.findById(studentId);
-    if (!student) {
-        return res.status(404).json({ message: 'Student not found.' });
+    if (!studentId) {
+        return res.status(400).json({ message: 'Student ID is required.' });
     }
 
-    if (
-        req.user.role === 'teacher' && 
-        req.user.homeroomGrade &&
-        req.user.homeroomGrade === student.gradeLevel
-    ) {
-        return next(); // Authorized!
-    }
+    try {
+        const student = await Student.findById(studentId);
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found.' });
+        }
 
-    return res.status(403).json({ message: 'Forbidden: You are not the homeroom teacher for this student.' });
+        if (
+            req.user.role === 'teacher' && 
+            req.user.homeroomGrade &&
+            req.user.homeroomGrade === student.gradeLevel
+        ) {
+            return next(); // Authorized!
+        }
+
+        return res.status(403).json({ message: 'Forbidden: You are not the homeroom teacher for this student.' });
+
+    } catch (err) {
+        return res.status(500).json({ message: 'Server Error verifying homeroom status.' });
+    }
 };
 
 exports.protectStudent = async (req, res, next) => {

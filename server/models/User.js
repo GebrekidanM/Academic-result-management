@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema({
     },
 
     password: { type: String, required: true, select: false },
-
+    pushSubscription: { type: Object }, // For web push notifications
     schoolLevel:{
         type: String, 
         required: true,

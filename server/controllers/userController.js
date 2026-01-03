@@ -331,3 +331,15 @@ exports.getTeachers = async (req,res) => {
     }
 }
 
+// @route POST /api/users/subscribe
+exports.saveSubscription = async (req, res) => {
+    const subscription = req.body;
+    const user = await User.findById(req.user._id);
+    if (user) {
+        user.pushSubscription = subscription;
+        await user.save();
+        res.status(201).json({});
+    } else {
+        res.status(404);
+    }
+};
