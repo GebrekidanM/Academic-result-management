@@ -1,9 +1,11 @@
 import React from 'react';
 import axios from 'axios';
 import authService from '../services/authService';
+import studentAuthService from '../services/studentAuthService'; // <--- 1. Import this
 
 // Helper to convert VAPID key
 function urlBase64ToUint8Array(base64String) {
+  if (!base64String) return new Uint8Array(0); // Safety check
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
     .replace(/\-/g, '+')
@@ -20,46 +22,62 @@ function urlBase64ToUint8Array(base64String) {
 
 const NotificationPermission = () => {
   const subscribe = async () => {
-    // 1. Check if Service Worker is ready
+    // 1. Check Service Worker
     if (!('serviceWorker' in navigator)) return alert("No Service Worker support!");
     
     const registration = await navigator.serviceWorker.ready;
+    console.log("Service Worker Ready:", registration);
 
     try {
-      // 2. Ask Browser for Permission
+      // 2. Check VAPID Key
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        alert("Missing VAPID Key in frontend .env file!");
+        return;
+      }
+
+      // 3. Ask Browser for Permission
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        // Make sure this matches your Backend VAPID_PUBLIC_KEY exactly
-        applicationServerKey: urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY)
+        applicationServerKey: urlBase64ToUint8Array(vapidKey)
       });
 
       console.log("Got Subscription:", subscription);
 
-      // 3. Send Subscription to Backend
-      // Note: We use the auth token to know WHO this subscription belongs to
-      const user = authService.getCurrentUser();
-      const token = user?.token;
+      // 4. Get Current User (Admin OR Student) --- FIX HERE ---
+      let user = authService.getCurrentUser();
+      if (!user) {
+          user = studentAuthService.getCurrentStudent();
+      }
 
-      if (!token) return alert("Please login first.");
+      if (!user || !user.token) {
+          return alert("Please login first.");
+      }
 
+      // 5. Send to Backend
       await axios.post('/api/users/subscribe', subscription, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${user.token}` }
       });
 
-      alert("✅ Notifications Enabled!");
+      alert("✅ Notifications Enabled! You will receive updates even if the app is closed.");
 
     } catch (err) {
       console.error("Subscription failed:", err);
-      alert("Failed to subscribe. Check console.");
+      // Helpful error messages
+      if (err.response && err.response.status === 404) {
+          alert("Error 404: The backend route '/api/users/subscribe' does not exist. Please restart the server.");
+      } else {
+          alert("Failed to subscribe. " + err.message);
+      }
     }
   };
 
   return (
     <button 
       onClick={subscribe}
-      className="fixed bottom-4 left-4 bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg z-50 hover:bg-purple-700 transition-all print:hidden"
+      className="fixed bottom-4 left-4 bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg z-50 hover:bg-purple-700 transition-all print:hidden flex items-center gap-2"
     >
-      🔔 Enable Alerts
+      <span>🔔</span> Enable Alerts
     </button>
   );
 };
