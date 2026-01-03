@@ -1,5 +1,6 @@
 import React from 'react';
 import axios from 'axios';
+import api from '../services/api';
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService'; // <--- 1. Import this
 
@@ -55,7 +56,7 @@ const NotificationPermission = () => {
       }
 
       // 5. Send to Backend
-      await axios.post('/api/users/subscribe', subscription, {
+      await api.post('/api/users/subscribe', subscription, {
           headers: { Authorization: `Bearer ${user.token}` }
       });
 
