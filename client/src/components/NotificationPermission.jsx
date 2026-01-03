@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService';
-import userService from '../services/userService'; // <--- 1. ADD THIS IMPORT
+import userService from '../services/userService';
 
 // Helper to convert VAPID key
 function urlBase64ToUint8Array(base64String) {
@@ -19,17 +19,18 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 const NotificationPermission = () => {
+  // 1. Initialize state with current permission status
+  const [permission, setPermission] = useState(Notification.permission);
+
   const subscribe = async () => {
-    // 1. Check Service Worker
     if (!('serviceWorker' in navigator)) return alert("No Service Worker support!");
     
-    const registration = await navigator.serviceWorker.ready;
-    console.log("Service Worker Ready:", registration);
-
     try {
+      const registration = await navigator.serviceWorker.ready;
       const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      
       if (!vapidKey) {
-        alert("Missing VAPID Key in frontend .env file!");
+        alert("Missing VAPID Key!");
         return;
       }
 
@@ -39,36 +40,40 @@ const NotificationPermission = () => {
         applicationServerKey: urlBase64ToUint8Array(vapidKey)
       });
 
-      console.log("Got Subscription:", subscription);
-
-      // 3. Get Current User (Handle both Admin/Staff and Parent/Student)
+      // 3. Get Current User
       let user = authService.getCurrentUser();
-      if (!user) {
-          user = studentAuthService.getCurrentStudent();
-      }
+      if (!user) user = studentAuthService.getCurrentStudent();
 
-      if (!user || !user.token) {
-          return alert("Please login first.");
-      }
+      if (!user || !user.token) return alert("Please login first.");
 
-      // 4. Send to Backend using Service
-      // We pass 'user.token' explicitly to ensure it works for both Parents and Staff
+      // 4. Send to Backend
       await userService.addSubscribe(subscription, user.token);
 
-      alert("✅ Notifications Enabled! You will receive updates even if the app is closed.");
+      alert("✅ Notifications Enabled!");
+      
+      // 5. Update State to Hide Button
+      setPermission('granted');
 
     } catch (err) {
       console.error("Subscription failed:", err);
-      // Fix alert showing [object Object]
-      const msg = err.response?.data?.message || err.message || "Unknown error";
-      alert("Failed to subscribe: " + msg);
+      // Even if backend fails, if browser says granted, we usually hide button
+      // But here we let them try again if it failed.
+      if (Notification.permission === 'denied') {
+        alert("You blocked notifications. Please enable them in your browser settings.");
+        setPermission('denied');
+      }
     }
   };
+
+  // --- LOGIC: HIDE IF GRANTED ---
+  if (permission === 'granted') {
+    return null;
+  }
 
   return (
     <button 
       onClick={subscribe}
-      className="fixed bottom-4 left-4 bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg z-50 hover:bg-purple-700 transition-all print:hidden flex items-center gap-2"
+      className="fixed bottom-4 left-4 bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg z-50 hover:bg-purple-700 transition-all print:hidden flex items-center gap-2 animate-bounce-small"
     >
       <span>🔔</span> Enable Alerts
     </button>
