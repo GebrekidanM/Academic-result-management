@@ -4,8 +4,31 @@ const { getUsersBySchoolLevel, getUserById,saveSubscription ,getTeachers ,update
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
+const protectUniversal = async (req, res, next) => {
+    if (req.headers.authorization) {
+        try {
+            await protect(req, res, () => {}); // Try protect
+            if (req.user) return next(); // Success
+        } catch (e) {
+            console.log("User token failed, trying student token...");
+        } 
+        
+        try {
+            await protectStudent(req, res, () => {}); // Try protectStudent
+            if (req.student) {
+                req.user = { ...req.student.toObject(), role: 'parent' }; 
+                return next();
+            }
+        } catch (e) {
+            console.log("Student token failed.");
+        }
+    }
+    return res.status(401).json({ message: "Not Authorized" });
+};
+
+
 const { protect, authorize } = require('../middleware/authMiddleware');
-router.post('/subscribe', protect, saveSubscription);
+router.post('/subscribe', protectUniversal,saveSubscription);
 
 router.post('/upload', protect, authorize('admin','staff'), upload.single('usersFile'), bulkCreateUsers);
 router.route('/profile')
