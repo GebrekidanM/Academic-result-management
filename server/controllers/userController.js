@@ -338,14 +338,10 @@ exports.saveSubscription = async (req, res) => {
         const subscription = req.body;
         const userId = req.user._id;
 
-        // Determine if it's a Student or User based on middleware
-        // (You might need logic here if you have separate collections)
-        // For now assuming User model:
-        const User = require('../models/User'); 
-        const Student = require('../models/Student');
-
         let user = await User.findById(userId);
+        
         if (!user) {
+            const Student = require('../models/Student');
             user = await Student.findById(userId);
         }
 
@@ -353,9 +349,9 @@ exports.saveSubscription = async (req, res) => {
             user.pushSubscription = subscription;
             await user.save();
             console.log(`🔔 Subscription saved for ${user.fullName}`);
-            res.status(201).json({});
+            res.status(201).json({ success: true });
         } else {
-            res.status(404).json({ message: "User not found" });
+            res.status(404).json({ message: "User profile not found for subscription" });
         }
     } catch (error) {
         console.error("Sub Error:", error);

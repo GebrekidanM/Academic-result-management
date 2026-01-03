@@ -5,7 +5,8 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
 const { protect, authorize } = require('../middleware/authMiddleware');
-router.post('/subscribe', protect, saveSubscription)
+router.post('/subscribe', protect, saveSubscription);
+
 router.post('/upload', protect, authorize('admin','staff'), upload.single('usersFile'), bulkCreateUsers);
 router.route('/profile')
     .get(protect, getUserProfile)
