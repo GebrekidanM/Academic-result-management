@@ -10,6 +10,13 @@ const getAuthConfig = () => {
     }
     return {};
 };
+const addSubscribe = (subscription, token) => {
+    const config = {};
+    if (token) {
+        config.headers = { Authorization: `Bearer ${token}` };
+    }
+    return api.post('/users/subscribe', subscription, config);
+};
 
 const getProfile = () => api.get('/users/profile', getAuthConfig());
 const getAll = () => api.get('/users', getAuthConfig());
@@ -58,5 +65,6 @@ export default {
     updateProfile,
     updateOtherProfile,
     getTeachers,
-    
+    addSubscribe
+
 };

@@ -1,15 +1,13 @@
 import React from 'react';
-import api from '../services/api';
 import authService from '../services/authService';
-import studentAuthService from '../services/studentAuthService'; // <--- 1. Import this
+import studentAuthService from '../services/studentAuthService';
+import userService from '../services/userService'; // <--- 1. ADD THIS IMPORT
 
 // Helper to convert VAPID key
 function urlBase64ToUint8Array(base64String) {
-  if (!base64String) return new Uint8Array(0); // Safety check
+  if (!base64String) return new Uint8Array(0);
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/\-/g, '+')
-    .replace(/_/g, '/');
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
 
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
@@ -29,14 +27,13 @@ const NotificationPermission = () => {
     console.log("Service Worker Ready:", registration);
 
     try {
-      // 2. Check VAPID Key
       const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
       if (!vapidKey) {
         alert("Missing VAPID Key in frontend .env file!");
         return;
       }
 
-      // 3. Ask Browser for Permission
+      // 2. Ask Browser for Permission
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey)
@@ -44,7 +41,7 @@ const NotificationPermission = () => {
 
       console.log("Got Subscription:", subscription);
 
-      // 4. Get Current User (Admin OR Student) --- FIX HERE ---
+      // 3. Get Current User (Handle both Admin/Staff and Parent/Student)
       let user = authService.getCurrentUser();
       if (!user) {
           user = studentAuthService.getCurrentStudent();
@@ -54,21 +51,17 @@ const NotificationPermission = () => {
           return alert("Please login first.");
       }
 
-      // 5. Send to Backend
-      await api.post('/users/subscribe', subscription, {
-          headers: { Authorization: `Bearer ${user.token}` }
-      });
+      // 4. Send to Backend using Service
+      // We pass 'user.token' explicitly to ensure it works for both Parents and Staff
+      await userService.addSubscribe(subscription, user.token);
 
       alert("✅ Notifications Enabled! You will receive updates even if the app is closed.");
 
     } catch (err) {
       console.error("Subscription failed:", err);
-      // Helpful error messages
-      if (err.response && err.response.status === 404) {
-          alert(err);
-      } else {
-          alert("Failed to subscribe. " + err.message);
-      }
+      // Fix alert showing [object Object]
+      const msg = err.response?.data?.message || err.message || "Unknown error";
+      alert("Failed to subscribe: " + msg);
     }
   };
 
