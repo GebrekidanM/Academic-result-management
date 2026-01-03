@@ -57,5 +57,6 @@ export default {
     uploadUsers,
     updateProfile,
     updateOtherProfile,
-    getTeachers
+    getTeachers,
+    
 };

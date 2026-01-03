@@ -65,7 +65,7 @@ const NotificationPermission = () => {
       console.error("Subscription failed:", err);
       // Helpful error messages
       if (err.response && err.response.status === 404) {
-          alert("Error 404: The backend route '/api/users/subscribe' does not exist. Please restart the server.");
+          alert(err);
       } else {
           alert("Failed to subscribe. " + err.message);
       }
