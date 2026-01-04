@@ -1,5 +1,6 @@
 const LibraryResource = require('../models/LibraryResources');
 const { cloudinary } = require('../config/cloudinary');
+const sendSystemNotification = require('../utils/sendSystemNotification');
 
 exports.uploadResource = async (req, res) => {
     try {
@@ -31,6 +32,19 @@ exports.uploadResource = async (req, res) => {
             
             uploadedBy: req.user._id
         });
+
+
+         // --- NEW: TRIGGER NOTIFICATION ---
+        const typeEmoji = resource.type === 'Book' ? '📚' : '📝';
+        
+        await sendSystemNotification(
+            `New Resource Added ${typeEmoji}`,
+            `A new ${resource.type} "${resource.title}" has been uploaded for ${resource.gradeLevel} ${resource.subject}.`,
+            ['parent', 'admin', 'staff'], // Who gets it
+            resource.gradeLevel, // Target Grade (Parents of this grade)
+            req.user._id // Sender
+        );
+        // ---------------------------------
 
         const populated = await resource.populate('uploadedBy', 'fullName');
         res.status(201).json({ success: true, data: populated });

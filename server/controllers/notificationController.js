@@ -152,3 +152,45 @@ exports.getMyNotifications = async (req, res) => {
         }
     }
 };
+
+// @desc    Delete a notification
+// @route   DELETE /api/notifications/:id
+exports.deleteNotification = async (req, res) => {
+    try {
+        const notification = await Notification.findById(req.params.id);
+
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+
+        // Optional: specific check if user owns it, or just allow all admins
+        await notification.deleteOne();
+
+        res.json({ success: true, message: 'Notification removed' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Update a notification
+// @route   PUT /api/notifications/:id
+exports.updateNotification = async (req, res) => {
+    try {
+        const { title, message } = req.body;
+        const notification = await Notification.findById(req.params.id);
+
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+
+        notification.title = title || notification.title;
+        notification.message = message || notification.message;
+
+        const updatedNotification = await notification.save();
+        res.json({ success: true, data: updatedNotification });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

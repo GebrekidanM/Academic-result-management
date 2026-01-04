@@ -1,6 +1,7 @@
 const Grade = require('../models/Grade');
 const Student = require('../models/Student');
 const AssessmentType = require('../models/AssessmentType');
+const sendSystemNotification = require('../utils/sendSystemNotification'); 
 
 // @desc    Get a single grade by ID
 // @route   GET /api/grades/:id
@@ -246,8 +247,26 @@ exports.saveGradeSheet = async (req, res) => {
         await gradeDoc.save();
       }
     });
-
     await Promise.all(updatePromises);
+
+    // --- NEW: TRIGGER NOTIFICATION ---
+        // 1. Get Details for the message
+        const assessment = await AssessmentType.findById(assessmentTypeId).populate('subject');
+        
+        if (assessment) {
+            const subjectName = assessment.subject?.name || "Subject";
+            
+            await sendSystemNotification(
+                `Grades Posted: ${subjectName} 📊`,
+                `Results for ${assessment.name} (${semester}) have been released. Check the dashboard.`,
+                ['parent', 'admin', 'staff'], // Target Audience
+                assessment.gradeLevel, // Only parents of this grade
+                req.user._id
+            );
+        }
+        // ---------------------------------
+
+
 
     res.status(200).json({ success: true, message: 'Grades saved or updated successfully.' });
   } catch (error) {

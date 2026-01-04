@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, protectStudent, authorize } = require('../middleware/authMiddleware');
-const { createNotification, getMyNotifications } = require('../controllers/notificationController');
+const { createNotification, getMyNotifications, updateNotification, deleteNotification } = require('../controllers/notificationController');
 
 // --- MIDDLEWARE TO ALLOW BOTH USERS AND STUDENTS ---
 const protectUniversal = async (req, res, next) => {
@@ -29,5 +29,7 @@ const protectUniversal = async (req, res, next) => {
 // Routes
 router.get('/', protectUniversal, getMyNotifications);
 router.post('/', protect, authorize('admin', 'staff'), createNotification);
-
+router.route('/:id')
+    .put(protect, authorize('admin', 'staff'), updateNotification)
+    .delete(protect, authorize('admin', 'staff'), deleteNotification);
 module.exports = router;
