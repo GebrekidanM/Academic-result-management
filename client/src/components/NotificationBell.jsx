@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify'; // 1. Import Toast
+import { toast } from 'react-toastify'; 
 import notificationService from '../services/notificationService';
 
-// Optional: Add a sound file to public folder named 'alert.mp3'
-// const notificationSound = new Audio('/alert.mp3'); 
+// --- 1. INITIALIZE AUDIO ---
+// Make sure 'alert.mp3' exists in your 'public' folder
+const notificationSound = new Audio('/alert.mp3');
 
 const NotificationBell = () => {
     const { t } = useTranslation();
@@ -12,18 +13,18 @@ const NotificationBell = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     
-    // Track the last known ID to prevent duplicate popups
+    // Track the last known ID to prevent duplicate sounds on re-render
     const lastNotifIdRef = useRef(null); 
     const dropdownRef = useRef(null);
 
-    // --- Request Browser Permission on Load ---
+    // Request Browser Permission on Load
     useEffect(() => {
         if ("Notification" in window && Notification.permission !== "granted") {
             Notification.requestPermission();
         }
     }, []);
 
-    // Load Notifications
+    // Load Notifications & Polling
     useEffect(() => {
         const fetchNotifs = async () => {
             if (!navigator.onLine) return;
@@ -44,32 +45,42 @@ const NotificationBell = () => {
                 }
                 setUnreadCount(count);
 
-                // --- POP UP LOGIC ---
+                // --- POP UP & SOUND LOGIC ---
                 if (data.length > 0) {
                     const latest = data[0]; // Get the newest message
                     
-                    // If the newest message is DIFFERENT from the last one we saw...
+                    // If this is a NEW message we haven't seen in this session...
                     if (lastNotifIdRef.current && lastNotifIdRef.current !== latest._id) {
                         
-                        // 1. Play Sound (Optional)
-                        // notificationSound.play().catch(e => {});
+                        // --- 2. PLAY SOUND ---
+                        // Wrap in try-catch because browsers block auto-play if user hasn't interacted yet
+                        try {
+                            notificationSound.currentTime = 0; // Reset sound to start
+                            notificationSound.play();
+                        } catch (e) {
+                            console.warn("Browser blocked audio play:", e);
+                        }
 
-                        // 2. Show In-App Toast
-                        toast.info(`📢 ${latest.title}: ${latest.message.substring(0, 30)}...`, {
-                            onClick: () => setIsOpen(true) // Open dropdown when clicked
+                        // Show In-App Toast
+                        toast.info(`📢 ${latest.title}`, {
+                            onClick: () => setIsOpen(true)
                         });
 
-                        // 3. Show System Notification (Even if tab is hidden)
+                        // Show System Notification (Background)
                         if (document.hidden && Notification.permission === "granted") {
-                            new Notification("Freedom SMS: New Message", {
+                            new Notification("Freedom SMS", {
                                 body: latest.title,
-                                icon: "/er-192.png" // Path to your logo
+                                icon: "/er-192.png"
                             });
                         }
                     }
                     
-                    // Update ref so we don't show it again next poll
+                    // Update ref
                     lastNotifIdRef.current = latest._id;
+                } 
+                // Initial Load: Set the ref so we don't ding immediately on page refresh
+                else if (!lastNotifIdRef.current && data.length > 0) {
+                    lastNotifIdRef.current = data[0]._id;
                 }
 
             } catch (err) {
@@ -78,23 +89,18 @@ const NotificationBell = () => {
         };
 
         fetchNotifs();
-        const interval = setInterval(fetchNotifs, 10000); // Check every 10 seconds
+        const interval = setInterval(fetchNotifs, 10000); // Poll every 10s
         return () => clearInterval(interval);
     }, []);
 
-    // ... (Handle Open, Click Outside, and Return JSX remain exactly the same as before) ...
-    // Copy the rest of the component from the previous code here...
-    
-    // Handle Open
     const toggleOpen = () => {
         if (!isOpen) {
-            setUnreadCount(0); // Mark all as seen locally
+            setUnreadCount(0); 
             localStorage.setItem('last_notif_check', new Date().toISOString());
         }
         setIsOpen(!isOpen);
     };
 
-    // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
