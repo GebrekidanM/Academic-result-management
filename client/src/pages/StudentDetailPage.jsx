@@ -144,7 +144,7 @@ const StudentDetailPage = () => {
     const handleResetPassword = async (studentId) => {
         if (!window.confirm(t('confirm_reset_password'))) return;
         try {
-            const res = await studentService.resetStudentPassword(studentId);
+            const res = await studentService.resetPassword(studentId);
             alert(`✅ ${res.data.message}`);
         } catch (error) { alert(t('failed_reset_password')); }
     }

@@ -452,14 +452,13 @@ exports.resetPassword = async (req,res)=>{
             return res.status(403).json({ message: 'You are not authorized to reset student passwords.' });
         }
         
-        const firstName = getFirstName(student.fullName);
-        const currentYear = getEthiopianYear();
-        const password = `${firstName}@${currentYear}`
+        const password = `123456`
         
         student.password = password;
         student.isInitialPassword = true;
 
-        await student.save(); // This is NOT 'new', so ID generator hook will be skipped. Good.
+
+        await student.save();
 
         res.status(200).json({ success: true, message: 'Password reset successfully.' });
         
