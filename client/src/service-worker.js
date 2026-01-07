@@ -51,10 +51,12 @@ self.addEventListener('push', function(event) {
 
   const title = data.title || "Freedom SMS";
   const options = {
-    body: data.body || "New notification received.",
+    body: data.body || "New notification",
     icon: "/er-192.png",
     badge: "/er-192.png",
-    vibrate: [100, 50, 100],
+    vibrate: [200, 100, 200],
+    tag: 'renotify',
+    renotify: true,
     data: {
       url: data.url || '/'
     }
