@@ -340,6 +340,21 @@ export const af = {
     upload_new_material: "Qusba Kitaab Hayis",
     uploading: "Hayisak...",
     submit_upload: "Daabis",
-    read: "Akriq / Ibxix"
+    read: "Akriq / Ibxix",
+    // --- Landing Page ---
+    about_us: "Nee Elle",
+    login_portal: "Galto Bortaala",
+    hero_text: "Freedom KG & Primary Madarasa, meqe amala kee naba barnota le timhirti yace.",
+    check_results: "Natiija Wagit",
+    learn_more: "Ziyaada Oboh",
+    about_title: "Naba Aqlile Marah Biccimte Bota",
+    about_desc_1: "2010 sanat qimmiimeh, Freedom Madarasa ummattah ixxiga ifo tikki te. Urruh meqe qokol le bota qophessina.",
+    about_desc_2: "Ni sirqata timhirti barattoota mokkoru kee ken faxooxah cato yakko biccimte.",
+    our_programs: "Ni Piroogramitte",
+    kg_desc: "4-6 sanat le urruh digirih le barnota.",
+    primary_desc: "1-8 Filaa barattootah xiso le barnota.",
+    activities: "Osona Taamoomi",
+    activities_desc: "Isporti, Art, Muuziqa ke Coding kilaabitte.",
+    contact_us: "Nee Geyo"
   }
 };

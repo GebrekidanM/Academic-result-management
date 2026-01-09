@@ -339,6 +339,21 @@ no_top_students: "Sadarkaan hin qophoofne.",
     upload_new_material: "Barreeffama Haaraa Fe'i",
     uploading: "Fe'aa jira...",
     submit_upload: "Galchi",
-    read: "Dubbisi / Buufadhu"
+    read: "Dubbisi / Buufadhu",
+    // --- Landing Page ---
+    about_us: "Waa'ee Keenya",
+    login_portal: "Seensa Portaalaa",
+    hero_text: "Manni Barumsaa Freedom KG fi Sadarkaa 1ffaa barnoota qulqullina qabu kan ijaarsa amalaa fi gahumsa akadaamii irratti xiyyeeffatu ni dhiyeessa.",
+    check_results: "Qabxii Ilaali",
+    learn_more: "Dabalata Dubbisi",
+    about_title: "Bakka Sammuu Ifaa Ta'aniif Mijatu",
+    about_desc_1: "Bara 2010 hundeeffamee, Manni Barumsaa Freedom hawaasa keessatti ibsaa beekumsaa ta'ee turaa jira. Nuti bakka nagaa fi kunuunsa qabu kan ijoolleen keessatti guddatan ni qopheessina.",
+    about_desc_2: "Sirni barnootaa keenya dandeettii barattootaa kan qoruu fi fedhii dhuunfaa isaanii kan deggarudha.",
+    our_programs: "Sagantaalee Keenya",
+    kg_desc: "Daa'imman umrii 4-6 tiif barnoota taphaan deggarame.",
+    primary_desc: "Barattoota Kutaa 1-8 tiif sagantaa barnootaa cimaa.",
+    activities: "Sochiiwwan Dabalataa",
+    activities_desc: "Ispoortii, Aartii, Muuziikaa fi Kilaabota Kooodingii.",
+    contact_us: "Nu Quunnamaa"
   }
 };

@@ -348,6 +348,21 @@ export const so = {
     upload_new_material: "Soo rar Agab Cusub",
     uploading: "Waa la soo rarayaa...",
     submit_upload: "Gudbi",
-    read: "Akhri / Soo degso"  
+    read: "Akhri / Soo degso",
+    // --- Landing Page ---
+    about_us: "Nagu Saabsan",
+    login_portal: "Bortaalka Galitaanka",
+    hero_text: "Dugsiga Freedom KG & Hoose/Dhexe wuxuu bixiyaa waxbarasho heer caalami ah oo diiradda saaraysa dhismaha dabeecadda iyo heerka sare ee waxbarashada.",
+    check_results: "Fiiri Natiijooyinka",
+    learn_more: "Sii Akhri",
+    about_title: "Goob loogu talagalay Maskaxda Furan",
+    about_desc_1: "Waxaa la aasaasay 2010, Dugsiga Freedom wuxuu ahaa iftiinka aqoonta ee bulshada. Waxaanu bixinaa deegaan ammaan ah oo lagu koriyo carruurta.",
+    about_desc_2: "Manaahijta dugsiga waxaa loo qaabeeyey inay tijaabiso ardayda iyadoo la taageerayo baahiyahooda gaarka ah.",
+    our_programs: "Barnaamijyadeena",
+    kg_desc: "Waxbarasho ku saleysan ciyaar loogu talagalay carruurta da'doodu tahay 4-6.",
+    primary_desc: "Barnaamij waxbarasho oo adag fasallada 1-8.",
+    activities: "Hawlaha Dheeraadka ah",
+    activities_desc: "Ciyaaraha, Fanka, Muusiga, iyo naadiyada Coding-ka.",
+    contact_us: "Nala Soo Xiriir"
 }
 };
