@@ -112,11 +112,11 @@ const LandingPage = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                       <div className="bg-blue-50 p-6 rounded-2xl text-center">
-                          <span className="block text-4xl font-black text-blue-900">1000+</span>
+                          <span className="block text-4xl font-black text-blue-900">700+</span>
                           <span className="text-sm font-bold text-gray-500 uppercase">{t('students')}</span>
                       </div>
                       <div className="bg-yellow-50 p-6 rounded-2xl text-center">
-                          <span className="block text-4xl font-black text-yellow-600">50+</span>
+                          <span className="block text-4xl font-black text-yellow-600">28+</span>
                           <span className="text-sm font-bold text-gray-500 uppercase">{t('teachers')}</span>
                       </div>
                       <div className="bg-green-50 p-6 rounded-2xl text-center">
@@ -173,10 +173,10 @@ const LandingPage = () => {
                   <h3 className="text-lg font-bold mb-4 uppercase tracking-wider text-blue-300">{t('contact_us')}</h3>
                   <ul className="space-y-3">
                       <li className="flex items-center gap-3">
-                          <span>📍</span> Addis Ababa, Ethiopia
+                          <span>📍</span> Tuludimtu-Sheger City, Oromia, Ethiopia
                       </li>
                       <li className="flex items-center gap-3">
-                          <span>📞</span> +251 911 00 00 00
+                          <span>📞</span> +251 91 071 5174
                       </li>
                       <li className="flex items-center gap-3">
                           <span>✉️</span> info@freedomschool.com
