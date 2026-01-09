@@ -4,3 +4,8 @@ body {
   font-family: 'Lato', 'Noto Sans Ethiopic', sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+
+}
+

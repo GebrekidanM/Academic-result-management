@@ -336,6 +336,21 @@ filter_subject: "Filter Subject...",
 upload_new_material: "Upload New Material",
 uploading: "Uploading...",
 submit_upload: "Submit Upload",
-read: "Read / Download"
+read: "Read / Download",
+// ... existing keys
+about_us: "About Us",
+login_portal: "Login Portal",
+hero_text: "Freedom KG & Primary School offers world-class education with a focus on character building and academic excellence.",
+check_results: "Check Student Results",
+learn_more: "Learn More",
+about_title: "A Place for Bright Minds",
+about_desc_1: "Established in 2010, Freedom School has been a beacon of knowledge in the community. We provide a safe, nurturing environment where children can grow.",
+about_desc_2: "Our curriculum is designed to challenge students while supporting their individual needs.",
+our_programs: "Our Programs",
+kg_desc: "Play-based learning for children aged 4-6.",
+primary_desc: "Rigorous academic program for Grades 1-8.",
+activities: "Extracurriculars",
+activities_desc: "Sports, Art, Music, and Coding clubs.",
+contact_us: "Contact Us"
   }
 };

@@ -11,6 +11,12 @@ function LoggedOut() {
                 <h2 className="text-4xl md:text-6xl font-extrabold text-gray-800 tracking-tight mt-2">
                     School Management System
                 </h2>
+                <img
+                    src="/kidan1.png"
+                    alt="School Management Illustration"
+                    className="mx-auto mt-10 w-3/4 max-w-lg"
+                />
+                <p className='mt-2 text-lg text-gray-600 '>Designed and Developed by <b>Mr. Gebrekidan Mequanint</b></p>
                 <p className="mt-6 max-w-2xl mx-auto text-lg text-gray-600">
                     A modern, real-time platform designed to seamlessly manage student academics, reports, and school-parent communications.
                 </p>

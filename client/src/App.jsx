@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useEffect, useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import NotificationPermission from './components/NotificationPermission';
@@ -44,6 +44,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
 import StudentIDPage from './pages/StudentIDPage';
 import LibraryPage from './pages/LibraryPage';
+import LandingPage from './pages/LandingPage';
 // 5. Admin-Only Pages
 import UserManagementPage from './pages/UserManagementPage';
 import UserEditPage from './pages/UserEditPage';
@@ -67,6 +68,7 @@ import SendNotificationPage from './pages/SendNotificationPage';
 
 function App() {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
 
   // Register service worker (for offline/PWA)
   useEffect(() => {
@@ -94,14 +96,20 @@ function App() {
       {/* ----------------------------- */}
       <NotificationPermission />
 
-      <Navbar isOpen={isOpen} setIsOpen={setIsOpen}/> 
-      
-      <main className="container mx-auto p-4" onClick={()=> setIsOpen(false)}>
+      {location.pathname !== '/' && (
+          <Navbar isOpen={isOpen} setIsOpen={setIsOpen}/> 
+      )}
+
+      <main 
+        className={location.pathname !== '/' ? "container mx-auto p-4" : ""} 
+        onClick={()=> setIsOpen(false)}
+      >
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<HomePage />} />
-          
+          <Route path="/" element={<LandingPage />} />
+          <Route path="*" element={<LoginPage />} />
+
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
           <Route element={<ProtectedRoute />}>
             <Route path="/at-risk" element={<AtRiskStudents />} />

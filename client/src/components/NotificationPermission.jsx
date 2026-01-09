@@ -51,20 +51,18 @@ const NotificationPermission = () => {
 
       alert("✅ Notifications Enabled!");
       
-      // 5. Update State to Hide Button
       setPermission('granted');
 
     } catch (err) {
       console.error("Subscription failed:", err);
-      // Even if backend fails, if browser says granted, we usually hide button
-      // But here we let them try again if it failed.
+
+
       if (Notification.permission === 'denied') {
         alert("You blocked notifications. Please enable them in your browser settings.");
         setPermission('denied');
       }
     }
   };
-
   // --- LOGIC: HIDE IF GRANTED ---
   if (permission === 'granted') {
     return null;

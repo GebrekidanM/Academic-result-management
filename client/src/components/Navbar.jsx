@@ -6,10 +6,12 @@ import studentAuthService from '../services/studentAuthService';
 import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
 
+// --- Helper Component for Dropdowns ---
 const NavDropdown = ({ title, children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Close dropdown if clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -27,10 +29,15 @@ const NavDropdown = ({ title, children }) => {
         className="text-white font-bold py-2 px-3 rounded-md hover:bg-gray-700 flex items-center gap-1 w-full md:w-auto justify-between"
       >
         {title}
-        <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+        <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"></path></svg>
       </button>
+      
+      {/* Dropdown Menu */}
       {isOpen && (
-        <div className="md:absolute right-0 mt-2 w-full md:w-48 bg-white rounded-md shadow-lg z-50 overflow-hidden py-1 text-gray-800">
+        <div 
+            className="md:absolute right-0 mt-2 w-full md:w-56 bg-white rounded-md shadow-lg z-50 overflow-hidden py-1 text-gray-800"
+            onClick={() => setIsOpen(false)} // Close menu when a link inside is clicked
+        >
           {children}
         </div>
       )}
@@ -38,6 +45,7 @@ const NavDropdown = ({ title, children }) => {
   );
 };
 
+// --- Main Navbar Component ---
 const Navbar = ({ isOpen, setIsOpen }) => {
   const { t } = useTranslation(); 
   const [currentUser, setCurrentUser] = useState(null);
@@ -62,6 +70,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
 
   const closeMenu = () => setIsOpen(false);
 
+  // Styles
   const dropdownLinkClass = "block px-4 py-2 text-sm hover:bg-pink-100 hover:text-pink-600 transition-colors border-b md:border-none border-gray-100";
   const navLinkClass = ({ isActive }) => 
     `block md:inline-block text-white font-bold py-2 px-3 rounded-md transition-colors whitespace-nowrap ${isActive ? 'bg-pink-600' : 'hover:bg-gray-700'}`;
@@ -69,10 +78,11 @@ const Navbar = ({ isOpen, setIsOpen }) => {
   return (
     <nav className="bg-gray-900 min-h-[4rem] p-2 shadow-lg sticky top-0 z-50 font-sans print:hidden">
       <div className="container mx-auto flex items-center justify-between flex-wrap">
+        
         {/* Logo */}
         <div className="flex items-center flex-shrink-0 text-white mr-6">
           <Link to={currentUser ? "/" : "/parent/dashboard"} onClick={closeMenu} className="font-bold text-xl tracking-tight flex items-center gap-2">
-            {t('app_name')}
+            🏫 {t('app_name')}
           </Link>
         </div>
 
@@ -89,31 +99,23 @@ const Navbar = ({ isOpen, setIsOpen }) => {
             
             {currentUser && (
               <>
-                {/* 1. Students Link */}
-                
-                {currentUser.role ==="teacher" ?
-                     <NavLink to="/students" className={navLinkClass} onClick={closeMenu}>
-                          {t('students_list')}
-                      </NavLink>
-                       
-                 :<NavDropdown title={`⚙️ ${t('students')}`}>
-                      <NavLink to="/students" className={dropdownLinkClass} onClick={closeMenu}>
-                          {t('students_list')}
-                      </NavLink>
-                      
-                      <NavLink to="/events/generator" className={dropdownLinkClass} onClick={closeMenu}>
-                          {t('event_cards')}
-                      </NavLink>
-                      <NavLink to="/id-cards" className={dropdownLinkClass} onClick={closeMenu}>
-                          🪪 ID Cards
-                      </NavLink>
-                      <NavLink to="/certificates" className={dropdownLinkClass} onClick={closeMenu}>
-                          🏆 Certificates
-                      </NavLink>
-                </NavDropdown>}
-                
+                {/* 1. STUDENTS DROPDOWN (For Admin & Teachers) */}
+                <NavDropdown title={`🎓 ${t('students')}`}>
+                    <NavLink to="/students" className={dropdownLinkClass} onClick={closeMenu}>
+                        {t('students_list')}
+                    </NavLink>
+                    <NavLink to="/events/generator" className={dropdownLinkClass} onClick={closeMenu}>
+                        🎉 {t('event_cards')}
+                    </NavLink>
+                    <NavLink to="/id-cards" className={dropdownLinkClass} onClick={closeMenu}>
+                        🪪 ID Cards
+                    </NavLink>
+                    <NavLink to="/certificates" className={dropdownLinkClass} onClick={closeMenu}>
+                        🏆 Certificates
+                    </NavLink>
+                </NavDropdown>
 
-                {/* 3. ACADEMICS Dropdown */}
+                {/* 2. ACADEMICS Dropdown */}
                 <NavDropdown title={`📝 ${t('academics')}`}>
                   <NavLink to="/grade-sheet" className={dropdownLinkClass} onClick={closeMenu}>
                     {t('enter_grades')}
@@ -128,7 +130,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                   )}
                 </NavDropdown>
 
-                {/* 4. ANALYTICS Dropdown */}
+                {/* 3. ANALYTICS Dropdown */}
                 <NavDropdown title={`📊 ${t('analytics')}`}>
                   <NavLink to="/allsubjectAnalysis" className={dropdownLinkClass} onClick={closeMenu}>
                     {t('class_matrix')}
@@ -140,11 +142,11 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     {t('subject_detail')}
                   </NavLink>
                   <NavLink to="/at-risk" className={dropdownLinkClass} onClick={closeMenu}>
-                    {t('at_risk')}
+                    ⚠️ {t('at_risk')}
                   </NavLink>
                 </NavDropdown>
 
-                {/* 5. ADMIN Dropdown */}
+                {/* 4. ADMIN Dropdown */}
                 {currentUser.role === 'admin' && (
                   <NavDropdown title={`⚙️ ${t('admin')}`}>
                     <NavLink to="/subjects" className={dropdownLinkClass} onClick={closeMenu}>
@@ -153,39 +155,34 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     <NavLink to="/admin/users" className={dropdownLinkClass} onClick={closeMenu}>
                         {t('manage_staff')}
                     </NavLink>
-                    <NavLink to="send_notification" className={dropdownLinkClass} onClick={closeMenu}>Send Notification</NavLink>
+                    <NavLink to="/send_notification" className={dropdownLinkClass} onClick={closeMenu}>
+                        📢 Send Notification
+                    </NavLink>
                   </NavDropdown>
                 )}
               </>
             )}
           </div>
-
-          {/* Library Link */}
-          {
-            (currentUser || currentStudent) ? (
-              <>
-              <div className="mt-4 md:mt-0 md:ml-4">
-                <NavLink to="/library" className={navLinkClass} onClick={closeMenu}>
-                  📚 {t('school_library')}
-                </NavLink>
-              </div>
-              <NotificationBell />
-              </>
-            ): null
-          }
           
-          
-          {/* Language Switcher */}
-          <div className="mt-4 md:mt-0 md:ml-4">
-              <LanguageSwitcher closeMenu={closeMenu}/>
-           </div>
+          {/* Right Side Icons (Library, Bell, Language, Logout) */}
+          <div className="mt-4 md:mt-0 flex items-center gap-4">
+            
+            {(currentUser || currentStudent) && (
+                <>
+                    <NavLink to="/library" className={navLinkClass} onClick={closeMenu}>
+                        📚 {t('school_library')}
+                    </NavLink>
+                    {/* Notification Bell */}
+                    <NotificationBell />
+                </>
+            )}
+            
+            <LanguageSwitcher />
 
-          {/* Logout Button */}
-          <div className="mt-4 md:mt-0 md:ml-4">
-            {(currentUser || currentStudent )? (
+            {(currentUser || currentStudent) ? (
               <button
                 onClick={handleLogout}
-                className="w-full md:w-auto bg-red-600 text-white font-bold py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm"
+                className="bg-red-600 text-white font-bold py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm"
               >
                 {t('logout')}
               </button>
