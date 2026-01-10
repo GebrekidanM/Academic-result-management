@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useEffect, useState } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route} from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import NotificationPermission from './components/NotificationPermission';
@@ -44,7 +44,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
 import StudentIDPage from './pages/StudentIDPage';
 import LibraryPage from './pages/LibraryPage';
-import LandingPage from './pages/LandingPage';
+
 // 5. Admin-Only Pages
 import UserManagementPage from './pages/UserManagementPage';
 import UserEditPage from './pages/UserEditPage';
@@ -65,10 +65,24 @@ import AllSubjectAnalytics from './pages/AllSubjectAnalytics';
 
 import CertificatePage from './pages/CertificatePage';
 import SendNotificationPage from './pages/SendNotificationPage';
+import authService from './services/authService';
+import studentAuthService from './services/studentAuthService';
+
 
 function App() {
   const [isOpen, setIsOpen] = useState(false);
-  const location = useLocation();
+  
+  const [currentUser, setCurrentUser] = useState(null);
+  const [currentStudent, setCurrentStudent] = useState(null);
+
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    const student = studentAuthService.getCurrentStudent();
+    if (user) setCurrentUser(user);
+    else if (student) setCurrentStudent(student);
+  }, []);
+
+
 
   // Register service worker (for offline/PWA)
   useEffect(() => {
@@ -96,14 +110,11 @@ function App() {
       {/* ----------------------------- */}
       <NotificationPermission />
 
-      {location.pathname !== '/' && (
+      {(currentUser || currentStudent) && (
           <Navbar isOpen={isOpen} setIsOpen={setIsOpen}/> 
       )}
 
-      <main 
-        className={location.pathname !== '/' ? "container mx-auto p-4" : ""} 
-        onClick={()=> setIsOpen(false)}
-      >
+      <main className={"container mx-auto p-4"} >
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
           <Route path="/login" element={<LoginPage />} />
