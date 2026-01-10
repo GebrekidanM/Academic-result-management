@@ -8,10 +8,10 @@ const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="font-sans text-gray-700 bg-white">
+    <div className="font-sans text-gray-700 w-full bg-white">
       
       {/* --- 1. PUBLIC NAVBAR --- */}
-      <nav className="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
+      <nav className="fixed w-full z-50 top-0 left-0 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             
@@ -67,7 +67,7 @@ const LandingPage = () => {
       </nav>
 
       {/* --- 2. HERO SECTION --- */}
-      <section id="home" className="relative pt-32 pb-20 md:pt-48 md:pb-32 bg-blue-50 overflow-hidden">
+      <section id="home" className="relative mt-4 pt-32 pb-20 md:pt-48 md:pb-32 bg-blue-50 overflow-hidden">
         {/* Background Blob Decoration */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
