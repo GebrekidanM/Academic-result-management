@@ -8,7 +8,7 @@ import dashboardService from '../services/dashboardService';
 
 import IsAdmin from './HomePage/IsAdmin';
 import IsStaff from './HomePage/IsStaff';
-import LoggedOut from './HomePage/LoggedOut';
+import LandingPage from './LandingPage';
 
 // ... (Keep LevelBadge component as is) ...
 const LevelBadge = ({ level }) => {
@@ -102,7 +102,7 @@ const HomePage = () => {
     
     // --- 4. Visitor View ---
     if (!currentUser) {
-        return <LoggedOut />;
+        return <LandingPage />;
     }
 
     // --- 5. Parent Redirect ---

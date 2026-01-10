@@ -64,7 +64,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
     studentAuthService.logout();
     setCurrentUser(null);
     setCurrentStudent(null);
-    navigate('/login');
+    navigate('/');
     window.location.reload();
   };
 
@@ -81,7 +81,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
         
         {/* Logo */}
         <div className="flex items-center flex-shrink-0 text-white mr-6">
-          <Link to={currentUser ? "/" : "/parent/dashboard"} onClick={closeMenu} className="font-bold text-xl tracking-tight flex items-center gap-2">
+          <Link to={"/"} onClick={closeMenu} className="font-bold text-xl tracking-tight flex items-center gap-2">
             🏫 {t('app_name')}
           </Link>
         </div>

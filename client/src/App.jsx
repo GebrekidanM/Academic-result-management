@@ -107,7 +107,7 @@ function App() {
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="*" element={<LoginPage />} />
 
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}
