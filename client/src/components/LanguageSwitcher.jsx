@@ -18,7 +18,7 @@ const LanguageSwitcher = ({ closeMenu }) => {
     { code: 'om', flag: '🌳', full: 'Afaan Oromoo', short: 'Oro' },
     { code: 'ti', flag: '⛰️', full: 'ትግርኛ', short: 'ትግ' },
     { code: 'so', flag: '🇸🇴', full: 'Soomaali', short: 'Som' },
-    { code: 'aa', flag: '🇩🇯', full: 'Qafaraf', short: 'Qaf' },
+    { code: 'af', flag: '🇩🇯', full: 'Qafaraf', short: 'Qaf' },
   ];
 
   return (
