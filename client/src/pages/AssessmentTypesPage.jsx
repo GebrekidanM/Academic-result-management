@@ -154,14 +154,15 @@ const AssessmentTypesPage = () => {
         }
         try {
             if (editingId && editingId.startsWith('TEMP_')) {
-                 // Update local temp item (optional, if you want to support editing temp items)
-                 // For simplicity, we can remove and re-add or implement update in service
-                 // Here we just re-add as a new one for now, or you can implement updateLocalAssessment
                  offlineAssessmentService.removeLocalAssessment(editingId);
                  offlineAssessmentService.addLocalAssessment({
                     ...payload,
                     subject: selectedSubject._id
                  });
+                 if (!newAssess) {
+                      setSaving(false);
+                      return; 
+                  }
                  alert("Offline assessment updated locally.");
             } else {
                 offlineAssessmentService.addLocalAssessment({

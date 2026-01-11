@@ -91,7 +91,6 @@ const GradeSheetPage = () => {
     setError(null);
 
     if (selectedAssessment.toString().startsWith('TEMP_')) {
-      console.log("Loading offline assessment locally...");
 
       try {
         const localAssessments = offlineAssessmentService.getLocalAssessments();
@@ -203,7 +202,11 @@ const GradeSheetPage = () => {
     if (selectedAssessment.toString().startsWith('TEMP_')) {
         try {
             offlineGradeService.addToQueue(payload);
-            // Translated Alert
+            if (result === -1) {
+                setSaveDisabled(false);
+                return; 
+            }
+
             alert(`✅ ${t('success_save')} (Offline). \n\n${t('sync_now')}`);
             setSaveDisabled(false);
         } catch (e) {
