@@ -191,7 +191,7 @@ const LandingPage = () => {
               </div>
           </div>
           <div className="text-center border-t border-blue-800 mt-12 pt-8 text-blue-400 text-sm">
-              &copy; 2024 Freedom KG & Primary School. Powered by <Link to="https://astounding-lily-ee0971.netlify.app/" className="text-white font-bold">Gebrekidan Mequanint</Link>.
+              &copy; {(Date().getFullYear)} Freedom KG & Primary School. Powered by <Link to="https://astounding-lily-ee0971.netlify.app/" className="text-white font-bold">Gebrekidan Mequanint</Link>.
           </div>
       </footer>
 
