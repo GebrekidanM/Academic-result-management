@@ -100,7 +100,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
             {currentUser && (
               <>
                 {/* 1. STUDENTS DROPDOWN (For Admin & Teachers) */}
-                <NavDropdown title={`🎓 ${t('students')}`}>
+                {(currentUser.role === 'admin' || currentUser.role === 'staff') && <NavDropdown title={`🎓 ${t('students')}`}>
                     <NavLink to="/students" className={dropdownLinkClass} onClick={closeMenu}>
                         {t('students_list')}
                     </NavLink>
@@ -113,7 +113,11 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     <NavLink to="/certificates" className={dropdownLinkClass} onClick={closeMenu}>
                         🏆 Certificates
                     </NavLink>
-                </NavDropdown>
+                </NavDropdown>}
+                
+                {currentUser.role === "teacher" && <NavLink to="/students" className={dropdownLinkClass} onClick={closeMenu}>
+                        {t('students_list')}
+                    </NavLink>}
 
                 {/* 2. ACADEMICS Dropdown */}
                 <NavDropdown title={`📝 ${t('academics')}`}>

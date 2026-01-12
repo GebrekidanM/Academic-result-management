@@ -356,9 +356,9 @@ const ParentDashboardPage = () => {
                                 <div key={semester} className="border rounded-xl overflow-hidden shadow-sm">
                                     <div className="bg-blue-900 text-white p-4 flex justify-between items-center">
                                         <h4 className="text-lg font-bold">{t('semester')}: {displaySemester}</h4>
-                                        <div className="text-sm bg-blue-800 px-3 py-1 rounded border border-blue-700 min-w-20 text-center">
+                                        {<div className="text-sm bg-blue-800 px-3 py-1 rounded border border-blue-700 min-w-20 text-center">
                                             {t('rank')}: <strong>{rankBySemester[semester] || '...'}</strong>
-                                        </div>
+                                        </div>}
                                     </div>
 
                                     <div className="overflow-x-auto">

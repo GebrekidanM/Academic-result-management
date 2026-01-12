@@ -20,6 +20,7 @@ const SubjectRosterPage = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     
+    // Find full details of selected subject to pass to the Link
     const currentSubjectDetails = subjects.find(s => s._id === selectedSubject) || {};
 
     // --- Load Subjects ---
@@ -73,33 +74,34 @@ const SubjectRosterPage = () => {
         }
     };
 
-    // --- HELPER: Get Color Class based on Score Percentage ---
+    // --- HELPER: Smart Score Coloring ---
     const getScoreStyle = (score, total) => {
-        if (score === undefined || score === null || score === '-') return "text-gray-400";
+        if (score === undefined || score === null || score === '-' || score === '') return "text-gray-400";
         
         const numScore = Number(score);
-        const percentage = (numScore / total) * 100;
+        const max = total || 100; 
+        const percentage = (numScore / max) * 100;
 
-        if (percentage >= 90) return "text-green-700 font-bold bg-green-50 print:text-green-900 print:bg-green-100"; // Excellent
-        if (percentage >= 75) return "text-blue-700 font-bold print:text-blue-900";   // Very Good
-        if (percentage >= 50) return "text-yellow-700 font-medium print:text-black";  // Average
-        return "text-red-600 font-bold bg-red-50 print:text-red-700 print:bg-red-100"; // Fail
+        if (percentage >= 90) return "text-green-700 font-black bg-green-50 print:text-green-800 print:bg-green-100"; 
+        if (percentage >= 75) return "text-blue-700 font-bold print:text-blue-800";   
+        if (percentage >= 50) return "text-yellow-700 font-medium print:text-black";  
+        return "text-red-600 font-bold bg-red-50 print:text-red-700 print:bg-red-50"; 
     };
 
     // --- UI Helpers ---
     const inputLabel = "block text-gray-700 text-sm font-bold mb-1";
-    const formInput = "shadow-sm border border-gray-300 rounded-md py-2 px-3 w-full";
+    const formInput = "shadow-sm border border-gray-300 rounded-md py-2 px-3 w-full focus:ring-blue-500 focus:border-blue-500";
     const buttonPrimary = `bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`;
     const buttonPrint = "bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-md transition-colors no-print";
     
-    // Base Styles
-    const thBase = "px-2 py-1 text-center text-xs font-bold uppercase border border-gray-400";
+    // --- Table Styles ---
+    const thBase = "px-2 py-1 text-center text-xs font-bold uppercase border border-gray-400 align-middle";
     const tdBase = "px-2 py-1 text-center text-sm border border-gray-300";
 
     return (
         <div className="bg-gray-100 min-h-screen p-6 font-sans print:bg-white print:p-0">
             
-            {/* --- INJECT PRINT STYLES --- */}
+            {/* --- INJECT PRINT STYLES DIRECTLY --- */}
             <style>{`
                 @media print {
                     @page { 
@@ -178,6 +180,19 @@ const SubjectRosterPage = () => {
                             {loading ? t('loading') : t('view')}
                         </button>
                     </form>
+
+                    {/* --- LINK BACK TO ASSESSMENTS (With State) --- */}
+                    {currentSubjectDetails._id && (
+                         <div className="mt-4 flex justify-end">
+                            <Link 
+                                to="/manage-assessments"
+                                state={{ subject: currentSubjectDetails }} // Passing the subject data here
+                                className="text-blue-600 hover:text-blue-800 underline font-medium text-sm flex items-center gap-1"
+                            >
+                                ⚙️ {t('manage_assessments')}
+                            </Link>
+                         </div>
+                    )}
                 </div>
 
                 {error && <div className="p-4 text-center text-red-500 bg-red-50 border-b no-print">{error}</div>}
@@ -213,7 +228,7 @@ const SubjectRosterPage = () => {
                                         <th rowSpan="2" className={`${thBase} bg-gray-200 w-10`}>#</th>
                                         <th rowSpan="2" className={`${thBase} bg-gray-200 w-24`}>{t('id_no')}</th>
                                         <th rowSpan="2" className={`${thBase} bg-gray-200 text-left w-56`}>{t('full_name')}</th>
-                                        <th rowSpan="2" className={`${thBase} bg-gray-200 w-12`}>{t('gender')[0]}</th>
+                                        <th rowSpan="2" className={`${thBase} bg-gray-200 w-10`}>{t('gender')[0]}</th>
                                         <th rowSpan="2" className={`${thBase} bg-gray-200 w-12`}>{t('age')}</th>
                                         
                                         {/* Dynamic Month Headers */}
@@ -257,7 +272,7 @@ const SubjectRosterPage = () => {
                                                 ))
                                             ))}
                                             
-                                            {/* Final Score (Always Bold) */}
+                                            {/* Final Score */}
                                             <td className={`${tdBase} font-black text-black bg-gray-100 print:bg-gray-200`}>
                                                 {student.finalScore}
                                             </td>
