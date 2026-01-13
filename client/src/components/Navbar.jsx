@@ -114,8 +114,8 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                         🏆 Certificates
                     </NavLink>
                 </NavDropdown>}
-                
-                {currentUser.role === "teacher" && <NavLink to="/students" className={dropdownLinkClass} onClick={closeMenu}>
+
+                {currentUser.role === "teacher" && <NavLink to="/students" className={navLinkClass} onClick={closeMenu}>
                         {t('students_list')}
                     </NavLink>}
 

@@ -114,7 +114,7 @@ function App() {
           <Navbar isOpen={isOpen} setIsOpen={setIsOpen}/> 
       )}
 
-      <main className={"container mx-auto p-4"} >
+      <main className={"container mx-auto p-4"} onClick={()=> setIsOpen(false)}>
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
           <Route path="/login" element={<LoginPage />} />
