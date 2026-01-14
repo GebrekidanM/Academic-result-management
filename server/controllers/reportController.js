@@ -1,116 +1,161 @@
-// server/controllers/reportController.js
-
+const Grade = require('../models/Grade');
 const Student = require('../models/Student');
+const BehavioralReport = require('../models/BehavioralReport'); // <--- IMPORT THIS
 
 /**
- * Helper function to calculate sum and average for a semester's grades.
- * It carefully handles cases where grades might be missing or not numbers.
- * @param {object} grades - The grades object for a semester (e.g., { 'Math': 90, 'ENG': 85 }).
- * @returns {object} - An object containing the sum and average { sum: 175, avg: 87.5 }.
+ * Helper: Calculate Stats (Same as before)
  */
-const calculateSemesterStats = (grades) => {
-  // If grades are null, undefined, or not an object, return zero stats.
-  if (!grades || typeof grades !== 'object') {
+const calculateSemesterStats = (gradesObj) => {
+  if (!gradesObj || typeof gradesObj !== 'object') {
     return { sum: 0, avg: 0 };
   }
-  
-  // Filter out non-numeric values (like 'Conduct': 'A') before calculating.
-  const numericScores = Object.values(grades).filter(value => typeof value === 'number');
-
-  if (numericScores.length === 0) {
-    return { sum: 0, avg: 0 };
-  }
+  const numericScores = Object.values(gradesObj).filter(value => typeof value === 'number');
+  if (numericScores.length === 0) return { sum: 0, avg: 0 };
 
   const sum = numericScores.reduce((total, score) => total + score, 0);
   const avg = sum / numericScores.length;
-  
-  // Return the sum and a precisely formatted average.
   return { sum, avg: parseFloat(avg.toFixed(2)) };
 };
 
 /**
- * @desc    Generate a full, detailed report card for a single student.
+ * Helper: Transform Grade Array to Object
+ */
+const transformGradesToReportFormat = (gradeDocs) => {
+  const formatted = { sem1: {}, sem2: {} };
+  gradeDocs.forEach(g => {
+    const subjectName = g.subject?.subjectName || g.subject?.name || 'Unknown Subject';
+    if (g.semester === 'First Semester') formatted.sem1[subjectName] = g.finalScore;
+    else if (g.semester === 'Second Semester') formatted.sem2[subjectName] = g.finalScore;
+  });
+  return formatted;
+};
+
+/**
+ * Helper: Merge Behavior for Report Card (S1 vs S2)
+ */
+const processBehaviorData = (behaviorDocs) => {
+  const sem1 = behaviorDocs.find(b => b.semester === 'First Semester');
+  const sem2 = behaviorDocs.find(b => b.semester === 'Second Semester');
+
+  // Define the standard traits you want to show on the report card
+  const standardTraits = ["Punctuality", "Attendance", "Responsibility", "Respect", "Cooperation", "Initiative"];
+
+  // Map traits to an object { area: '...', sem1: 'E', sem2: 'VG' }
+  const progressMap = standardTraits.map(trait => {
+    const s1Result = sem1?.evaluations?.find(e => e.area === trait)?.result || '-';
+    const s2Result = sem2?.evaluations?.find(e => e.area === trait)?.result || '-';
+    
+    return {
+      area: trait,
+      sem1: s1Result,
+      sem2: s2Result
+    };
+  });
+
+  return {
+    progress: progressMap,
+    teacherComments: {
+      sem1: sem1?.teacherComment || '',
+      sem2: sem2?.teacherComment || ''
+    },
+    conduct: {
+      sem1: sem1?.conduct || '-',
+      sem2: sem2?.conduct || '-'
+    }
+  };
+};
+
+/**
+ * @desc    Generate Student Report
  * @route   GET /api/reports/student/:studentId
- * @access  Private (should be protected by auth middleware later)
  */
 exports.generateStudentReport = async (req, res) => {
   try {
-    // 1. Find the target student using their unique studentId.
-    const student = await Student.findOne({ studentId: req.params.studentId });
+    // 1. Find Student
+    const targetStudentId = req.params.id; 
+    const student = await Student.findById(targetStudentId);
 
     if (!student) {
-      return res.status(404).json({ message: 'Student not found with the specified ID.' });
+      return res.status(404).json({ message: 'Student not found.' });
     }
 
-    // --- RANK CALCULATION LOGIC ---
-    // a. To calculate rank, we need to compare with all students in the same class.
-    const classmates = await Student.find({ classId: student.classId });
+    // 2. Fetch Grades
+    const studentGrades = await Grade.find({ student: student._id })
+      .populate('subject', 'subjectName name'); 
 
-    // b. Calculate the final average for every single student in the class.
-    const studentAverages = classmates.map(s => {
-      // Safely access nested grade objects using optional chaining (?.) and provide fallbacks.
-      const sem1Grades = s.grades?.sem1?.toObject() || {};
-      const sem2Grades = s.grades?.sem2?.toObject() || {};
+    // 3. Fetch Behavior Reports (NEW)
+    const studentBehavior = await BehavioralReport.find({ student: student._id });
+
+    // 4. Process Data
+    const formattedGrades = transformGradesToReportFormat(studentGrades);
+    const statsSem1 = calculateSemesterStats(formattedGrades.sem1);
+    const statsSem2 = calculateSemesterStats(formattedGrades.sem2);
+    
+    // Process Behavior
+    const behaviorData = processBehaviorData(studentBehavior);
+
+    // Final Average Calculation
+    let studentFinalAvg = 0;
+    if (statsSem1.avg > 0 && statsSem2.avg > 0) studentFinalAvg = (statsSem1.avg + statsSem2.avg) / 2;
+    else studentFinalAvg = statsSem1.avg + statsSem2.avg;
+
+    // 5. Rank Calculation
+    const classmates = await Student.find({ gradeLevel: student.gradeLevel, status: 'Active' }).select('_id studentId');
+    const classmateIds = classmates.map(c => c._id);
+    const allClassGrades = await Grade.find({ student: { $in: classmateIds } });
+
+    const classAverages = classmates.map(c => {
+      const cGrades = allClassGrades.filter(g => g.student.toString() === c._id.toString());
+      const cFormatted = transformGradesToReportFormat(cGrades);
+      const cSem1 = calculateSemesterStats(cFormatted.sem1);
+      const cSem2 = calculateSemesterStats(cFormatted.sem2);
       
-      const sem1Stats = calculateSemesterStats(sem1Grades);
-      const sem2Stats = calculateSemesterStats(sem2Grades);
+      let cFinal = 0;
+      if (cSem1.avg > 0 && cSem2.avg > 0) cFinal = (cSem1.avg + cSem2.avg) / 2;
+      else cFinal = cSem1.avg + cSem2.avg;
 
-      // Final average is the average of the two semester averages.
-      const finalAverage = (sem1Stats.avg + sem2Stats.avg) / 2;
-
-      return { 
-        studentId: s.studentId, 
-        finalAverage: parseFloat(finalAverage.toFixed(2)) 
-      };
+      return { studentId: c.studentId, avg: cFinal };
     });
 
-    // c. Sort the averages in descending order (highest score first).
-    studentAverages.sort((a, b) => b.finalAverage - a.finalAverage);
+    classAverages.sort((a, b) => b.avg - a.avg);
+    const rankIndex = classAverages.findIndex(c => c.studentId === student.studentId);
+    const rank = rankIndex !== -1 ? rankIndex + 1 : 'N/A';
 
-    // d. Find the 0-based index of our student in the sorted list and add 1 to get the rank.
-    const rank = studentAverages.findIndex(s => s.studentId === student.studentId) + 1;
-
-
-    // --- ASSEMBLE THE FINAL REPORT OBJECT ---
-    // Calculate stats for our target student.
-    const studentSem1Stats = calculateSemesterStats(student.grades?.sem1?.toObject());
-    const studentSem2Stats = calculateSemesterStats(student.grades?.sem2?.toObject());
-    const studentFinalAverage = (studentSem1Stats.avg + studentSem2Stats.avg) / 2;
-
-    // Structure the data exactly as the frontend expects it.
+    // 6. Assemble Final Response
     const finalReport = {
       studentInfo: {
         fullName: student.fullName,
         studentId: student.studentId,
-        sex: student.sex,
-        age: student.age,
-        classId: student.classId,
-        academicYear: '2017 E.C / 2024/25 G.C', // This can be made dynamic later
-        photoUrl: student.photoUrl,
-        promotedTo: student.promotedTo,
+        sex: student.gender,
+        age: calculateAge(student.dateOfBirth),
+        classId: student.gradeLevel,
+        academicYear: studentGrades[0]?.academicYear || '2024',
+        photoUrl: student.imageUrl,
+        promotedTo: studentFinalAvg >= 50 ? `Grade ${parseInt(student.gradeLevel) + 1}` : 'Retained', // Basic logic
       },
-      grades: student.grades,
-      attendance: student.attendance,
-      semester1: studentSem1Stats,
-      semester2: studentSem2Stats,
-      finalAverage: parseFloat(studentFinalAverage.toFixed(2)),
-      rank: rank || 'N/A',
-      classSize: classmates.length,
-      // Placeholder for behavior skills data. This would be a separate feature.
-      behaviorProgress: [
-          { area: 'Punctuality', result: 'E' },
-          { area: 'Attendance', result: 'E' },
-          { area: 'Neatness', result: 'VG' },
-          { area: 'Honesty', result: 'E' },
-      ]
+      semester1: statsSem1,
+      semester2: statsSem2,
+      finalAverage: parseFloat(studentFinalAvg.toFixed(2)),
+      rank: rank,
+      
+      // Data for Tables
+      grades: formattedGrades, 
+      
+      // NEW BEHAVIOR DATA STRUCTURE
+      behavior: behaviorData
     };
 
-    // 3. Send the complete report object back to the client.
     res.status(200).json(finalReport);
 
   } catch (error) {
-    // If anything goes wrong, log the error and send a generic server error message.
-    console.error('Error generating student report:', error);
-    res.status(500).json({ message: 'An internal server error occurred while generating the report.' });
+    console.error('Error generating report:', error);
+    res.status(500).json({ message: 'Server error generating report' });
   }
+};
+
+const calculateAge = (dob) => {
+  if (!dob) return '-';
+  const diff_ms = Date.now() - new Date(dob).getTime();
+  const age_dt = new Date(diff_ms);
+  return Math.abs(age_dt.getUTCFullYear() - 1970);
 };

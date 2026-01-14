@@ -1,5 +1,3 @@
-// src/services/behavioralReportService.js
-
 // Import our custom axios instance that automatically adds the auth token
 import api from './api';
 
@@ -8,9 +6,6 @@ const API_URL = '/reports';
 
 /**
  * Fetches all behavioral reports for a specific student.
- * Used in: StudentDetailPage
- * @param {string} studentId - The ID of the student.
- * @returns {Promise} Axios promise
  */
 const getReportsByStudent = (studentId) => {
     return api.get(`${API_URL}/student/${studentId}`);
@@ -19,8 +14,6 @@ const getReportsByStudent = (studentId) => {
 /**
  * Fetches a single behavioral report by its own ID.
  * Used in: EditReportPage (to load initial form data)
- * @param {string} reportId - The ID of the behavioral report.
- * @returns {Promise} Axios promise
  */
 const getReportById = (reportId) => {
     return api.get(`${API_URL}/${reportId}`);
@@ -29,8 +22,6 @@ const getReportById = (reportId) => {
 /**
  * Creates a new behavioral report.
  * Used in: AddReportPage
- * @param {object} reportData - The data for the new report.
- * @returns {Promise} Axios promise
  */
 const addReport = (reportData) => {
     return api.post(API_URL, reportData);

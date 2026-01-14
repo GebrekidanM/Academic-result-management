@@ -110,6 +110,7 @@ exports.getStudents = async (req, res) => {
 // @desc    Get single student by ID
 // @route   GET /api/students/:id
 exports.getStudentById = async (req, res) => {
+    console.log(`Fetching student with ID: ${req.params.id}`);
     try {
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found' });

@@ -21,7 +21,6 @@ const {
 router.get('/', protect, isHomeroomTeacherOrAdmin, generateRoster);
 
 
-// === THIS IS THE CRITICAL ROUTE THAT IS CAUSING THE 404 ERROR ===
 // It MUST be defined to handle GET requests to /api/rosters/subject-details
 router.get('/subject-details', protect, isTeacherForSubject, generateSubjectRoster);
 // ================================================================

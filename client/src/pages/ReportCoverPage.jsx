@@ -1,107 +1,66 @@
 import React from 'react';
 
-const ReportCoverPage = ({ student, schoolInfo, academicYear }) => {
-    // --- MOCK DATA FOR DISPLAY ---
-    const studentName = student?.fullName || "Student Name";
-    const studentId = student?.studentId?.length > 10 ? `${student.studentId.substring(0, 8)}...` : student?.studentId || "ID-001";
-    const grade = student?.gradeLevel || "12";
-    
-    // Default School Info if not passed
-    const school = schoolInfo || {
-        name: "FUTURE GENERATION ACADEMY",
-        address: "Addis Ababa, Bole Sub-city",
-        phone: "+251 911 23 45 67",
-        email: "info@futuregen.edu.et"
-    };
-
-    const year = academicYear || new Date().getFullYear();
+const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
+    const studentName = studentInfo?.fullName || "Student Name";
+    const studentId = studentInfo?.studentId || "ID-001";
+    const grade = studentInfo?.classId || "Grade --";
+    const year = studentInfo?.academicYear || new Date().getFullYear();
 
     return (
-        <div className="w-[297mm] h-[210mm] bg-white relative flex overflow-hidden print-break text-slate-800 font-sans">
-            
+        <div className="w-[297mm] h-[210mm] bg-white relative flex overflow-hidden text-slate-800 font-sans print-break">
             {/* --- FONTS & SHAPES --- */}
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;700&family=Montserrat:wght@400;600;700;800&display=swap');
-                
-                .font-oswald { font-family: 'Oswald', sans-serif; }
-                .font-montserrat { font-family: 'Montserrat', sans-serif; }
-
-                /* Geometric Shapes */
-                .shape-sidebar { clip-path: polygon(0 0, 75% 0, 100% 50%, 75% 100%, 0 100%); }
-                .shape-cyan-accent { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 25% 50%); }
-                .shape-slant { clip-path: polygon(20% 0, 100% 0, 100% 100%, 0% 100%); }
+                @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Montserrat:wght@300;400;600;700;800&display=swap');
+                .cover-diagonal-shape { clip-path: polygon(35% 0%, 100% 0%, 100% 100%, 0% 100%); }
+                .year-badge-shape { clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%); }
+                @media print {
+                    .bg-navy-dark { background-color: #0B1120 !important; -webkit-print-color-adjust: exact; }
+                    .bg-cyan-light { background-color: #CFF0F6 !important; -webkit-print-color-adjust: exact; }
+                    .text-cyan-bold { color: #06b6d4 !important; -webkit-print-color-adjust: exact; }
+                    .bg-black-badge { background-color: #000000 !important; color: white !important; -webkit-print-color-adjust: exact; }
+                }
             `}</style>
 
-            {/* === LAYER 1: CYAN ACCENT (Middle Layer) === */}
-            <div className="absolute top-0 left-[28%] w-[15%] h-full bg-[#06b6d4] z-10 transform skew-x-12 print:bg-[#06b6d4]"></div>
-
-            {/* === LAYER 2: DARK BLUE SIDEBAR === */}
-            <div className="relative z-20 w-[35%] h-full bg-[#0f172a] text-white flex flex-col justify-between py-10 pl-10 pr-16 shape-sidebar print:bg-[#0f172a]">
-                <div className="space-y-1">
-                    <div className="w-12 h-1 bg-[#06b6d4]"></div>
-                    <div className="w-6 h-1 bg-white opacity-40"></div>
+            {/* === LEFT PANEL (BACK COVER) === */}
+            <div className="w-1/2 h-full bg-[#0B1120] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
+                <div className="w-28 h-28 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl border-4 border-[#06b6d4]">
+                    <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-cover " />
                 </div>
-                <div className="flex flex-col items-start opacity-20">
-                    <span className="text-9xl font-oswald font-bold leading-none tracking-tighter text-white opacity-10 -ml-4">{year}</span>
-                </div>
-                <div className="font-montserrat text-[10px] tracking-wide space-y-3 opacity-90">
-                    <div>
-                        <p className="text-[#06b6d4] font-bold mb-0.5">LOCATION</p>
-                        <p>{school.address}</p>
-                    </div>
-                    <div>
-                        <p className="text-[#06b6d4] font-bold mb-0.5">CONTACT</p>
-                        <p>{school.phone}</p>
-                    </div>
+                <h1 className="text-3xl font-montserrat font-bold tracking-widest leading-snug mb-2 uppercase">{schoolInfo.name}</h1>
+                <div className="w-12 h-1 bg-[#06b6d4] my-6 rounded"></div>
+                <p className="text-sm font-montserrat font-light opacity-80 leading-relaxed mb-12 max-w-sm mx-auto">
+                    "Empowering the next generation with knowledge, character, and excellence."
+                </p>
+                <div className="text-xs font-montserrat font-medium opacity-70 space-y-3">
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📍</span> <span>{schoolInfo.address}</span></div>
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📞</span> <span>{schoolInfo.phone}</span></div>
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">✉️</span> <span>{schoolInfo.email}</span></div>
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">🌐</span> <span>{schoolInfo.website}</span></div>
                 </div>
             </div>
 
-            {/* === LAYER 3: RIGHT CONTENT === */}
-            <div className="flex-1 h-full relative z-10 flex flex-col pt-12 pr-12 pl-12">
-                
-                {/* School Header */}
-                <div className="text-right border-b-4 border-slate-100 pb-4 mb-8">
-                    <h2 className="text-3xl font-montserrat font-extrabold text-[#0f172a] uppercase tracking-tight">{school.name}</h2>
-                    <div className="flex justify-end items-center gap-2 mt-1">
-                        <div className="h-0.5 w-10 bg-[#06b6d4]"></div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em]">Official Transcript</p>
-                    </div>
-                </div>
-
-                {/* Main Title Area */}
-                <div className="flex-1 flex flex-col justify-center items-end relative">
-                    <div className="text-right mb-10 relative">
-                        <h3 className="text-lg font-montserrat font-medium text-[#0891b2] tracking-[0.4em] uppercase mb-1">Performance</h3>
-                        <h1 className="text-8xl font-oswald font-bold text-[#0f172a] leading-[0.85]">
-                            ANNUAL <br/>
-                            <span className="text-[#06b6d4]">REPORT</span>
+            {/* === RIGHT PANEL (FRONT COVER) === */}
+            <div className="w-1/2 h-full bg-white relative relative z-10 overflow-hidden">
+                <div className="absolute top-0 right-0 w-[60%] h-full bg-[#CFF0F6] bg-cyan-light cover-diagonal-shape z-0"></div>
+                <div className="relative z-10 h-full flex flex-col pt-24 pr-16 pl-8 text-right">
+                    <h3 className="text-sm font-montserrat font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-[0.3em] mb-2">Official Transcript</h3>
+                    <div className="flex flex-col items-end">
+                        <h1 className="text-6xl font-oswald font-bold text-[#0f172a] leading-tight mb-2">
+                            {getReportTitle()}<br/>
+                            <span className="text-[#06b6d4]">CARD</span>
                         </h1>
-                        <div className="absolute -top-6 -left-12 bg-[#0f172a] text-white w-20 h-20 rounded-full flex items-center justify-center font-oswald font-bold text-2xl shadow-xl border-4 border-white transform -rotate-12 print:bg-[#0f172a]">
-                            {year}
+                    </div>
+                    <div className="mt-6 flex justify-end">
+                        <div className="bg-black bg-black-badge text-white font-oswald font-bold text-2xl px-10 py-2 year-badge-shape shadow-xl transform rotate-[-2deg]">{year}</div>
+                    </div>
+                    <div className="mt-auto mb-20 flex flex-col items-end">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Prepared For</p>
+                        <div className="flex flex-col items-end border-r-4 border-[#06b6d4] pr-4">
+                            <h2 className="text-4xl font-montserrat font-bold text-[#0f172a] mb-1">{studentName}</h2>
+                            <p className="text-sm font-bold text-gray-500 font-mono tracking-wide">ID: {studentId}</p>
+                            <p className="text-sm font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-wide">{grade}</p>
                         </div>
                     </div>
-
-                    {/* Student Details Box */}
-                    <div className="bg-slate-50 w-full max-w-md p-6 border-l-8 border-[#06b6d4] shadow-sm relative overflow-hidden print:bg-slate-50">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Student Information</p>
-                        <h2 className="text-3xl font-montserrat font-bold text-slate-800 mb-2 truncate">{studentName}</h2>
-                        <div className="grid grid-cols-2 gap-4 text-sm border-t border-slate-200 pt-3">
-                            <div>
-                                <span className="block text-[10px] text-slate-400 uppercase font-bold">Student ID</span>
-                                <span className="font-bold text-slate-700 font-mono">{studentId}</span>
-                            </div>
-                            <div>
-                                <span className="block text-[10px] text-slate-400 uppercase font-bold"></span>
-                                <span className="font-bold text-slate-700">{grade}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer Decor */}
-                <div className="mt-auto h-8 w-2/3 self-end flex gap-1">
-                    <div className="flex-1 bg-[#0f172a] shape-slant opacity-10"></div>
-                    <div className="w-1/3 bg-[#06b6d4] shape-slant print:bg-[#06b6d4]"></div>
                 </div>
             </div>
         </div>
