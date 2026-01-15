@@ -169,7 +169,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
           </div>
           
           {/* Right Side Icons (Library, Bell, Language, Logout) */}
-          <div className="mt-4 md:mt-0 flex items-center gap-4">
+          <div className="mt-4 md:mt-0 flex items-center gap-4 position-relative">
             
             {(currentUser || currentStudent) && (
                 <>

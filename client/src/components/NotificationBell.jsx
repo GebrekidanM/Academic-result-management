@@ -127,7 +127,7 @@ const NotificationBell = () => {
 
             {/* --- DROPDOWN LIST --- */}
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl overflow-hidden z-50 border border-gray-200">
+                <div className="absolute left-0 md:right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl overflow-hidden z-50 border border-gray-200">
                     <div className="bg-gray-100 p-3 border-b font-bold text-gray-700 flex justify-between items-center">
                         <span>{t('notifications')}</span>
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{notifications.length}</span>
