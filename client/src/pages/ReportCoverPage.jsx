@@ -23,7 +23,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
 
             {/* === LEFT PANEL (BACK COVER) === */}
             <div className="w-1/2 h-full bg-[#0B1120] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
-                <div className="w-28 h-28 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl border-4 border-[#06b6d4]">
+                <div className="w-38 h-38 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl">
                     <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-cover " />
                 </div>
                 <h1 className="text-3xl font-montserrat font-bold tracking-widest leading-snug mb-2 uppercase">{schoolInfo.name}</h1>

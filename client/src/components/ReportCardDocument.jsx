@@ -84,7 +84,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                 <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
                     {/* Student Header */}
                     <div className="flex gap-4 items-center mb-6">
-                        <div className="w-16 h-16 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
+                        <div className="w-24 h-24 rounded-sm overflow-hidden shadow-md shrink-0 bg-white">
                             {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
                         </div>
                         <div>
