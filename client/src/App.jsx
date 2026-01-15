@@ -28,6 +28,7 @@ import ForceChangePasswordPage from './pages/ForceChangePasswordPage';
 
 // 3. Shared Logged-in Pages
 import ReportCardPage from './pages/ReportCardPage'; 
+import ClassReportGenerator from './pages/ClassReportGenerator';
 
 // 4. Staff-Only Pages
 import HomePage from './pages/HomePage';
@@ -144,6 +145,7 @@ function App() {
             
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
+              <Route path="/reports/batch" element={<ClassReportGenerator />} />
               <Route path='send_notification' element={<SendNotificationPage/>}/>
               <Route path="/certificates" element={<CertificatePage />} />
               <Route path="/id-cards" element={<StudentIDPage />} />
