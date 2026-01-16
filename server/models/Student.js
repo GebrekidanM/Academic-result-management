@@ -18,7 +18,6 @@ const studentSchema = new mongoose.Schema({
     motherContact: { type: String, trim: true, default: '' },
     fatherContact: { type: String, trim: true, default: '' },
     healthStatus: { type: String, trim: true, default: 'No known conditions' },
-    academicYear:{ type: String, required: true  }
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

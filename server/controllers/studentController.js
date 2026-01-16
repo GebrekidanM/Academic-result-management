@@ -110,7 +110,6 @@ exports.getStudents = async (req, res) => {
 // @desc    Get single student by ID
 // @route   GET /api/students/:id
 exports.getStudentById = async (req, res) => {
-    console.log(`Fetching student with ID: ${req.params.id}`);
     try {
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found' });
@@ -464,6 +463,7 @@ exports.resetPassword = async (req,res)=>{
         res.status(200).json({ success: true, message: 'Password reset successfully.' });
         
     } catch (error) {
+        console.log(error);
         res.status(500).json({message: error.message})
     }
 }
