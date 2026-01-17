@@ -1,9 +1,9 @@
 const Grade = require('../models/Grade');
 const Student = require('../models/Student');
-const BehavioralReport = require('../models/BehavioralReport'); // <--- IMPORT THIS
+const BehavioralReport = require('../models/BehavioralReport');
 
 /**
- * Helper: Calculate Stats (Same as before)
+ * Helper: Calculate Stats
  */
 const calculateSemesterStats = (gradesObj) => {
   if (!gradesObj || typeof gradesObj !== 'object') {
@@ -37,10 +37,8 @@ const processBehaviorData = (behaviorDocs) => {
   const sem1 = behaviorDocs.find(b => b.semester === 'First Semester');
   const sem2 = behaviorDocs.find(b => b.semester === 'Second Semester');
 
-  // Define the standard traits you want to show on the report card
   const standardTraits = ["Punctuality", "Attendance", "Responsibility", "Respect", "Cooperation", "Initiative"];
 
-  // Map traits to an object { area: '...', sem1: 'E', sem2: 'VG' }
   const progressMap = standardTraits.map(trait => {
     const s1Result = sem1?.evaluations?.find(e => e.area === trait)?.result || '-';
     const s2Result = sem2?.evaluations?.find(e => e.area === trait)?.result || '-';
@@ -67,14 +65,14 @@ const processBehaviorData = (behaviorDocs) => {
 
 /**
  * @desc    Generate Student Report
- * @route   GET /api/reports/student/:studentId
+ * @route   GET /api/reports/student/:id
  */
 exports.generateStudentReport = async (req, res) => {
   try {
     // 1. Find Student
     const targetStudentId = req.params.id; 
     const student = await Student.findById(targetStudentId);
-
+    
     if (!student) {
       return res.status(404).json({ message: 'Student not found.' });
     }
@@ -83,7 +81,7 @@ exports.generateStudentReport = async (req, res) => {
     const studentGrades = await Grade.find({ student: student._id })
       .populate('subject', 'subjectName name'); 
 
-    // 3. Fetch Behavior Reports (NEW)
+    // 3. Fetch Behavior Reports
     const studentBehavior = await BehavioralReport.find({ student: student._id });
 
     // 4. Process Data
@@ -99,29 +97,7 @@ exports.generateStudentReport = async (req, res) => {
     if (statsSem1.avg > 0 && statsSem2.avg > 0) studentFinalAvg = (statsSem1.avg + statsSem2.avg) / 2;
     else studentFinalAvg = statsSem1.avg + statsSem2.avg;
 
-    // 5. Rank Calculation
-    const classmates = await Student.find({ gradeLevel: student.gradeLevel, status: 'Active' }).select('_id studentId');
-    const classmateIds = classmates.map(c => c._id);
-    const allClassGrades = await Grade.find({ student: { $in: classmateIds } });
-
-    const classAverages = classmates.map(c => {
-      const cGrades = allClassGrades.filter(g => g.student.toString() === c._id.toString());
-      const cFormatted = transformGradesToReportFormat(cGrades);
-      const cSem1 = calculateSemesterStats(cFormatted.sem1);
-      const cSem2 = calculateSemesterStats(cFormatted.sem2);
-      
-      let cFinal = 0;
-      if (cSem1.avg > 0 && cSem2.avg > 0) cFinal = (cSem1.avg + cSem2.avg) / 2;
-      else cFinal = cSem1.avg + cSem2.avg;
-
-      return { studentId: c.studentId, avg: cFinal };
-    });
-
-    classAverages.sort((a, b) => b.avg - a.avg);
-    const rankIndex = classAverages.findIndex(c => c.studentId === student.studentId);
-    const rank = rankIndex !== -1 ? rankIndex + 1 : 'N/A';
-
-    // 6. Assemble Final Response
+    // 5. Assemble Final Response (Rank Calculation Removed)
     const finalReport = {
       studentInfo: {
         fullName: student.fullName,
@@ -131,24 +107,23 @@ exports.generateStudentReport = async (req, res) => {
         classId: student.gradeLevel,
         academicYear: studentGrades[0]?.academicYear || '2024',
         photoUrl: student.imageUrl,
-        promotedTo: studentFinalAvg >= 50 ? `Grade ${parseInt(student.gradeLevel) + 1}` : 'Retained', // Basic logic
+        promotedTo: studentFinalAvg >= 50 ? `Grade ${parseInt(student.gradeLevel) + 1}` : 'Retained',
       },
       semester1: statsSem1,
       semester2: statsSem2,
       finalAverage: parseFloat(studentFinalAvg.toFixed(2)),
-      rank: rank,
       
       // Data for Tables
       grades: formattedGrades, 
       
-      // NEW BEHAVIOR DATA STRUCTURE
+      // Behavior Data
       behavior: behaviorData
     };
 
     res.status(200).json(finalReport);
 
   } catch (error) {
-    console.error('Error generating report:', error);
+    console.error(error);
     res.status(500).json({ message: 'Server error generating report' });
   }
 };

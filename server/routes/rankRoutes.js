@@ -1,8 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
-const { getStudentRank, getOverallRank } = require('../controllers/rankController'); // Import the new function
 
-router.get('/class-rank/:studentId', protect, getStudentRank);
-router.get('/overall-rank/:studentId', protect, getOverallRank);
+const { 
+    getSemesterRank, 
+    getOverallRank 
+} = require('../controllers/rankController');
+
+router.get('/class-rank/:studentId', getSemesterRank);
+
+router.get('/overall-rank/:studentId', getOverallRank);
+
 module.exports = router;

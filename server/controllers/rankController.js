@@ -1,15 +1,31 @@
 const Grade = require('../models/Grade');
+const Student = require('../models/Student');
 
 // --- Helper: Check if Grade is KG ---
 const isKindergarten = (gradeLevel) => {
     if (!gradeLevel) return false;
-    // Matches "KG 1", "KG 2", "Nursery", "Pre-K" (case insensitive)
     return /^(kg|nursery|pre)/i.test(gradeLevel);
 };
 
-// @desc    Calculate a student's rank based on TOTAL SCORE
-// @route   GET /api/ranks/class-rank/:studentId
-exports.getStudentRank = async (req, res) => {
+// --- Helper: Calculate Rank with Tie-Breaking ---
+const findRankInList = (sortedList, targetStudentId, scoreField) => {
+    let rank = 0;
+    
+    for (let i = 0; i < sortedList.length; i++) {
+        // If first student OR score is lower than previous, update rank
+        if (i === 0 || sortedList[i][scoreField] < sortedList[i - 1][scoreField]) {
+            rank = i + 1;
+        }
+
+        if (sortedList[i]._id.toString() === targetStudentId) {
+            return `${rank} / ${sortedList.length}`;
+        }
+    }
+    return '-';
+};
+
+// 1. SEMESTER RANK (Based on Total Score)
+exports.getSemesterRank = async (req, res) => {
     const { studentId } = req.params;
     const { academicYear, semester, gradeLevel } = req.query;
 
@@ -17,21 +33,11 @@ exports.getStudentRank = async (req, res) => {
         return res.status(400).json({ message: 'Missing fields' });
     }
 
-    // --- FIX: NO RANK FOR KG ---
-    if (isKindergarten(gradeLevel)) {
-        return res.status(200).json({ rank: '-' });
-    }
+    if (isKindergarten(gradeLevel)) return res.status(200).json({ rank: '-' });
 
     try {
         const rankedList = await Grade.aggregate([
-            {
-                $lookup: {
-                    from: 'students',
-                    localField: 'student',
-                    foreignField: '_id',
-                    as: 'studentInfo'
-                }
-            },
+            { $lookup: { from: 'students', localField: 'student', foreignField: '_id', as: 'studentInfo' } },
             { $unwind: '$studentInfo' },
             {
                 $match: {
@@ -47,29 +53,19 @@ exports.getStudentRank = async (req, res) => {
                     totalScore: { $sum: '$finalScore' } 
                 }
             },
-            {
-                $sort: { totalScore: -1 }
-            }
+            { $sort: { totalScore: -1 } }
         ]);
 
-        const index = rankedList.findIndex(item => item._id.toString() === studentId);
-
-        if (index === -1) {
-            return res.status(200).json({ rank: '-' });
-        }
-
-        const rankStr = `${index + 1} / ${rankedList.length}`;
+        const rankStr = findRankInList(rankedList, studentId, 'totalScore');
         res.status(200).json({ rank: rankStr });
 
     } catch (error) {
-        console.error('Error calculating rank:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-
-// @desc    Calculate Overall Rank (Average of Sem 1 & Sem 2 Totals)
-// @route   GET /api/ranks/overall-rank/:studentId
+// 2. OVERALL RANK (Based on Average)
 exports.getOverallRank = async (req, res) => {
     const { studentId } = req.params;
     const { academicYear, gradeLevel } = req.query;
@@ -78,21 +74,11 @@ exports.getOverallRank = async (req, res) => {
         return res.status(400).json({ message: 'Missing fields' });
     }
 
-    // --- FIX: NO RANK FOR KG ---
-    if (isKindergarten(gradeLevel)) {
-        return res.status(200).json({ rank: '-' });
-    }
+    if (isKindergarten(gradeLevel)) return res.status(200).json({ rank: '-' });
 
     try {
         const rankedList = await Grade.aggregate([
-            {
-                $lookup: {
-                    from: 'students',
-                    localField: 'student',
-                    foreignField: '_id',
-                    as: 'studentInfo'
-                }
-            },
+            { $lookup: { from: 'students', localField: 'student', foreignField: '_id', as: 'studentInfo' } },
             { $unwind: '$studentInfo' },
             {
                 $match: {
@@ -104,25 +90,17 @@ exports.getOverallRank = async (req, res) => {
             {
                 $group: {
                     _id: '$student', 
-                    grandTotal: { $sum: '$finalScore' } 
+                    overallAverage: { $avg: '$finalScore' } 
                 }
             },
-            {
-                $sort: { grandTotal: -1 }
-            }
+            { $sort: { overallAverage: -1 } }
         ]);
 
-        const index = rankedList.findIndex(item => item._id.toString() === studentId);
-
-        if (index === -1) {
-            return res.status(200).json({ rank: '-' });
-        }
-
-        const rankStr = `${index + 1} / ${rankedList.length}`;
+        const rankStr = findRankInList(rankedList, studentId, 'overallAverage');
         res.status(200).json({ rank: rankStr });
 
     } catch (error) {
-        console.error('Error calculating overall rank:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };

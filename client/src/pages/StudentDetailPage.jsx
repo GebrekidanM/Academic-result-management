@@ -1,85 +1,102 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // <--- Import Hook
+import { useTranslation } from 'react-i18next';
 import studentService from '../services/studentService';
 import gradeService from '../services/gradeService';
 import behavioralReportService from '../services/behavioralReportService';
 import authService from '../services/authService';
-import rankService from '../services/rankService';
+import rankService from '../services/rankService'; // Ensure this is imported
 
 const StudentDetailPage = () => {
-    const { t } = useTranslation(); // <--- Initialize
+    const { t } = useTranslation();
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    // --- STATE ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
     const [reports, setReports] = useState([]);
+    // Rank State initialized with dashes
     const [ranks, setRanks] = useState({ sem1: '-', sem2: '-', overall: '-' });
+    
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const { id } = useParams();
-    const navigate = useNavigate();
 
-    // --- 1. Fetch Data ---
+    // --- 1. DATA FETCHING ---
     useEffect(() => {
         const fetchAllData = async () => {
             setLoading(true);
             setError(null);
             try {
+                // A. Fetch Basic Data Parallelly
                 const [studentRes, gradesRes, reportsRes] = await Promise.allSettled([
                     studentService.getStudentById(id),
                     gradeService.getGradesByStudent(id),
                     behavioralReportService.getReportsByStudent(id)
                 ]);
 
+                // B. Handle Student Data (Critical)
                 let studentData = null;
                 if (studentRes.status === 'fulfilled') {
                     studentData = studentRes.value.data.data;
                     setStudent(studentData);
-                } else throw new Error(t('error'));
-
-                if (gradesRes.status === 'fulfilled') setGrades(gradesRes.value.data.data);
-                else setGrades([]);
-
-                if (reportsRes.status === 'fulfilled') setReports(reportsRes.value.data.data);
-                else setReports([]);
-
-                if (studentData) {
-                    const academicYear = gradesRes.value?.data?.data[0]?.academicYear || '2018'; 
-                    const gradeLevel = studentData.gradeLevel;
-
-                    const [r1, r2, rAll] = await Promise.allSettled([
-                        rankService.getRank({ studentId: id, academicYear, semester: 'First Semester', gradeLevel }),
-                        rankService.getRank({ studentId: id, academicYear, semester: 'Second Semester', gradeLevel }),
-                        rankService.getOverallRank({ studentId: id, academicYear, gradeLevel })
-                    ]);
-
-                    setRanks({
-                        sem1: r1.status === 'fulfilled' ? r1.value.data.rank : '-',
-                        sem2: r2.status === 'fulfilled' ? r2.value.data.rank : '-',
-                        overall: rAll.status === 'fulfilled' ? rAll.value.data.rank : '-'
-                    });
+                } else {
+                    throw new Error(t('error_student_not_found') || "Student not found");
                 }
+
+                // C. Handle Grades & Reports
+                const fetchedGrades = gradesRes.status === 'fulfilled' ? gradesRes.value.data.data : [];
+                setGrades(fetchedGrades);
+
+                if (reportsRes.status === 'fulfilled') {
+                    setReports(reportsRes.value.data.data);
+                } else {
+                    setReports([]);
+                }
+
+                // D. RANK INTEGRATION
+                if (studentData) {
+                    const gradeLevel = studentData.gradeLevel;
+                    
+                    // Determine Academic Year: Priority -> Grades > Reports > Current Year Fallback
+                    const currentYearFallback = new Date().getFullYear().toString(); // Simple fallback
+                    const academicYear = fetchedGrades.length > 0 ? fetchedGrades[0].academicYear 
+                                     : reports.length > 0 ? reports[0].academicYear 
+                                     : '2017'; // Or calculate based on Ethiopian calendar logic if needed
+
+                    // Call the Service Helper
+                    const rankResult = await rankService.getRankByStudent(id, gradeLevel, academicYear);
+
+                    // Update State
+                    setRanks(rankResult);
+                }
+
             } catch (err) {
+                console.error(err);
                 setError(err.message || t('error'));
             } finally {
                 setLoading(false);
             }
         };
-        fetchAllData();
+
+        if(id) fetchAllData();
+        
     }, [id, t]);
 
-    // --- 2. Permissions & Stats Logic ---
+    // --- 2. STATS & PERMISSIONS LOGIC ---
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'staff';
     const isHomeroomTeacher = currentUser?.role === 'teacher' && student && currentUser.homeroomGrade === student.gradeLevel;
     const canViewFullInsights = isAdmin || isHomeroomTeacher;
 
     const academicStats = useMemo(() => {
-        if (!grades || grades.length === 0) return { average: 0, totalScore: 0, totalMax: 0 };
+        if (!grades || grades.length === 0) return { average: 0 };
         let grandTotal = 0;
         let grandMax = 0;
         grades.forEach(grade => {
             grandTotal += grade.finalScore || 0;
-            grandMax += grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 0;
+            // Assuming max score is calculated from assessments or defaults to 100
+            grandMax += grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 100;
         });
         const avg = grandMax > 0 ? (grandTotal / grandMax) * 100 : 0;
         return { average: avg.toFixed(1) };
@@ -91,7 +108,7 @@ const StudentDetailPage = () => {
         const myGrades = grades.filter(g => mySubjectIds.includes(g.subject._id));
 
         return myGrades.map(g => {
-             const max = g.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 0;
+             const max = g.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 100;
              const pct = max > 0 ? (g.finalScore / max) * 100 : 0;
              
              let label = "Critical";
@@ -112,7 +129,7 @@ const StudentDetailPage = () => {
         grades.forEach(grade => {
             const subjectName = grade.subject?.name || "Unknown";
             const obtained = grade.finalScore || 0;
-            const maxScore = grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 0;
+            const maxScore = grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 100;
             const percentage = maxScore > 0 ? (obtained / maxScore) * 100 : 0;
             const item = { name: subjectName, pct: percentage.toFixed(1) };
 
@@ -124,7 +141,7 @@ const StudentDetailPage = () => {
         return categories;
     }, [grades]);
 
-    // --- Handlers ---
+    // --- HANDLERS ---
     const handleStudentDelete = async () => {
         if (window.confirm(t('confirm_delete_student'))) {
             try {
@@ -153,6 +170,7 @@ const StudentDetailPage = () => {
     if (error) return <p className="text-center text-red-500 mt-8">{error}</p>;
     if (!student) return <p className="text-center text-lg mt-8">Student not found.</p>;
 
+    // --- RENDER HELPERS ---
     const sectionWrapper = "bg-white p-6 rounded-lg shadow-md mb-8";
     const sectionTitle = "text-xl font-bold text-gray-800";
     const buttonBase = "py-2 px-4 rounded-md font-semibold transition-colors duration-200 text-sm shadow-sm";
@@ -168,6 +186,8 @@ const StudentDetailPage = () => {
                         <div>
                             <h2 className="text-3xl font-bold text-gray-800">{student.fullName}</h2>
                             <p className="text-gray-500 mt-1 text-sm font-mono">{t('id_no')}: {student.studentId}</p>
+                            
+                            {/* RANK DISPLAY */}
                             <div className="flex gap-4 mt-3">
                                 <div className="bg-blue-50 px-3 py-1 rounded border border-blue-200 text-center">
                                     <span className="block text-xs text-blue-500 font-bold uppercase">{t('average')}</span>
@@ -175,7 +195,9 @@ const StudentDetailPage = () => {
                                 </div>
                                 <div className="bg-purple-50 px-3 py-1 rounded border border-purple-200 text-center">
                                     <span className="block text-xs text-purple-500 font-bold uppercase">{t('rank')}</span>
-                                    <span className="text-lg font-black text-purple-800">{ranks.overall}</span>
+                                    <span className="text-lg font-black text-purple-800">
+                                        {ranks.overall}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -220,7 +242,7 @@ const StudentDetailPage = () => {
                 </div>
             )}
 
-            {/* 2B. Admin/Homeroom View */}
+            {/* 2B. Admin/Homeroom View (Insights) */}
             {canViewFullInsights && insights && (
                 <div className={sectionWrapper}>
                     <h3 className={`${sectionTitle} mb-4 flex items-center gap-2`}>
@@ -271,8 +293,8 @@ const StudentDetailPage = () => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {grades.map(grade => {
-                                    const max = grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 1;
-                                    const pct = ((grade.finalScore / max) * 100).toFixed(0);
+                                    const max = grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 100;
+                                    const pct = max > 0 ? ((grade.finalScore / max) * 100).toFixed(0) : 0;
                                     return (
                                         <tr key={grade._id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 font-medium text-gray-900">{grade.subject?.name}</td>

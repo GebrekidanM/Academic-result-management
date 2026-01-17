@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
-import ReportCoverPage from '../pages/ReportCoverPage'; // Adjust path if needed
+import ReportCoverPage from '../pages/ReportCoverPage'; // Ensure path is correct
 
-// ADDED 'reportType' AS A PROP HERE
 const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' }) => {
     
-    // --- DATA TRANSFORMATION ---
+    // --- DATA LOGIC (Calculates strictly based on props) ---
     const processedGrades = useMemo(() => {
         if (!reportData || !reportData.grades) return [];
         const sem1Grades = reportData.grades.sem1 || {};
@@ -34,16 +33,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         return "ANNUAL REPORT";
     };
 
-    // Safe Destructuring
-    const { 
-        studentInfo = {}, 
-        semester1 = {}, 
-        semester2 = {}, 
-        finalAverage = '-', 
-        rank = '-', 
-        behavior = {} 
-    } = reportData || {};
-
     const calculateAge = (dob) => {
         if (!dob) return '-';
         const birthYear = parseInt(String(dob).split('-')[0]);
@@ -51,30 +40,47 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         return isNaN(birthYear) ? '-' : (currentYear - 8) - birthYear;
     };
 
-    // Determine which teacher comment to show based on reportType prop
+    // Safe Destructuring
+    const { 
+        studentInfo = {}, 
+        semester1 = {}, 
+        semester2 = {}, 
+        finalAverage = '-', 
+        rank = {}, 
+        behavior = {} 
+    } = reportData || {};
+
     const getTeacherComment = () => {
         if (reportType === 'sem1') return behavior.teacherComments?.sem1;
         if (reportType === 'sem2') return behavior.teacherComments?.sem2;
-        // For Annual, prefer Sem 2, fallback to Sem 1
         return behavior.teacherComments?.sem2 || behavior.teacherComments?.sem1 || "No comments.";
     };
 
-    // Determine Totals based on reportType prop
-    const getTotals = () => {
-        if (reportType === 'sem1') return { sum: semester1?.sum, avg: semester1?.avg };
-        if (reportType === 'sem2') return { sum: semester2?.sum, avg: semester2?.avg };
-        return { sum: (semester1?.sum || 0) + (semester2?.sum || 0), avg: finalAverage };
-    }
+    // Helper for Totals based on reportType
+    const currentTotal = () => {
+        if (reportType === 'sem1') return semester1?.sum;
+        if (reportType === 'sem2') return semester2?.sum;
+        return (semester1?.sum || 0) + (semester2?.sum || 0);
+    };
 
-    const totals = getTotals();
+    const currentAvg = () => {
+        if (reportType === 'sem1') return semester1?.avg;
+        if (reportType === 'sem2') return semester2?.avg;
+        return finalAverage;
+    };
+
+    const currentRank = () => {
+        if (reportType === 'sem1') return rank?.sem1;
+        if (reportType === 'sem2') return rank?.sem2;
+        return rank?.overall;
+    };
 
     return (
         <div className="report-card-container mb-0" style={{ pageBreakAfter: 'always' }}>
             
             {/* --- SHEET 1: COVER --- */}
             <div className="print-break">
-                {/* We pass the dynamic title down to the cover if needed, or keep it generic */}
-                <ReportCoverPage studentInfo={studentInfo} schoolInfo={schoolInfoData} getReportTitle={getReportTitle} />
+                <ReportCoverPage getReportTitle={getReportTitle} studentInfo={studentInfo} schoolInfo={schoolInfoData} />
             </div>
 
             {/* --- SHEET 2: INNER CONTENT --- */}
@@ -82,9 +88,8 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                 
                 {/* --- INSIDE LEFT --- */}
                 <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
-                    {/* Student Header */}
                     <div className="flex gap-4 items-center mb-6">
-                        <div className="w-24 h-24 rounded-sm overflow-hidden shadow-md shrink-0 bg-white">
+                        <div className="w-20 h-20 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
                             {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
                         </div>
                         <div>
@@ -97,7 +102,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                         </div>
                     </div>
 
-                    {/* Behavior Table */}
                     <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 mb-4">
                         <h3 className="text-[#06b6d4] text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-[#06b6d4]"></span> Behavioral Evaluation
@@ -119,13 +123,13 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                     </tr>
                                 ))}
                             </tbody>
+
                         </table>
                         <div className="text-[10px] text-gray-500 text-center border-t border-gray-100 pt-1">
                             <strong>Key:</strong> E=Excellent, VG=Very Good, G=Good, NI=Needs Improvement
                         </div>
                     </div>
 
-                    {/* Teacher's Note (Dynamic based on reportType) */}
                     <div className="mb-4">
                         <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
                         <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-20 print:bg-cyan-50">
@@ -152,9 +156,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{schoolInfoData.name}</h3>
                                 <h2 className="text-xl font-black text-[#0f172a] uppercase">Academic Results</h2>
                             </div>
-                            <span className="text-xs font-bold bg-[#06b6d4] text-white px-2 py-0.5 rounded print:bg-[#06b6d4]">
-                                {getReportTitle()}
-                            </span>
+                            <span className="text-xs font-bold bg-[#06b6d4] text-white px-2 py-0.5 rounded print:bg-[#06b6d4]">{getReportTitle()}</span>
                         </div>
 
                         <div className="flex-1 overflow-hidden">
@@ -162,8 +164,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                 <thead>
                                     <tr className="bg-slate-900 text-white uppercase text-[10px] print:bg-slate-900">
                                         <th className="py-2 px-3 text-left w-1/2 rounded-l">Subject</th>
-                                        
-                                        {/* Conditionally Render Columns based on reportType prop */}
                                         {(reportType === 'sem1' || reportType === 'year') && <th className="py-2 text-center">Sem 1</th>}
                                         {(reportType === 'sem2' || reportType === 'year') && <th className="py-2 text-center">Sem 2</th>}
                                         {reportType === 'year' && <th className="py-2 text-center rounded-r bg-[#06b6d4]">Avg</th>}
@@ -173,34 +173,47 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                     {processedGrades.map((r, i) => (
                                         <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
                                             <td className="py-1.5 px-3 font-bold text-slate-700">{r.subjectName}</td>
-                                            
-                                            {/* Conditionally Render Data */}
-                                            {(reportType === 'sem1' || reportType === 'year') && 
-                                                <td className="text-center text-slate-700 font-medium">{r.firstSemester ?? '-'}</td>}
-                                            
-                                            {(reportType === 'sem2' || reportType === 'year') && 
-                                                <td className="text-center text-slate-700 font-medium">{r.secondSemester ?? '-'}</td>}
-                                            
-                                            {reportType === 'year' && 
-                                                <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30">{typeof r.average === 'number' ? r.average.toFixed(2) : '-'}</td>}
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.firstSemester ?? '-'}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.secondSemester ?? '-'}</td>}
+                                            {reportType === 'year' && <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30">{typeof r.average === 'number' ? r.average.toFixed(2) : '-'}</td>}
                                         </tr>
                                     ))}
                                 </tbody>
+                                <tfoot>
+                                        <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
+                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum || 0}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum || 0}</td>}
+                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{(semester1?.sum || 0) + (semester2?.sum || 0)}</td>}
+                                        </tr>
+                                        <tr className="bg-gray-50 border-t border-gray-200 font-bold text-slate-800">
+                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Average</td>
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.avg || 0}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.avg || 0}</td>}
+                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{finalAverage}</td>}
+                                        </tr>
+                                        <tr className="bg-[#0f172a] text-white font-bold print:bg-[#0f172a] print:text-white">
+                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider rounded-bl">Rank</td>
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank.sem1 || '-'}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank.sem2 || '-'}</td>}
+                                            {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4] rounded-br print:bg-[#06b6d4]">{rank.overall || '-'}</td>}
+                                        </tr>
+                                    </tfoot>
                             </table>
                         </div>
 
                         <div className="flex gap-4 mt-4 mb-4">
                             <div className="flex-1 bg-[#0f172a] text-white p-2 rounded text-center print:bg-[#0f172a]">
                                 <p className="text-[10px] uppercase font-bold opacity-70">Rank</p>
-                                <p className="text-2xl font-bold">{rank || '-'}</p>
+                                <p className="text-2xl font-bold">{currentRank()}</p>
                             </div>
                             <div className="flex-1 border border-gray-200 p-2 rounded text-center bg-white/50">
                                 <p className="text-[10px] uppercase font-bold text-gray-500">Total Sum</p>
-                                <p className="text-xl font-bold text-[#0f172a]">{totals.sum}</p>
+                                <p className="text-xl font-bold text-[#0f172a]">{currentTotal()}</p>
                             </div>
                             <div className="flex-1 border border-gray-200 p-2 rounded text-center bg-white/50">
                                 <p className="text-[10px] uppercase font-bold text-gray-500">Total Avg</p>
-                                <p className="text-xl font-bold text-[#0f172a]">{totals.avg}</p>
+                                <p className="text-xl font-bold text-[#0f172a]">{currentAvg()}</p>
                             </div>
                         </div>
 
@@ -216,6 +229,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                 <div key={role} className="text-center w-1/3">
                                     <div className="h-4 border-b border-gray-300 w-2/3 mx-auto"></div>
                                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 block">{role}</span>
+                                    {/* Optional: Add dynamic signature images here */}
                                 </div>
                             ))}
                         </div>
