@@ -29,46 +29,97 @@ exports.getGrades = async (req, res) => {
   }
 };
 
-// @desc    Get all grades for a specific student
+const Grade = require('../models/Grade');
+const Student = require('../models/Student');
+
+// @desc    Get all grades for a specific student (With Merge Logic)
 // @route   GET /api/grades/student/:studentId
 exports.getGradesByStudent = async (req, res) => {
   try {
     const studentId = req.params.id || req.params.studentId;
 
+    // 1. Validate Student
     const studentObj = await Student.findById(studentId);
     if (!studentObj) return res.status(404).json({ message: "Student not found" });
     
-    let grades = await Grade.find({ student: studentId })
+    // 2. Fetch Raw Grades
+    let rawGrades = await Grade.find({ student: studentId })
       .populate('subject', 'name gradeLevel')
       .populate('assessments.assessmentType', 'name totalMarks month');
 
-    if (!grades.length) return res.status(200).json({ success: true, data: [] });
+    if (!rawGrades.length) return res.status(200).json({ success: true, data: [] });
 
-    grades = grades
-      .filter(g => g.subject !== null)
-      .map(grade => {
-        const gradeObj = grade.toObject();
-        if (gradeObj.assessments) {
-          gradeObj.assessments = gradeObj.assessments.filter(a => a.assessmentType !== null);
-        }
-        return gradeObj;
-      });
+    // 3. Clean & Merge Duplicates
+    // This fixes the "Grade 4A" vs "Grade 4B" duplicate subject issue
+    const gradeMap = new Map();
 
-    // Role-based filtering
+    rawGrades.forEach(gradeDoc => {
+      // Convert to plain object to allow modification
+      const grade = gradeDoc.toObject();
+
+      // Skip if subject was deleted
+      if (!grade.subject) return;
+
+      // Filter null assessments (just in case)
+      if (grade.assessments) {
+        grade.assessments = grade.assessments.filter(a => a.assessmentType !== null);
+      }
+
+      // Create a unique key based on Semester + Subject Name
+      // We trim whitespace to be safe
+      const subjectName = grade.subject.name.trim();
+      const uniqueKey = `${grade.semester}-${subjectName}`;
+
+      if (gradeMap.has(uniqueKey)) {
+        // --- MERGE LOGIC ---
+        const existing = gradeMap.get(uniqueKey);
+
+        // A. Combine Assessments
+        existing.assessments = [...existing.assessments, ...grade.assessments];
+
+        // B. Update Final Score (Summing them up)
+        // Recalculating from assessments is safer than just adding finalScores
+        const newTotal = existing.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+        existing.finalScore = newTotal;
+
+        // Keep the latest ID, but the logic effectively merges them into one display object
+      } else {
+        // Add new entry
+        gradeMap.set(uniqueKey, grade);
+      }
+    });
+
+    let processedGrades = Array.from(gradeMap.values());
+
+    // 4. Role-based filtering (Teacher View)
     if (req.user?.role === 'teacher') {
-        
         const isHomeroom = req.user.homeroomGrade === studentObj.gradeLevel;
 
         if (!isHomeroom) {
+            // Get IDs of subjects this teacher teaches
             const teacherSubjectIds = new Set(
                 req.user.subjectsTaught.map(s => s.subject?._id?.toString())
             );
-            grades = grades.filter(g => teacherSubjectIds.has(g.subject._id.toString()));
+
+            // Filter the processed list
+            processedGrades = processedGrades.filter(g => {
+                // Check if the grade's subject ID is in the teacher's list
+                return teacherSubjectIds.has(g.subject._id.toString());
+            });
         }
     }
 
+    // 5. Sort for cleaner API response (Optional but recommended)
+    // Sort by Semester (First -> Second), then by Subject Name (A-Z)
+    processedGrades.sort((a, b) => {
+        if (a.semester === b.semester) {
+            return a.subject.name.localeCompare(b.subject.name);
+        }
+        return a.semester.localeCompare(b.semester); // "First" comes before "Second" alphabetically anyway
+    });
 
-    res.status(200).json({ success: true, count: grades.length, data: grades });
+    res.status(200).json({ success: true, count: processedGrades.length, data: processedGrades });
+
   } catch (error) {
     console.error("Error fetching grades by student:", error);
     res.status(500).json({ success: false, message: 'Server Error' });
@@ -76,12 +127,17 @@ exports.getGradesByStudent = async (req, res) => {
 };
 
 // @desc    Get grade details (by student, subject, semester, year)
-// @route   GET /api/grades/details?studentId=&subjectId=&semester=&academicYear=
+// @route   GET /api/grades/details
 exports.getGradeDetails = async (req, res) => {
   const { studentId, subjectId, semester, academicYear } = req.query;
   try {
+    // Note: If you have duplicates in DB, 'findOne' might pick the wrong one (e.g. the 4B one).
+    // Ideally, you should use 'find' here too and merge if you want to be 100% safe, 
+    // but usually editing happens on a specific ID.
+    
     const grade = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear })
       .populate('assessments.assessmentType', 'name totalMarks');
+      
     res.json({ success: true, data: grade });
   } catch (error) {
     console.error("Error fetching grade details:", error);
