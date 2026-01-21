@@ -34,6 +34,11 @@ const Student = require('../models/Student');
 
 // @desc    Get all grades for a specific student (With Merge Logic)
 // @route   GET /api/grades/student/:studentId
+const Grade = require('../models/Grade');
+const Student = require('../models/Student');
+
+// @desc    Get all grades for a specific student (Aggressive Merging)
+// @route   GET /api/grades/student/:studentId
 exports.getGradesByStudent = async (req, res) => {
   try {
     const studentId = req.params.id || req.params.studentId;
@@ -42,83 +47,86 @@ exports.getGradesByStudent = async (req, res) => {
     const studentObj = await Student.findById(studentId);
     if (!studentObj) return res.status(404).json({ message: "Student not found" });
     
-    // 2. Fetch Raw Grades
-    let rawGrades = await Grade.find({ student: studentId })
+    // 2. Fetch Raw Grades from DB
+    const rawGrades = await Grade.find({ student: studentId })
       .populate('subject', 'name gradeLevel')
-      .populate('assessments.assessmentType', 'name totalMarks month');
+      .populate('assessments.assessmentType', 'name totalMarks month')
+      .lean(); // .lean() converts to plain JS objects instantly (faster)
 
-    if (!rawGrades.length) return res.status(200).json({ success: true, data: [] });
+    if (!rawGrades.length) {
+        return res.status(200).json({ success: true, count: 0, data: [] });
+    }
 
-    // 3. Clean & Merge Duplicates
-    // This fixes the "Grade 4A" vs "Grade 4B" duplicate subject issue
+    // 3. THE MERGE LOGIC (Fixes the duplicates)
     const gradeMap = new Map();
 
-    rawGrades.forEach(gradeDoc => {
-      // Convert to plain object to allow modification
-      const grade = gradeDoc.toObject();
+    rawGrades.forEach(grade => {
+      // Safety Check: If subject was deleted from DB, skip this grade
+      if (!grade.subject || !grade.subject.name) return;
 
-      // Skip if subject was deleted
-      if (!grade.subject) return;
-
-      // Filter null assessments (just in case)
-      if (grade.assessments) {
-        grade.assessments = grade.assessments.filter(a => a.assessmentType !== null);
+      // Filter out broken assessments just in case
+      let cleanAssessments = [];
+      if (grade.assessments && Array.isArray(grade.assessments)) {
+          cleanAssessments = grade.assessments.filter(a => a.assessmentType != null);
       }
 
-      // Create a unique key based on Semester + Subject Name
-      // We trim whitespace to be safe
-      const subjectName = grade.subject.name.trim();
-      const uniqueKey = `${grade.semester}-${subjectName}`;
+      // Create a UNIQUE KEY based on Semester + Subject Name
+      // We force lowercase and trim to ensure "Math" and "math " are treated as the same
+      const normalizedSubjectName = grade.subject.name.trim(); 
+      const uniqueKey = `${grade.semester}-${normalizedSubjectName.toLowerCase()}`;
 
       if (gradeMap.has(uniqueKey)) {
-        // --- MERGE LOGIC ---
-        const existing = gradeMap.get(uniqueKey);
+        // --- DUPLICATE FOUND: MERGE IT ---
+        const existingEntry = gradeMap.get(uniqueKey);
 
-        // A. Combine Assessments
-        existing.assessments = [...existing.assessments, ...grade.assessments];
+        // A. Merge Assessments (Add new ones to the existing list)
+        existingEntry.assessments = [...existingEntry.assessments, ...cleanAssessments];
 
-        // B. Update Final Score (Summing them up)
-        // Recalculating from assessments is safer than just adding finalScores
-        const newTotal = existing.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
-        existing.finalScore = newTotal;
+        // B. Recalculate Final Score
+        // We sum up all assessments from both entries
+        const newTotalScore = existingEntry.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+        existingEntry.finalScore = newTotalScore;
 
-        // Keep the latest ID, but the logic effectively merges them into one display object
+        // Note: We keep the Grade Level/ID of the *first* entry found. 
+        // This effectively hides the "Grade 4B" mistake if "Grade 4A" was processed first.
+
       } else {
-        // Add new entry
+        // --- NEW ENTRY ---
+        // Ensure we explicitly set the cleaned assessments
+        grade.assessments = cleanAssessments;
         gradeMap.set(uniqueKey, grade);
       }
     });
 
+    // 4. Convert Map back to Array
     let processedGrades = Array.from(gradeMap.values());
 
-    // 4. Role-based filtering (Teacher View)
+    // 5. Role-based filtering (For Teachers)
     if (req.user?.role === 'teacher') {
         const isHomeroom = req.user.homeroomGrade === studentObj.gradeLevel;
-
-        if (!isHomeroom) {
-            // Get IDs of subjects this teacher teaches
+        if (!isHomeroom && req.user.subjectsTaught) {
             const teacherSubjectIds = new Set(
                 req.user.subjectsTaught.map(s => s.subject?._id?.toString())
             );
-
-            // Filter the processed list
-            processedGrades = processedGrades.filter(g => {
-                // Check if the grade's subject ID is in the teacher's list
-                return teacherSubjectIds.has(g.subject._id.toString());
-            });
+            // We filter based on the subject ID attached to the merged entry
+            processedGrades = processedGrades.filter(g => teacherSubjectIds.has(g.subject._id.toString()));
         }
     }
 
-    // 5. Sort for cleaner API response (Optional but recommended)
-    // Sort by Semester (First -> Second), then by Subject Name (A-Z)
+    // 6. Sort: Semester 1 First, Then Subject A-Z
     processedGrades.sort((a, b) => {
         if (a.semester === b.semester) {
             return a.subject.name.localeCompare(b.subject.name);
         }
-        return a.semester.localeCompare(b.semester); // "First" comes before "Second" alphabetically anyway
+        return a.semester === 'First Semester' ? -1 : 1;
     });
 
-    res.status(200).json({ success: true, count: processedGrades.length, data: processedGrades });
+    // 7. Send Response
+    res.status(200).json({ 
+        success: true, 
+        count: processedGrades.length, 
+        data: processedGrades 
+    });
 
   } catch (error) {
     console.error("Error fetching grades by student:", error);

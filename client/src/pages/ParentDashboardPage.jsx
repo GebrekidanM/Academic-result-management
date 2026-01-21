@@ -314,7 +314,7 @@ const ParentDashboardPage = () => {
                 </div>
             )}
 
-            <div className="bg-white  rounded-2xl shadow-sm border border-slate-100">
+            <div className="bg-white  rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
                 <div className="p-8">
                     <style>{`@media print { @page { size: A4 landscape; margin: 10mm; } body { background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } .print-header { display: block !important; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; } }`}</style>
                     <div className="hidden print-header"><h1 className="text-2xl font-bold uppercase">Future Generation Academy</h1><p className="text-sm">Student Performance Report - {student.fullName}</p></div>
@@ -339,7 +339,7 @@ const ParentDashboardPage = () => {
                                             </div>
                                         </div>
 
-                                        <table className="w-full text-sm border-collapse border border-slate-300 overflow-x-auto">
+                                        <table className="w-full text-sm border-collapse border border-slate-300">
                                             <thead className="bg-slate-100">
                                                 <tr>
                                                     <th className="border border-slate-300 px-4 py-2 text-left w-1/4">{t('subject')}</th>
