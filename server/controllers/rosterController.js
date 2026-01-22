@@ -19,7 +19,7 @@ exports.generateRoster = async (req, res) => {
         if (subjects.length === 0) return res.status(404).json({ message: 'No subjects found.' });
 
         const students = await Student.find({ gradeLevel, status: 'Active' })
-            .select('studentId fullName gender dateOfBirth') // Explicitly select the new fields
+            .select('studentId fullName gender dateOfBirth _id') // Explicitly select the new fields
             .sort({ fullName: 1 });
         
         if (students.length === 0) return res.status(404).json({ message: 'No active students found.' });
@@ -88,6 +88,7 @@ exports.generateRoster = async (req, res) => {
 
 
             return {
+                _id:student._id
                 studentId: student.studentId, 
                 fullName: student.fullName,
                 gender: student.gender,
