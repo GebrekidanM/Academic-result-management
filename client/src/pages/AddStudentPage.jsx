@@ -150,7 +150,7 @@ const AddStudentPage = () => {
                         {/* DOB */}
                         <div>
                             <label htmlFor="dateOfBirth" className={inputLabel}>{t('dob')}</label>
-                            <input id="dateOfBirth" type="date" name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
+                            <input id="dateOfBirth" type="text" placeholder='dd/mm/yyyy' name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
                         </div>
                     </div>
 

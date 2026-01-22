@@ -177,8 +177,9 @@ const EditStudentPage = () => {
                     </div>
                     <div>
                         <label htmlFor="dateOfBirth" className={inputLabel}>{t('dob')}</label>
-                        <input id="dateOfBirth" type="date" name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
+                        <input id="dateOfBirth" type="text" name="dateOfBirth" placeholder='dd/mm/yyyy' value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
                     </div>
+
                 </div>
 
                 {/* Parent / Guardian */}

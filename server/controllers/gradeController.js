@@ -29,20 +29,11 @@ exports.getGrades = async (req, res) => {
   }
 };
 
-const Grade = require('../models/Grade');
-const Student = require('../models/Student');
-
-// @desc    Get all grades for a specific student (With Merge Logic)
-// @route   GET /api/grades/student/:studentId
-const Grade = require('../models/Grade');
-const Student = require('../models/Student');
-
-
 // @desc    Get grades filtered by Student's Current Grade Level
 // @route   GET /api/grades/student/:studentId
 exports.getGradesByStudent = async (req, res) => {
   try {
-    const studentId = req.params.id || req.params.studentId;
+    const studentId = req.params.studentId;
 
     // 1. Fetch Student to check their CURRENT Grade Level
     const studentObj = await Student.findById(studentId);
@@ -52,7 +43,7 @@ exports.getGradesByStudent = async (req, res) => {
     
     // 2. Fetch All Grades
     let grades = await Grade.find({ student: studentId })
-      .populate('subject', 'name gradeLevel') // We need the subject's gradeLevel
+      .populate('subject', 'name gradeLevel')
       .populate('assessments.assessmentType', 'name totalMarks month')
       .lean();
 
@@ -61,7 +52,6 @@ exports.getGradesByStudent = async (req, res) => {
     }
 
     // 3. STRICT FILTERING LOGIC
-    // Only keep grades where the Subject's Grade Level matches the Student's Grade Level
     grades = grades.filter(grade => {
         // Safety check: if subject is deleted, remove grade
         if (!grade.subject) return false;

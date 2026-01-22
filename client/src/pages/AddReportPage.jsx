@@ -5,8 +5,10 @@ import behavioralReportService from '../services/behavioralReportService';
 
 // Predefined areas for evaluation
 const EVALUATION_AREAS = [
-    "Punctuality", "Attendance", "Responsibility", "Respect",
-    "Cooperation", "Initiative", "Completes Work"
+    "Punctuality", "Attendance",
+    'Communication book usage',	"T-book & E-book condition", "Personal hygiene", 
+    "Proper dressing of school uniform", "Following school rules and regulation","Communication skill",
+    "Participating in class","English language usage"
 ];
 
 const AddReportPage = () => {
@@ -15,7 +17,7 @@ const AddReportPage = () => {
 
     // --- State Management ---
     const [semester, setSemester] = useState('First Semester');
-    const [academicYear, setAcademicYear] = useState('2017 E.C');
+    const [academicYear, setAcademicYear] = useState('2018');
     const [teacherComment, setTeacherComment] = useState('');
     const [conduct, setConduct] = useState('A');
     const [evaluations, setEvaluations] = useState(
