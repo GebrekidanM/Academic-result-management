@@ -1,118 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import React, { useMemo, useState } from 'react';
+import ReportCoverPage from '../pages/ReportCoverPage';
 
-// ==================================================================================
-//                              1. COVER PAGE COMPONENT
-// ==================================================================================
-const ReportCoverPage = ({ studentInfo, schoolInfo }) => {
-    const studentName = studentInfo?.fullName || "Student Name";
-    const studentId = studentInfo?.studentId || "ID-001";
-    const grade = studentInfo?.classId || "Grade --";
-    const year = studentInfo?.academicYear || new Date().getFullYear();
-
-    return (
-        <div className="w-[297mm] h-[210mm] bg-white relative flex overflow-hidden text-slate-800 font-sans print-break">
-            
-            <style>{`
-                .cover-diagonal-shape { clip-path: polygon(35% 0%, 100% 0%, 100% 100%, 0% 100%); }
-                .year-badge-shape { clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%); }
-                @media print {
-                    .bg-navy-dark { background-color: #0B1120 !important; -webkit-print-color-adjust: exact; }
-                    .bg-cyan-light { background-color: #CFF0F6 !important; -webkit-print-color-adjust: exact; }
-                    .text-cyan-bold { color: #06b6d4 !important; -webkit-print-color-adjust: exact; }
-                    .bg-black-badge { background-color: #000000 !important; color: white !important; -webkit-print-color-adjust: exact; }
-                }
-            `}</style>
-
-            {/* LEFT PANEL (Dark) */}
-            <div className="w-1/2 h-full bg-[#0B1120] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
-                <div className="w-28 h-28 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl border-4 border-[#06b6d4]">
-                    <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-contain p-1" />
-                </div>
-                <h1 className="text-3xl font-montserrat font-bold tracking-widest leading-snug mb-2 uppercase">
-                    FUTURE GENERATION<br/>ACADEMY
-                </h1>
-                <div className="w-12 h-1 bg-[#06b6d4] my-6 rounded"></div>
-                <p className="text-sm font-montserrat font-light opacity-80 leading-relaxed mb-12 max-w-sm mx-auto">
-                    "Empowering the next generation with knowledge, character, and excellence."
-                </p>
-                <div className="text-xs font-montserrat font-medium opacity-70 space-y-3">
-                    <div>📍 {schoolInfo.address}</div>
-                    <div>📞 {schoolInfo.phone}</div>
-                    <div>✉️ {schoolInfo.email}</div>
-                    <div>🌐 {schoolInfo.website}</div>
-                </div>
-            </div>
-
-            {/* RIGHT PANEL (Light) */}
-            <div className="w-1/2 h-full bg-white relative relative z-10 overflow-hidden">
-                <div className="absolute top-0 right-0 w-[60%] h-full bg-[#CFF0F6] bg-cyan-light cover-diagonal-shape z-0"></div>
-                <div className="relative z-10 h-full flex flex-col pt-24 pr-16 pl-8 text-right">
-                    <h3 className="text-sm font-montserrat font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-[0.3em] mb-2">Official Transcript</h3>
-                    <div className="flex flex-col items-end">
-                        <h1 className="text-7xl font-oswald font-bold text-[#0f172a] uppercase leading-none tracking-tight">Annual Report</h1>
-                        <h1 className="text-7xl font-oswald font-bold text-[#06b6d4] text-cyan-bold uppercase leading-none tracking-tight">Card</h1>
-                    </div>
-                    <div className="mt-6 flex justify-end">
-                        <div className="bg-black bg-black-badge text-white font-oswald font-bold text-2xl px-10 py-2 year-badge-shape shadow-xl transform rotate-[-2deg]">
-                            {year}
-                        </div>
-                    </div>
-                    <div className="mt-auto mb-20 flex flex-col items-end">
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Prepared For</p>
-                        <div className="flex flex-col items-end border-r-4 border-[#06b6d4] pr-4">
-                            <h2 className="text-4xl font-montserrat font-bold text-[#0f172a] mb-1">{studentName}</h2>
-                            <p className="text-sm font-bold text-gray-500 font-mono tracking-wide">ID: {studentId}</p>
-                            <p className="text-sm font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-wide">{grade}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-// ==================================================================================
-//                              2. MAIN REPORT CARD PAGE
-// ==================================================================================
-const ReportCardPage = () => {
-    const { id } = useParams();
-
-    // --- STATE ---
-    const [reportData, setReportData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+const ReportCardDocument = ({ reportData, schoolInfoData }) => {
+    // አንተ በሰጠኸኝ መሰረት State እዚሁ እንዲሆን አድርጌዋለሁ
     const [reportType, setReportType] = useState('year'); 
-
-    // --- STATIC SCHOOL INFO ---
-    const schoolInfoData = {
-        name: "FUTURE GENERATION ACADEMY",
-        logo: "https://via.placeholder.com/300/0f172a/ffffff?text=LOGO",
-        address: "Addis Ababa, Bole Sub-city",
-        phone: "+251 911 23 45 67",
-        email: "info@futuregen.edu.et",
-        website: "www.futuregen.edu.et"
-    };
-
-    // --- DATA FETCHING ---
-    useEffect(() => {
-        const fetchReport = async () => {
-            try {
-                // Ensure this matches your backend port/route
-                const response = await axios.get(`http://localhost:5000/api/reports/student/${id}`);
-                setReportData(response.data);
-            } catch (err) {
-                console.error("Error fetching report:", err);
-                setError("Could not load student report.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchReport();
-    }, [id]);
-
+    
     // --- DATA TRANSFORMATION ---
     const processedGrades = useMemo(() => {
         if (!reportData || !reportData.grades) return [];
@@ -143,6 +35,17 @@ const ReportCardPage = () => {
         return "ANNUAL REPORT";
     };
 
+    // Safe Destructuring (Added footerData for Absent/Conduct)
+    const { 
+        studentInfo = {}, 
+        semester1 = {}, 
+        semester2 = {}, 
+        finalAverage = '-', 
+        rank = '-', 
+        behavior = {},
+        footerData = { sem1: {}, sem2: {} } // <--- ይሄ ከ Backend የሚመጣ ነው (Absent/Conduct)
+    } = reportData || {};
+
     const calculateAge = (dob) => {
         if (!dob) return '-';
         const birthYear = parseInt(String(dob).split('-')[0]);
@@ -150,216 +53,222 @@ const ReportCardPage = () => {
         return isNaN(birthYear) ? '-' : (currentYear - 8) - birthYear;
     };
 
-    if (loading) return <div className="flex h-screen items-center justify-center text-xl font-bold text-slate-900">Loading Report...</div>;
-    if (error) return <div className="flex h-screen items-center justify-center text-xl font-bold text-red-600">{error}</div>;
-    if (!reportData) return <div className="flex h-screen items-center justify-center text-xl font-bold text-red-600">No Data Found</div>;
+    // --- NEW: Automated Teacher Comment Logic ---
+    const getAutomatedComment = () => {
+        // ውጤቱን እንደ Report Type መምረጥ
+        let score = 0;
+        if (reportType === 'sem1') score = semester1?.avg || 0;
+        else if (reportType === 'sem2') score = semester2?.avg || 0;
+        else score = finalAverage || 0;
 
-    // --- DESTRUCTURING ---
-    const { 
-        studentInfo = {}, 
-        semester1 = {}, 
-        semester2 = {}, 
-        finalAverage = '-', 
-        rank = { sem1: '-', sem2: '-', overall: '-' }, 
-        behavior = {} 
-    } = reportData || {};
+        const numScore = Number(score);
+
+        if (numScore >= 95) return "Excellent achievement! Keep up the outstanding work.";
+        if (numScore >= 90) return "Very superior performance.";
+        if (numScore >= 85) return "Superior performance.";
+        if (numScore >= 80) return "Very good performance.";
+        if (numScore >= 70) return "Good performance.";
+        if (numScore >= 60) return "Satisfactory. More effort is needed.";
+        if (numScore >= 50) return "Promoted, but needs significant improvement.";
+        return "Not Promoted. Hard work is required next year.";
+    };
+
+    // Helpers for Totals
+    const currentTotal = () => {
+        if (reportType === 'sem1') return semester1?.sum;
+        if (reportType === 'sem2') return semester2?.sum;
+        return (semester1?.sum || 0) + (semester2?.sum || 0);
+    };
+
+    const currentAvg = () => {
+        if (reportType === 'sem1') return semester1?.avg;
+        if (reportType === 'sem2') return semester2?.avg;
+        return finalAverage;
+    };
+
+    const currentRank = () => {
+        if (reportType === 'sem1') return rank?.sem1;
+        if (reportType === 'sem2') return rank?.sem2;
+        return rank?.overall;
+    };
 
     return (
-        <div className="min-h-screen bg-gray-200 flex flex-col items-center p-8 font-sans print:p-0 print:m-0 print:bg-white print:block">
+        <div className="report-card-container mb-0" style={{ pageBreakAfter: 'always' }}>
             
-            {/* --- CSS --- */}
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Oswald:wght@300;500;700&family=Playfair+Display:wght@700&display=swap');
-                
-                .font-montserrat { font-family: 'Montserrat', sans-serif; }
-                .font-oswald { font-family: 'Oswald', sans-serif; }
-                .font-playfair { font-family: 'Playfair Display', serif; }
-                
-                .lined-bg {
-                    background-image: repeating-linear-gradient(transparent, transparent 24px, #cbd5e1 25px);
-                    line-height: 25px;
-                }
-
-                @media print {
-                    @page { size: A4 landscape; margin: 0mm !important; }
-                    html, body, #root { width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
-                    .no-print { display: none !important; }
-                    .print-wrapper { position: absolute; top: 0; left: 0; width: 297mm; margin: 0 !important; padding: 0 !important; }
-                    .bg-slate-900 { background-color: #0f172a !important; color: white !important; -webkit-print-color-adjust: exact; }
-                    .bg-cyan-500 { background-color: #06b6d4 !important; color: white !important; -webkit-print-color-adjust: exact; }
-                    .text-cyan-500 { color: #06b6d4 !important; -webkit-print-color-adjust: exact; }
-                    .bg-cyan-50 { background-color: #ecfeff !important; -webkit-print-color-adjust: exact; }
-                    .print-break { page-break-after: always; }
-                }
-            `}</style>
-
-            {/* --- CONTROLS --- */}
-            <div className="w-[297mm] flex justify-between items-center mb-6 no-print">
-                <Link to={`/students`} className="text-slate-900 font-bold hover:underline">&larr; Back</Link>
-                <div className="bg-white px-4 py-2 rounded-full shadow flex gap-4">
-                    <span className="text-xs font-bold text-gray-400 uppercase self-center">View Mode:</span>
-                    {['sem1', 'sem2', 'year'].map(type => (
-                        <button key={type} onClick={() => setReportType(type)} className={`text-xs font-bold uppercase ${reportType === type ? 'text-cyan-600 underline' : 'text-gray-500'}`}>
-                            {type === 'year' ? 'Annual' : type === 'sem1' ? 'Sem 1' : 'Sem 2'}
-                        </button>
-                    ))}
-                </div>
-                <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-2 rounded-full font-bold shadow hover:bg-cyan-600 transition flex items-center gap-2">
-                    🖨️ Print Booklet
-                </button>
+            {/* Buttons (አንተ በፈለከው ቦታ) */}
+            <div className="bg-white px-4 py-2 rounded-full shadow flex gap-4 no-print">
+                <span className="text-xs font-bold text-gray-400 uppercase self-center">View Mode:</span>
+                {['sem1', 'sem2', 'year'].map(type => (
+                    <button key={type} onClick={() => setReportType(type)} className={`text-xs font-bold uppercase ${reportType === type ? 'text-cyan-600 underline' : 'text-gray-500'}`}>
+                        {type === 'year' ? 'Annual' : type === 'sem1' ? 'Sem 1' : 'Sem 2'}
+                    </button>
+                ))}
             </div>
 
-            {/* === PRINT WRAPPER START === */}
-            <div className="print-wrapper">
+            {/* --- SHEET 1: COVER --- */}
+            <div className="print-break">
+                <ReportCoverPage studentInfo={studentInfo} schoolInfo={schoolInfoData} getReportTitle={getReportTitle}/>
+            </div>
 
-                {/* --- SHEET 1: COVER PAGE --- */}
-                <div className="print-break">
-                    <ReportCoverPage studentInfo={studentInfo} schoolInfo={schoolInfoData} />
-                </div>
-
-                {/* --- SHEET 2: INNER CONTENT --- */}
-                <div className="w-[297mm] h-[210mm] bg-white shadow-2xl flex overflow-hidden relative print:shadow-none print:m-0 print:p-0">
-                    
-                    {/* --- INSIDE LEFT (Profile, Behavior, Comment) --- */}
-                    <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
-                        <div className="flex gap-4 items-center mb-6">
-                            <div className="w-16 h-16 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
-                                {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-montserrat font-bold text-[#0f172a]">{studentInfo?.fullName || '...'}</h2>
-                                <div className="flex gap-2 text-xs font-bold text-gray-600 uppercase mt-1">
-                                    <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">{studentInfo?.classId || '-'}</span>
-                                    <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Age: {calculateAge(studentInfo?.dateOfBirth) || '-'}</span>
-                                    <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Sex: {studentInfo?.sex || '-'}</span>
-                                </div>
+            {/* --- SHEET 2: INNER CONTENT --- */}
+            <div className="w-[297mm] h-[210mm] bg-white shadow-2xl flex overflow-hidden relative print:shadow-none print:m-0 print:p-0">
+                
+                {/* --- INSIDE LEFT --- */}
+                <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
+                    <div className="flex gap-4 items-center mb-6">
+                        <div className="w-16 h-16 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
+                            {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-montserrat font-bold text-[#0f172a]">{studentInfo?.fullName || '...'}</h2>
+                            <div className="flex gap-2 text-xs font-bold text-gray-600 uppercase mt-1">
+                                <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">{studentInfo?.classId || '-'}</span>
+                                <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Age: {calculateAge(studentInfo?.dateOfBirth)}</span>
+                                <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Sex: {studentInfo?.sex || '-'}</span>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 mb-4">
-                            <h3 className="text-[#06b6d4] text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-[#06b6d4]"></span> Behavioral Evaluation
-                            </h3>
-                            <table className="w-full text-xs border-collapse mb-2">
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 mb-4">
+                        <h3 className="text-[#06b6d4] text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#06b6d4]"></span> Behavioral Evaluation
+                        </h3>
+                        <table className="w-full text-xs border-collapse mb-2">
+                            <thead>
+                                <tr className="text-gray-500 border-b border-gray-200">
+                                    <th className="text-left font-bold pb-2">Trait</th>
+                                    <th className="text-center font-bold pb-2 w-10">S1</th>
+                                    <th className="text-center font-bold pb-2 w-10">S2</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {behavior.progress && behavior.progress.map((item, index) => (
+                                    <tr key={index} className="border-b border-gray-50 last:border-0">
+                                        <td className="py-2 text-gray-800 font-medium">{item.area}</td>
+                                        <td className="text-center text-[#0f172a] font-bold">{item.sem1}</td>
+                                        <td className="text-center text-[#0f172a] font-bold">{item.sem2}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div className="text-[10px] text-gray-500 text-center border-t border-gray-100 pt-1">
+                            <strong>Key:</strong> E=Excellent, VG=Very Good, G=Good, NI=Needs Improvement
+                        </div>
+                    </div>
+
+                    <div className="mb-4">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
+                        <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-20 print:bg-cyan-50 flex items-center">
+                            {/* እዚህ ጋር ነው Automated Comment የገባው */}
+                            {getAutomatedComment()}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Parent's Feedback & Signature</h4>
+                        <div className="flex-1 bg-white border border-gray-300 rounded relative overflow-hidden">
+                            <div className="lined-bg w-full h-full absolute top-0 left-0"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* --- INSIDE RIGHT --- */}
+                <div className="w-1/2 h-full bg-white p-8 flex flex-col relative overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
+                        <img src={schoolInfoData.logo} alt="Watermark" className="w-[80%] opacity-[0.04] grayscale transform -rotate-12"/>
+                    </div>
+                    <div className="relative z-10 flex-1 flex flex-col">
+                        <div className="flex justify-between items-end mb-4 border-b-2 border-[#0f172a] pb-2">
+                            <div>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{schoolInfoData.name}</h3>
+                                <h2 className="text-xl font-black text-[#0f172a] uppercase">Academic Results</h2>
+                            </div>
+                            <span className="text-xs font-bold bg-[#06b6d4] text-white px-2 py-0.5 rounded print:bg-[#06b6d4]">{getReportTitle()}</span>
+                        </div>
+
+                        <div className="flex-1 overflow-hidden">
+                            <table className="w-full text-xs border-collapse">
                                 <thead>
-                                    <tr className="text-gray-500 border-b border-gray-200">
-                                        <th className="text-left font-bold pb-2">Trait</th>
-                                        <th className="text-center font-bold pb-2 w-10">S1</th>
-                                        <th className="text-center font-bold pb-2 w-10">S2</th>
+                                    <tr className="bg-slate-900 text-white uppercase text-[10px] print:bg-slate-900">
+                                        <th className="py-2 px-3 text-left w-1/2 rounded-l">Subject</th>
+                                        {(reportType === 'sem1' || reportType === 'year') && <th className="py-2 text-center">Sem 1</th>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <th className="py-2 text-center">Sem 2</th>}
+                                        {reportType === 'year' && <th className="py-2 text-center rounded-r bg-[#06b6d4]">Avg</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {behavior.progress && behavior.progress.map((item, index) => (
-                                        <tr key={index} className="border-b border-gray-50 last:border-0">
-                                            <td className="py-2 text-gray-800 font-medium">{item.area}</td>
-                                            <td className="text-center text-[#0f172a] font-bold">{item.sem1}</td>
-                                            <td className="text-center text-[#0f172a] font-bold">{item.sem2}</td>
+                                    {processedGrades.map((r, i) => (
+                                        <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
+                                            <td className="py-1.5 px-3 font-bold text-slate-700">{r.subjectName}</td>
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.firstSemester ?? '-'}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.secondSemester ?? '-'}</td>}
+                                            {reportType === 'year' && <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30">{typeof r.average === 'number' ? r.average.toFixed(2) : '-'}</td>}
                                         </tr>
                                     ))}
                                 </tbody>
+                                {/* --- UPDATED FOOTER (Added Absent & Conduct) --- */}
+                                <tfoot>
+                                    {/* Total */}
+                                    <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum || 0}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum || 0}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{currentTotal()}</td>}
+                                    </tr>
+                                    {/* Average */}
+                                    <tr className="bg-gray-50 border-t border-gray-200 font-bold text-slate-800">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Average</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.avg || 0}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.avg || 0}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{currentAvg()}</td>}
+                                    </tr>
+                                    {/* Rank */}
+                                    <tr className="bg-[#0f172a] text-white font-bold print:bg-[#0f172a] print:text-white">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Rank</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem1 || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem2 || '-'}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4] print:bg-[#06b6d4]">{rank?.overall || '-'}</td>}
+                                    </tr>
+                                    {/* Absent (New) */}
+                                    <tr className="bg-white border-t border-gray-300">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent || '-'}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
+                                    </tr>
+                                    {/* Conduct (New) */}
+                                    <tr className="bg-white border-t border-gray-200">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-blue-900 tracking-wider">Conduct</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem1?.conduct || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem2?.conduct || '-'}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
+                                    </tr>
+                                </tfoot>
                             </table>
-                            <div className="text-[10px] text-gray-500 text-center border-t border-gray-100 pt-1">
-                                <strong>Key:</strong> E=Excellent, VG=Very Good, G=Good, NI=Needs Improvement
+                        </div>
+
+                        {/* ከዚህ በታች ያሉት ካርዶች አሁን በቴብል ፉተር ውስጥ ስለገቡ አያስፈልጉም፣ ግን ዲዛይኑ እንዳይበላሽ ቦታ መያዣ ከፈለክ መተው ትችላለህ */}
+                        <div className="mb-6 border-t border-gray-100 pt-4 mt-4">
+                            <div className="flex items-end gap-2 text-sm text-[#0f172a]">
+                                <span className="font-bold">Promoted to:</span> 
+                                <span className="flex-1 border-b-2 border-gray-400 border-dotted pl-2 font-mono font-bold">{studentInfo?.promotedTo || ""}</span>
                             </div>
                         </div>
-                        <div className="mb-4">
-                            <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
-                            <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-20 print:bg-cyan-50">
-                                {reportType === 'sem1' ? behavior.teacherComments?.sem1 : 
-                                 reportType === 'sem2' ? behavior.teacherComments?.sem2 : 
-                                 (behavior.teacherComments?.sem2 || behavior.teacherComments?.sem1 || "No comments.")}
-                            </div>
-                        </div>
-                        <div className="flex-1 flex flex-col">
-                            <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Parent's Feedback & Signature</h4>
-                            <div className="flex-1 bg-white border border-gray-300 rounded relative overflow-hidden">
-                                <div className="lined-bg w-full h-full absolute top-0 left-0"></div>
-                            </div>
+
+                        <div className="flex justify-between items-end">
+                            {['Homeroom', 'Director', 'Parent'].map((role) => (
+                                <div key={role} className="text-center w-1/3">
+                                    <div className="h-4 border-b border-gray-300 w-2/3 mx-auto"></div>
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 block">{role}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
-
-                    {/* --- INSIDE RIGHT (Grades & Signatures) --- */}
-                    <div className="w-1/2 h-full bg-white p-8 flex flex-col relative overflow-hidden">
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
-                            <img src={schoolInfoData.logo} alt="Watermark" className="w-[80%] opacity-[0.04] grayscale transform -rotate-12"/>
-                        </div>
-                        <div className="relative z-10 flex-1 flex flex-col">
-                            <div className="flex justify-between items-end mb-4 border-b-2 border-[#0f172a] pb-2">
-                                <div>
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{schoolInfoData.name}</h3>
-                                    <h2 className="text-xl font-black text-[#0f172a] uppercase">Academic Results</h2>
-                                </div>
-                                <span className="text-xs font-bold bg-[#06b6d4] text-white px-2 py-0.5 rounded print:bg-[#06b6d4]">{getReportTitle()}</span>
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                                <table className="w-full text-xs border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-900 text-white uppercase text-[10px] print:bg-slate-900">
-                                            <th className="py-2 px-3 text-left w-1/2 rounded-l">Subject</th>
-                                            {(reportType === 'sem1' || reportType === 'year') && <th className="py-2 text-center">Sem 1</th>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <th className="py-2 text-center">Sem 2</th>}
-                                            {reportType === 'year' && <th className="py-2 text-center rounded-r bg-[#06b6d4]">Avg</th>}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {processedGrades.map((r, i) => (
-                                            <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
-                                                <td className="py-1.5 px-3 font-bold text-slate-700">{r.subjectName}</td>
-                                                {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.firstSemester ?? '-'}</td>}
-                                                {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.secondSemester ?? '-'}</td>}
-                                                {reportType === 'year' && <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30">{typeof r.average === 'number' ? r.average.toFixed(2) : '-'}</td>}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    {/* --- NEW FOOTER (Replaces Summary Cards) --- */}
-                                    <tfoot>
-                                        {/* 1. TOTAL ROW */}
-                                        <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
-                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum || 0}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum || 0}</td>}
-                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{(semester1?.sum || 0) + (semester2?.sum || 0)}</td>}
-                                        </tr>
-                                        {/* 2. AVERAGE ROW */}
-                                        <tr className="bg-gray-50 border-t border-gray-200 font-bold text-slate-800">
-                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Average</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.avg || 0}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.avg || 0}</td>}
-                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{finalAverage}</td>}
-                                        </tr>
-                                        {/* 3. RANK ROW (Highlighted) */}
-                                        <tr className="bg-[#0f172a] text-white font-bold print:bg-[#0f172a] print:text-white">
-                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider rounded-bl">Rank</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank.sem1 || '-'}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank.sem2 || '-'}</td>}
-                                            {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4] rounded-br print:bg-[#06b6d4]">{rank.overall || '-'}</td>}
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-
-                            <div className="mb-6 border-t border-gray-100 pt-4 mt-6">
-                                <div className="flex items-end gap-2 text-sm text-[#0f172a]">
-                                    <span className="font-bold">Promoted to:</span> 
-                                    <span className="flex-1 border-b-2 border-gray-400 border-dotted pl-2 font-mono font-bold">{studentInfo?.promotedTo || ""}</span>
-                                </div>
-                            </div>
-                            <div className="flex justify-between items-end">
-                                {['Homeroom', 'Director', 'Parent'].map((role) => (
-                                    <div key={role} className="text-center w-1/3">
-                                        <div className="h-4 border-b border-gray-300 w-2/3 mx-auto"></div>
-                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 block">{role}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="absolute left-1/2 top-0 bottom-0 w-[1px] border-l border-dashed border-gray-300 no-print"></div>
                 </div>
-
+                <div className="absolute left-1/2 top-0 bottom-0 w-[1px] border-l border-dashed border-gray-300 no-print"></div>
             </div>
-            {/* === PRINT WRAPPER END === */}
         </div>
     );
 };
 
-export default ReportCardPage;
+export default ReportCardDocument;
