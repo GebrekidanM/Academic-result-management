@@ -18,7 +18,6 @@ const AddReportPage = () => {
     // --- State Management ---
     const [semester, setSemester] = useState('First Semester');
     const [academicYear, setAcademicYear] = useState('2018');
-    const [teacherComment, setTeacherComment] = useState('');
     const [conduct, setConduct] = useState('A');
     const [evaluations, setEvaluations] = useState(
         EVALUATION_AREAS.map(area => ({ area, result: 'G' }))
@@ -38,7 +37,7 @@ const AddReportPage = () => {
         e.preventDefault();
         setLoading(true);
         setError(null);
-        const reportData = { studentId, semester, academicYear, teacherComment, conduct, evaluations };
+        const reportData = { studentId, semester, academicYear, teacherComment, conduct,, evaluations };
         try {
             await behavioralReportService.addReport(reportData);
             alert('Behavioral report added successfully!');
@@ -81,6 +80,10 @@ const AddReportPage = () => {
                         <label htmlFor="conduct" className={inputLabel}>Overall Conduct</label>
                         <input id="conduct" type="text" value={conduct} onChange={(e) => setConduct(e.target.value)} className={textInput} />
                     </div>
+                    <div>
+                        <label htmlFor="absent" className={inputLabel}>Absent</label>
+                        <input id="absent" type="text" value={absent} onChange={e=>setAbsent(e.target.value)}/>
+                    </div>
                 </div>
 
                 {/* --- Main Section: Evaluations and Comments --- */}
@@ -100,20 +103,6 @@ const AddReportPage = () => {
                                     </select>
                                 </div>
                             ))}
-                        </div>
-                    </div>
-                    {/* Right side: Teacher's Comment */}
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Teacher's Comment</h3>
-                        <div>
-                            <label htmlFor="teacherComment" className="sr-only">Teacher's Comment</label>
-                            <textarea
-                                id="teacherComment"
-                                value={teacherComment}
-                                onChange={(e) => setTeacherComment(e.target.value)}
-                                className={textAreaInput}
-                                placeholder="Enter your comments here..."
-                            />
                         </div>
                     </div>
                 </div>

@@ -37,9 +37,9 @@ const behavioralReportSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    conduct: {
-        type: String
-    }
+    conduct: {type: String},
+    absent: {type: String}
+
 }, {
     timestamps: true
 });

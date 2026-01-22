@@ -18,9 +18,9 @@ exports.addReport = async (req, res) => {
             academicYear,
             semester,
             evaluations,
-            teacherComment,
             createdBy: req.user._id,
-            conduct
+            conduct,
+            absent
         });
 
         try {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next'; 
 import rosterService from '../services/rosterService';
 import authService from '../services/authService';
+import { Link } from 'react-router-dom';
 
 const RosterPage = () => {
     const { t } = useTranslation(); 
@@ -194,7 +195,9 @@ const RosterPage = () => {
                                     // Row 1: First Semester
                                     <tr key={`${student.studentId}-1`} className="hover:bg-blue-50">
                                         <td rowSpan="3" className={`${tdStyle} bg-blue-50 font-mono text-gray-500`}>{student.studentId}</td>
-                                        <td rowSpan="3" className={`${tdStyle} text-left font-bold text-gray-900`}>{student.fullName}</td>
+                                        <td rowSpan="3" className={`${tdStyle} text-left font-bold text-gray-900`}>
+                                            <Link to={`/students/${student._id}`}>{student.fullName}</Link>
+                                        </td>
                                         <td rowSpan="3" className={tdStyle}>{student.gender.charAt(0)}</td>
                                         <td rowSpan="3" className={tdStyle}>{student.age}</td>
                                         

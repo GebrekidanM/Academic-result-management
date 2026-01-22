@@ -7,7 +7,7 @@ import ReportCoverPage from './ReportCoverPage';
 // The exact order you requested
 const SUBJECT_PRIORITY = [
     "አማርኛ",
-    "ENGLISH", // Will match "English", "english", "ENGLISH"
+    "ENGLISH",
     "ሒሳብ",
     "አካባቢ ሳይንስ",
     "አጠቃላይ ሳይንስ",
@@ -308,8 +308,8 @@ const ReportCardPage = () => {
                                     <tfoot>
                                         <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
                                             <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum || 0}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum || 0}</td>}
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum.toFixed(2) || 0}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum.toFixed(2) || 0}</td>}
                                             {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{(semester1?.sum || 0) + (semester2?.sum || 0)}</td>}
                                         </tr>
                                         <tr className="bg-gray-50 border-t border-gray-200 font-bold text-slate-800">

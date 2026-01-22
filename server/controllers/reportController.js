@@ -30,6 +30,24 @@ const transformGradesToReportFormat = (gradeDocs) => {
   return formatted;
 };
 
+const processAttendanceAndConduct = (behaviorDocs) => {
+    const sem1 = behaviorDocs.find(b => b.semester === 'First Semester');
+    const sem2 = behaviorDocs.find(b => b.semester === 'Second Semester');
+
+    return {
+        sem1: {
+            conduct: sem1?.conduct || '-',
+            // Assuming you added 'absentDays' to your model, or we look for it in evaluations
+            absent: sem1?.absentDays || sem1?.evaluations?.find(e => e.area === 'Attendance')?.result || '-'
+        },
+        sem2: {
+            conduct: sem2?.conduct || '-',
+            absent: sem2?.absentDays || sem2?.evaluations?.find(e => e.area === 'Attendance')?.result || '-'
+        }
+    };
+};
+
+
 /**
  * Helper: Merge Behavior for Report Card (S1 vs S2)
  */
@@ -37,8 +55,12 @@ const processBehaviorData = (behaviorDocs) => {
   const sem1 = behaviorDocs.find(b => b.semester === 'First Semester');
   const sem2 = behaviorDocs.find(b => b.semester === 'Second Semester');
 
-  const standardTraits = ["Punctuality", "Attendance", "Responsibility", "Respect", "Cooperation", "Initiative"];
-
+  const standardTraits = [
+      "Punctuality", "Attendance",
+      'Communication book usage',	"T-book & E-book condition", "Personal hygiene", 
+      "Proper dressing of school uniform", "Following school rules and regulation","Communication skill",
+      "Participating in class","English language usage"
+  ];
   const progressMap = standardTraits.map(trait => {
     const s1Result = sem1?.evaluations?.find(e => e.area === trait)?.result || '-';
     const s2Result = sem2?.evaluations?.find(e => e.area === trait)?.result || '-';
@@ -97,7 +119,6 @@ exports.generateStudentReport = async (req, res) => {
     if (statsSem1.avg > 0 && statsSem2.avg > 0) studentFinalAvg = (statsSem1.avg + statsSem2.avg) / 2;
     else studentFinalAvg = statsSem1.avg + statsSem2.avg;
 
-    // 5. Assemble Final Response (Rank Calculation Removed)
     const finalReport = {
       studentInfo: {
         fullName: student.fullName,
@@ -105,9 +126,9 @@ exports.generateStudentReport = async (req, res) => {
         sex: student.gender,
         age: calculateAge(student.dateOfBirth),
         classId: student.gradeLevel,
-        academicYear: studentGrades[0]?.academicYear || '2024',
+        academicYear: studentGrades[0]?.academicYear,
         photoUrl: student.imageUrl,
-        promotedTo: studentFinalAvg >= 50 ? `Grade ${parseInt(student.gradeLevel) + 1}` : 'Retained',
+        promotedTo: studentFinalAvg >= 60 ? `Grade ${parseInt(student.gradeLevel.match(/\d+)) + 1}` : 'Retained',
       },
       semester1: statsSem1,
       semester2: statsSem2,
