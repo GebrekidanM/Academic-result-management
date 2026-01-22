@@ -23,6 +23,7 @@ const AddReportPage = () => {
     const [evaluations, setEvaluations] = useState(
         EVALUATION_AREAS.map(area => ({ area, result: 'G' }))
     );
+    const [absent,setAbsent] = useState('0')
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 

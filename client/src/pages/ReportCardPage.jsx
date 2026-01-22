@@ -4,9 +4,19 @@ import reportCardService from '../services/reportCardService';
 import rankService from '../services/rankService';
 import ReportCoverPage from './ReportCoverPage';
 
-// ==================================================================================
-//                              2. MAIN REPORT CARD PAGE
-// ==================================================================================
+// The exact order you requested
+const SUBJECT_PRIORITY = [
+    "አማርኛ",
+    "ENGLISH", // Will match "English", "english", "ENGLISH"
+    "ሒሳብ",
+    "አካባቢ ሳይንስ",
+    "አጠቃላይ ሳይንስ",
+    "ግብረ ገብ",
+    "የዜግነት ት/ት",
+    "ህብረተሰብ"
+];
+
+
 const ReportCardPage = () => {
     const { id } = useParams();
 
@@ -59,13 +69,14 @@ const ReportCardPage = () => {
     }, [id]);
 
     // --- DATA TRANSFORMATION ---
+    // --- DATA TRANSFORMATION & SORTING ---
     const processedGrades = useMemo(() => {
         if (!reportData || !reportData.grades) return [];
         const sem1Grades = reportData.grades.sem1 || {};
         const sem2Grades = reportData.grades.sem2 || {};
         const allSubjects = new Set([...Object.keys(sem1Grades), ...Object.keys(sem2Grades)]);
 
-        return Array.from(allSubjects).map(subject => {
+        const gradesList = Array.from(allSubjects).map(subject => {
             const s1 = sem1Grades[subject];
             const s2 = sem2Grades[subject];
             let average = null;
@@ -80,6 +91,31 @@ const ReportCardPage = () => {
                 average: average
             };
         });
+
+        // --- CUSTOM SORTING LOGIC ---
+        return gradesList.sort((a, b) => {
+            const nameA = a.subjectName.trim();
+            const nameB = b.subjectName.trim();
+
+            // Helper to get index (Case Insensitive for English)
+            const getIndex = (name) => {
+                const idx = SUBJECT_PRIORITY.findIndex(p => p.toLowerCase() === name.toLowerCase());
+                // If not found, return Infinity so it goes to the bottom
+                return idx === -1 ? Infinity : idx;
+            };
+
+            const indexA = getIndex(nameA);
+            const indexB = getIndex(nameB);
+
+            // 1. Compare Priorities
+            if (indexA !== indexB) {
+                return indexA - indexB;
+            }
+
+            // 2. If both are NOT in the list (both are Infinity), sort Alphabetically
+            return nameA.localeCompare(nameB);
+        });
+
     }, [reportData]);
 
     const getReportTitle = () => {
