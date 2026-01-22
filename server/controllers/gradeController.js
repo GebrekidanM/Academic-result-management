@@ -29,77 +29,104 @@ exports.getGrades = async (req, res) => {
   }
 };
 
-// @desc    Get grades filtered by Student's Current Grade Level
+// @desc    Get grades (Filtered, Merged, and Deduplicated)
 // @route   GET /api/grades/student/:studentId
 exports.getGradesByStudent = async (req, res) => {
   try {
-    const studentId = req.params.studentId;
+    const studentId = req.params.id || req.params.studentId;
 
-    // 1. Fetch Student to check their CURRENT Grade Level
+    // 1. Fetch Student
     const studentObj = await Student.findById(studentId);
-    if (!studentObj) {
-        return res.status(404).json({ message: "Student not found" });
-    }
+    if (!studentObj) return res.status(404).json({ message: "Student not found" });
     
-    // 2. Fetch All Grades
-    let grades = await Grade.find({ student: studentId })
+    // 2. Fetch Raw Grades
+    const rawGrades = await Grade.find({ student: studentId })
       .populate('subject', 'name gradeLevel')
       .populate('assessments.assessmentType', 'name totalMarks month')
       .lean();
 
-    if (!grades.length) {
-        return res.status(200).json({ success: true, count: 0, data: [] });
-    }
+    if (!rawGrades.length) return res.status(200).json({ success: true, count: 0, data: [] });
 
-    // 3. STRICT FILTERING LOGIC
-    grades = grades.filter(grade => {
-        // Safety check: if subject is deleted, remove grade
-        if (!grade.subject) return false;
+    // 3. FILTER: Keep only current grade level (Removes Grade 4A vs 4B mismatch)
+    const currentGradeLevel = studentObj.gradeLevel.trim();
+    const filteredGrades = rawGrades.filter(g => 
+        g.subject && g.subject.gradeLevel === currentGradeLevel
+    );
 
-        // THE FILTER:
-        // "Math Grade 4A" === "Grade 4A" (Keep)
-        // "Math Grade 4B" !== "Grade 4A" (Discard)
-        return grade.subject.gradeLevel === studentObj.gradeLevel;
-    });
+    // 4. MERGE DUPLICATES (Fixes the "Mid Exam" appearing twice)
+    const gradeMap = new Map();
 
-    // 4. Clean Assessments (Remove nulls)
-    grades.forEach(grade => {
-        if (grade.assessments) {
-            grade.assessments = grade.assessments.filter(a => a.assessmentType != null);
+    filteredGrades.forEach(grade => {
+        // Filter out null/broken assessments
+        const cleanAssessments = (grade.assessments || []).filter(a => a.assessmentType != null);
+        
+        // Key: "First Semester-Amharic"
+        const key = `${grade.semester}-${grade.subject.name.trim().toLowerCase()}`;
+
+        if (gradeMap.has(key)) {
+            const existing = gradeMap.get(key);
+            
+            // A. Prefer valid Academic Year
+            // If the existing one has "" but the new one has "2018", update the year.
+            if (!existing.academicYear && grade.academicYear) {
+                existing.academicYear = grade.academicYear;
+            }
+
+            // B. ADVANCED MERGE: Deduplicate Assessments by ID
+            // This prevents "Mid Exam" (score 15.5) from being added twice
+            const assessmentMap = new Map();
+            
+            // Load existing assessments
+            existing.assessments.forEach(a => assessmentMap.set(a.assessmentType._id.toString(), a));
+            
+            // Try to add new ones. If ID exists, SKIP IT.
+            cleanAssessments.forEach(a => {
+                const assessId = a.assessmentType._id.toString();
+                if (!assessmentMap.has(assessId)) {
+                    assessmentMap.set(assessId, a);
+                }
+            });
+
+            // Save merged list
+            existing.assessments = Array.from(assessmentMap.values());
+
+            // C. Recalculate Final Score
+            // We sum the UNIQUE assessments only.
+            existing.finalScore = existing.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+
+        } else {
+            // New Entry
+            grade.assessments = cleanAssessments;
+            gradeMap.set(key, grade);
         }
     });
 
-    // 5. Role-based filtering (For Teachers)
+    let processedGrades = Array.from(gradeMap.values());
+
+    // 5. Role-based filtering
     if (req.user?.role === 'teacher') {
-        const isHomeroom = req.user.homeroomGrade === studentObj.gradeLevel;
+        const isHomeroom = req.user.homeroomGrade === currentGradeLevel;
         if (!isHomeroom && req.user.subjectsTaught) {
             const teacherSubjectIds = new Set(
                 req.user.subjectsTaught.map(s => s.subject?._id?.toString())
             );
-            grades = grades.filter(g => teacherSubjectIds.has(g.subject._id.toString()));
+            processedGrades = processedGrades.filter(g => teacherSubjectIds.has(g.subject._id.toString()));
         }
     }
 
-    // 6. Sort (Semester -> Subject Name)
-    grades.sort((a, b) => {
-        if (a.semester === b.semester) {
-            return a.subject.name.localeCompare(b.subject.name);
-        }
+    // 6. Sort
+    processedGrades.sort((a, b) => {
+        if (a.semester === b.semester) return a.subject.name.localeCompare(b.subject.name);
         return a.semester.localeCompare(b.semester);
     });
 
-    res.status(200).json({ 
-        success: true, 
-        count: grades.length, 
-        data: grades 
-    });
+    res.status(200).json({ success: true, count: processedGrades.length, data: processedGrades });
 
   } catch (error) {
     console.error("Error fetching grades:", error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
-
 
 // @desc    Get grade details (by student, subject, semester, year)
 // @route   GET /api/grades/details
