@@ -46,6 +46,65 @@ const processAttendanceAndConduct = (behaviorDocs) => {
     };
 };
 
+const mergeDuplicateGrades = (rawGrades, currentGradeLevel) => {
+    // 1. Strict Filter: Only keep subjects for the current Grade Level
+    const filteredGrades = rawGrades.filter(g => 
+        g.subject && g.subject.gradeLevel === currentGradeLevel
+    );
+
+    const gradeMap = new Map();
+
+    filteredGrades.forEach(grade => {
+        // Clean assessments (remove nulls)
+        const cleanAssessments = (grade.assessments || []).filter(a => a.assessmentType != null);
+        
+        // Key: "First Semester-Mathematics" (Normalized)
+        const key = `${grade.semester}-${grade.subject.name.trim().toLowerCase()}`;
+
+        if (gradeMap.has(key)) {
+            const existing = gradeMap.get(key);
+            
+            // A. Deduplicate Assessments by ID to prevent score inflation
+            const assessmentMap = new Map();
+            existing.assessments.forEach(a => assessmentMap.set(a.assessmentType._id.toString(), a));
+            
+            cleanAssessments.forEach(a => {
+                const id = a.assessmentType._id.toString();
+                if (!assessmentMap.has(id)) {
+                    assessmentMap.set(id, a);
+                }
+            });
+
+            existing.assessments = Array.from(assessmentMap.values());
+
+            // B. Recalculate Final Score
+            existing.finalScore = existing.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+
+        } else {
+            // New Entry - Clone it to avoid reference issues
+            const newEntry = grade.toObject ? grade.toObject() : { ...grade };
+            newEntry.assessments = cleanAssessments;
+            gradeMap.set(key, newEntry);
+        }
+    });
+
+    return Array.from(gradeMap.values());
+};
+
+const calculateStats = (cleanedGrades, semesterName) => {
+    const semesterGrades = cleanedGrades.filter(g => g.semester === semesterName);
+    
+    if (semesterGrades.length === 0) return { sum: 0, avg: 0 };
+
+    const totalScore = semesterGrades.reduce((acc, curr) => acc + (curr.finalScore || 0), 0);
+    const average = totalScore / semesterGrades.length;
+
+    return { 
+        sum: parseFloat(totalScore.toFixed(0)), // Usually sums are integers
+        avg: parseFloat(average.toFixed(1)) 
+    };
+};
+
 
 /**
  * Helper: Merge Behavior for Report Card (S1 vs S2)
