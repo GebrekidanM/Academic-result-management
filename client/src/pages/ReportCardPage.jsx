@@ -4,7 +4,6 @@ import reportCardService from '../services/reportCardService';
 import rankService from '../services/rankService';
 import ReportCoverPage from './ReportCoverPage';
 
-// The exact order you requested
 const SUBJECT_PRIORITY = [
     "አማርኛ",
     "ENGLISH",
@@ -18,14 +17,11 @@ const SUBJECT_PRIORITY = [
 
 const ReportCardPage = () => {
     const { id } = useParams();
-
-    // --- STATE ---
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [reportType, setReportType] = useState('year'); 
 
-    // --- SCHOOL INFO ---
     const schoolInfoData = {
         name: "FREEDOM KG & PRIMARY SCHOOL",
         logo: "/frfr.jpg",
@@ -40,18 +36,14 @@ const ReportCardPage = () => {
             try {
                 setLoading(true);
 
-                // 1. Fetch the Student Report FIRST
                 const reportResponse = await reportCardService.getReportCardByStudent(id);
                 const reportData = reportResponse.data;
 
-                // 2. Extract necessary info for Rank Calculation
                 const gradeLevel = reportData.studentInfo.classId; 
                 const academicYear = reportData.studentInfo.academicYear;
 
-                // 3. Fetch Ranks using that info
                 const rankData = await rankService.getRankByStudent(id, gradeLevel, academicYear);
 
-                // 4. Merge Data and Set State
                 setReportData({
                     ...reportData,
                     rank: rankData
@@ -67,6 +59,8 @@ const ReportCardPage = () => {
         fetchData();
     }, [id]);
 
+                console.log("response", reportData)
+    
     // --- DATA TRANSFORMATION & SORTING ---
     const processedGrades = useMemo(() => {
         if (!reportData || !reportData.grades) return [];
@@ -123,7 +117,8 @@ const ReportCardPage = () => {
         const currentYear = new Date().getFullYear();
         return isNaN(birthYear) ? '-' : (currentYear - 8) - birthYear;
     };
-
+ 
+    console.log(processedGrades)
     // --- DESTRUCTURING (ADDED footerData for Absent/Conduct) ---
     const { 
         studentInfo = {}, 
@@ -132,7 +127,7 @@ const ReportCardPage = () => {
         finalAverage = '-', 
         rank = { sem1: '-', sem2: '-', overall: '-' },
         behavior = {},
-        footerData = { sem1: {}, sem2: {} } // <--- Added this
+        footerData = { sem1: {}, sem2: {} }
     } = reportData || {};
 
     // --- NEW: Automated Teacher Comment Logic ---
@@ -328,6 +323,20 @@ const ReportCardPage = () => {
                                     </tbody>
                                     {/* --- NEW FOOTER: TOTAL, AVG, RANK, ABSENT, CONDUCT --- */}
                                     <tfoot>
+                                        {/* 4. ABSENT (NEW) */}
+                                        <tr className="bg-white border-t border-gray-300">
+                                            <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent || '-'}</td>}
+                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
+                                        </tr>
+                                        {/* 5. CONDUCT (NEW) */}
+                                        <tr className="bg-white border-t border-gray-200">
+                                            <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-blue-900 tracking-wider">Conduct</td>
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem1?.conduct || '-'}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem2?.conduct || '-'}</td>}
+                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
+                                        </tr>
                                         {/* 1. TOTAL */}
                                         <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
                                             <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
@@ -349,20 +358,7 @@ const ReportCardPage = () => {
                                             {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem2 || '-'}</td>}
                                             {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4]">{rank?.overall || '-'}</td>}
                                         </tr>
-                                        {/* 4. ABSENT (NEW) */}
-                                        <tr className="bg-white border-t border-gray-300">
-                                            <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent || '-'}</td>}
-                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
-                                        </tr>
-                                        {/* 5. CONDUCT (NEW) */}
-                                        <tr className="bg-white border-t border-gray-200">
-                                            <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-blue-900 tracking-wider">Conduct</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem1?.conduct || '-'}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem2?.conduct || '-'}</td>}
-                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
-                                        </tr>
+                                        
                                     </tfoot>
                                 </table>
                             </div>

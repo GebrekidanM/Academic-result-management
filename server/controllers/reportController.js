@@ -223,3 +223,90 @@ const calculateAge = (dob) => {
   const age_dt = new Date(diff_ms);
   return Math.abs(age_dt.getUTCFullYear() - 1970);
 };
+
+
+
+
+
+/**
+ * @desc    Generate Reports for an Entire Class (Batch)
+ * @route   GET /api/reports/class/:gradeLevel
+ */
+exports.generateClassReports = async (req, res) => {
+    try {
+        const { gradeLevel } = req.params;
+        const { academicYear } = req.query; // Optional: filter by year
+
+        // 1. Find all Active Students in this Grade
+        const students = await Student.find({ gradeLevel, status: 'Active' }).sort({ fullName: 1 });
+
+        if (!students.length) {
+            return res.status(404).json({ message: 'No students found in this grade.' });
+        }
+
+        const classReports = [];
+
+        // 2. Loop through students and generate data (Server-side is fast)
+        // We use Promise.all to run them concurrently for speed
+        await Promise.all(students.map(async (student) => {
+            try {
+                // A. Fetch Raw Data
+                const [rawGrades, behaviorDocs] = await Promise.all([
+                    Grade.find({ student: student._id }).populate('subject', 'name gradeLevel').lean(),
+                    BehavioralReport.find({ student: student._id })
+                ]);
+
+                // B. Clean & Merge Grades
+                const cleanedGrades = mergeDuplicateGrades(rawGrades, student.gradeLevel);
+
+                // C. Calculate Stats
+                const statsSem1 = calculateStats(cleanedGrades, 'First Semester');
+                const statsSem2 = calculateStats(cleanedGrades, 'Second Semester');
+
+                // D. Final Avg
+                let finalAverage = 0;
+                if (statsSem1.avg > 0 && statsSem2.avg > 0) finalAverage = (statsSem1.avg + statsSem2.avg) / 2;
+                else finalAverage = statsSem1.avg + statsSem2.avg;
+
+                // E. Promotion Logic
+                const gradeNumMatch = student.gradeLevel.match(/\d+/);
+                const nextGrade = gradeNumMatch ? parseInt(gradeNumMatch[0]) + 1 : null;
+                const promotedStr = nextGrade ? `Grade ${nextGrade}` : 'Next Level';
+
+                // F. Assemble Object
+                classReports.push({
+                    studentInfo: {
+                        fullName: student.fullName,
+                        studentId: student.studentId,
+                        gradeLevel: student.gradeLevel,
+                        classId: student.gradeLevel,
+                        academicYear: cleanedGrades[0]?.academicYear || academicYear || '2018',
+                        photoUrl: student.imageUrl,
+                        sex: student.gender,
+                        dateOfBirth: student.dateOfBirth,
+                        promotedTo: finalAverage >= 50 ? promotedStr : 'Retained',
+                    },
+                    grades: cleanedGrades,
+                    semester1: statsSem1,
+                    semester2: statsSem2,
+                    finalAverage: parseFloat(finalAverage.toFixed(2)),
+                    behavior: processBehaviorData(behaviorDocs),
+                    footerData: processAttendanceAndConduct(behaviorDocs),
+                    rank: null // Rank will be fetched/calculated separately or you can integrate rank calculation here too
+                });
+
+            } catch (err) {
+                console.error(`Error processing student ${student.fullName}:`, err);
+            }
+        }));
+
+        // 3. Sort Alphabetically by Name
+        classReports.sort((a, b) => a.studentInfo.fullName.localeCompare(b.studentInfo.fullName));
+
+        res.json({ success: true, count: classReports.length, data: classReports });
+
+    } catch (error) {
+        console.error("Batch Report Error:", error);
+        res.status(500).json({ message: 'Server Error generating class reports' });
+    }
+};

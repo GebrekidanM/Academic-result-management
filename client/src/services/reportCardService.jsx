@@ -2,10 +2,17 @@ import api from './api';
 
 const API_URL = '/report-cards';
 
-const getReportCardByStudent = (id) => {
-    return api.get(`${API_URL}/student/${id}`);
+const reportCardService = {
+    getReportCardByStudent: async (studentId) => {
+        return await axios.get(`${API_URL}/student/${studentId}`);
+    },
+
+    // NEW: Get Whole Class
+    getClassReports: async (gradeLevel) => {
+        return await axios.get(`${API_URL}/class/${gradeLevel}`);
+    }
 };
 
 export default {
-    getReportCardByStudent
+    reportCardService
 };

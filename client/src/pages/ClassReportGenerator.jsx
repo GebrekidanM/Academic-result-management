@@ -42,68 +42,33 @@ const ClassReportGenerator = () => {
         if (!selectedGrade) return;
         setLoading(true);
         setClassReportData([]);
-        setProgress(0);
 
         try {
-            // 1. Get all students
-            const res = await studentService.getAllStudents();
-            const allStudents = res.data?.data || [];
-            
-            // 2. Filter by Grade
-            const studentsInGrade = allStudents.filter(s => s.gradeLevel === selectedGrade);
+            // 1. SINGLE CALL TO BACKEND
+            const res = await reportCardService.getClassReports(selectedGrade);
+            let reports = res.data.data;
 
-            if (studentsInGrade.length === 0) {
-                alert("No students found in this grade.");
+            if (!reports || reports.length === 0) {
+                alert("No reports found for this class.");
                 setLoading(false);
                 return;
             }
 
-            const reports = [];
-
-            // 3. Loop through students
-            for (let i = 0; i < studentsInGrade.length; i++) {
-                const student = studentsInGrade[i];
+            // 2. Fetch Ranks for the whole list (Still needs to be done)
+            // Optimization: We can do this in parallel now that we have the list
+            const reportsWithRank = await Promise.all(reports.map(async (report) => {
+                const { studentId, classId, academicYear } = report.studentInfo;
                 try {
-                    // A. Fetch the Basic Report Card Data
-                    const reportRes = await reportCardService.getReportCardByStudent(student._id);
-                    const reportData = reportRes.data;
-
-                    // --- RANK INTEGRATION START ---
-                    
-                    // B. Extract details needed for Rank Calculation
-                    // (Assuming classId holds grade level like "Grade 1")
-                    const gradeLevel = reportData.studentInfo.classId || selectedGrade; 
-                    const academicYear = reportData.studentInfo.academicYear;
-
-                    // C. Fetch Rank specifically for this student
-                    // Note: This relies on the rankService.getRankByStudent we created earlier
-                    let rankData = { sem1: '-', sem2: '-', overall: '-' }; // Default
-                    
-                    try {
-                        rankData = await rankService.getRankByStudent(student._id, gradeLevel, academicYear);
-                    } catch (rankError) {
-                        console.warn(`Could not fetch rank for ${student.fullName}`, rankError);
-                    }
-
-                    // D. Merge Rank into the Report Data
-                    reportData.rank = rankData;
-
-                    // --- RANK INTEGRATION END ---
-
-                    reports.push(reportData);
-
+                    // This is still 1 call per student, but it's fast. 
+                    // (Ideally, backend rank controller should also support batch, but this works for now)
+                    const rankData = await rankService.getRankByStudent(studentId, classId, academicYear);
+                    return { ...report, rank: rankData };
                 } catch (e) {
-                    console.error(`Failed to fetch report for ${student.fullName}`, e);
+                    return { ...report, rank: { sem1: '-', sem2: '-', overall: '-' } };
                 }
+            }));
 
-                // Update Progress Bar
-                setProgress(Math.round(((i + 1) / studentsInGrade.length) * 100));
-            }
-
-            // 4. Sort Alphabetically
-            reports.sort((a, b) => a.studentInfo.fullName.localeCompare(b.studentInfo.fullName));
-            
-            setClassReportData(reports);
+            setClassReportData(reportsWithRank);
 
         } catch (err) {
             console.error(err);

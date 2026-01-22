@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import ReportCoverPage from '../pages/ReportCoverPage';
 
 const ReportCardDocument = ({ reportData, schoolInfoData }) => {
-    // አንተ በሰጠኸኝ መሰረት State እዚሁ እንዲሆን አድርጌዋለሁ
     const [reportType, setReportType] = useState('year'); 
     
     // --- DATA TRANSFORMATION ---
@@ -43,7 +42,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
         finalAverage = '-', 
         rank = '-', 
         behavior = {},
-        footerData = { sem1: {}, sem2: {} } // <--- ይሄ ከ Backend የሚመጣ ነው (Absent/Conduct)
+        footerData = { sem1: {}, sem2: {} }
     } = reportData || {};
 
     const calculateAge = (dob) => {
@@ -55,7 +54,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
 
     // --- NEW: Automated Teacher Comment Logic ---
     const getAutomatedComment = () => {
-        // ውጤቱን እንደ Report Type መምረጥ
         let score = 0;
         if (reportType === 'sem1') score = semester1?.avg || 0;
         else if (reportType === 'sem2') score = semester2?.avg || 0;
@@ -95,7 +93,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
     return (
         <div className="report-card-container mb-0" style={{ pageBreakAfter: 'always' }}>
             
-            {/* Buttons (አንተ በፈለከው ቦታ) */}
+            {/* Buttons */}
             <div className="bg-white px-4 py-2 rounded-full shadow flex gap-4 no-print">
                 <span className="text-xs font-bold text-gray-400 uppercase self-center">View Mode:</span>
                 {['sem1', 'sem2', 'year'].map(type => (
@@ -208,6 +206,20 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
                                 </tbody>
                                 {/* --- UPDATED FOOTER (Added Absent & Conduct) --- */}
                                 <tfoot>
+                                    {/* Absent (New) */}
+                                    <tr className="bg-white border-t border-gray-300">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent || '-'}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
+                                    </tr>
+                                    {/* Conduct (New) */}
+                                    <tr className="bg-white border-t border-gray-200">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-blue-900 tracking-wider">Conduct</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem1?.conduct || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem2?.conduct || '-'}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
+                                    </tr>
                                     {/* Total */}
                                     <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
@@ -229,20 +241,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
                                         {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem2 || '-'}</td>}
                                         {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4] print:bg-[#06b6d4]">{rank?.overall || '-'}</td>}
                                     </tr>
-                                    {/* Absent (New) */}
-                                    <tr className="bg-white border-t border-gray-300">
-                                        <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
-                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}
-                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent || '-'}</td>}
-                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
-                                    </tr>
-                                    {/* Conduct (New) */}
-                                    <tr className="bg-white border-t border-gray-200">
-                                        <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-blue-900 tracking-wider">Conduct</td>
-                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem1?.conduct || '-'}</td>}
-                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem2?.conduct || '-'}</td>}
-                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
-                                    </tr>
+                                    
                                 </tfoot>
                             </table>
                         </div>
