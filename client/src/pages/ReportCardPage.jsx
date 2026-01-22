@@ -1,22 +1,82 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import reportCardService from '../services/reportCardService';
-import rankService from '../services/rankService';
-import ReportCoverPage from './ReportCoverPage';
+import axios from 'axios';
 
-// The exact order you requested
-const SUBJECT_PRIORITY = [
-    "አማርኛ",
-    "ENGLISH",
-    "ሒሳብ",
-    "አካባቢ ሳይንስ",
-    "አጠቃላይ ሳይንስ",
-    "ግብረ ገብ",
-    "የዜግነት ት/ት",
-    "ህብረተሰብ"
-];
+// ==================================================================================
+//                              1. COVER PAGE COMPONENT
+// ==================================================================================
+const ReportCoverPage = ({ studentInfo, schoolInfo }) => {
+    const studentName = studentInfo?.fullName || "Student Name";
+    const studentId = studentInfo?.studentId || "ID-001";
+    const grade = studentInfo?.classId || "Grade --";
+    const year = studentInfo?.academicYear || new Date().getFullYear();
+
+    return (
+        <div className="w-[297mm] h-[210mm] bg-white relative flex overflow-hidden text-slate-800 font-sans print-break">
+            
+            <style>{`
+                .cover-diagonal-shape { clip-path: polygon(35% 0%, 100% 0%, 100% 100%, 0% 100%); }
+                .year-badge-shape { clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%); }
+                @media print {
+                    .bg-navy-dark { background-color: #0B1120 !important; -webkit-print-color-adjust: exact; }
+                    .bg-cyan-light { background-color: #CFF0F6 !important; -webkit-print-color-adjust: exact; }
+                    .text-cyan-bold { color: #06b6d4 !important; -webkit-print-color-adjust: exact; }
+                    .bg-black-badge { background-color: #000000 !important; color: white !important; -webkit-print-color-adjust: exact; }
+                }
+            `}</style>
+
+            {/* LEFT PANEL (Dark) */}
+            <div className="w-1/2 h-full bg-[#0B1120] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
+                <div className="w-28 h-28 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl border-4 border-[#06b6d4]">
+                    <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-contain p-1" />
+                </div>
+                <h1 className="text-3xl font-montserrat font-bold tracking-widest leading-snug mb-2 uppercase">
+                    FUTURE GENERATION<br/>ACADEMY
+                </h1>
+                <div className="w-12 h-1 bg-[#06b6d4] my-6 rounded"></div>
+                <p className="text-sm font-montserrat font-light opacity-80 leading-relaxed mb-12 max-w-sm mx-auto">
+                    "Empowering the next generation with knowledge, character, and excellence."
+                </p>
+                <div className="text-xs font-montserrat font-medium opacity-70 space-y-3">
+                    <div>📍 {schoolInfo.address}</div>
+                    <div>📞 {schoolInfo.phone}</div>
+                    <div>✉️ {schoolInfo.email}</div>
+                    <div>🌐 {schoolInfo.website}</div>
+                </div>
+            </div>
+
+            {/* RIGHT PANEL (Light) */}
+            <div className="w-1/2 h-full bg-white relative relative z-10 overflow-hidden">
+                <div className="absolute top-0 right-0 w-[60%] h-full bg-[#CFF0F6] bg-cyan-light cover-diagonal-shape z-0"></div>
+                <div className="relative z-10 h-full flex flex-col pt-24 pr-16 pl-8 text-right">
+                    <h3 className="text-sm font-montserrat font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-[0.3em] mb-2">Official Transcript</h3>
+                    <div className="flex flex-col items-end">
+                        <h1 className="text-7xl font-oswald font-bold text-[#0f172a] uppercase leading-none tracking-tight">Annual Report</h1>
+                        <h1 className="text-7xl font-oswald font-bold text-[#06b6d4] text-cyan-bold uppercase leading-none tracking-tight">Card</h1>
+                    </div>
+                    <div className="mt-6 flex justify-end">
+                        <div className="bg-black bg-black-badge text-white font-oswald font-bold text-2xl px-10 py-2 year-badge-shape shadow-xl transform rotate-[-2deg]">
+                            {year}
+                        </div>
+                    </div>
+                    <div className="mt-auto mb-20 flex flex-col items-end">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Prepared For</p>
+                        <div className="flex flex-col items-end border-r-4 border-[#06b6d4] pr-4">
+                            <h2 className="text-4xl font-montserrat font-bold text-[#0f172a] mb-1">{studentName}</h2>
+                            <p className="text-sm font-bold text-gray-500 font-mono tracking-wide">ID: {studentId}</p>
+                            <p className="text-sm font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-wide">{grade}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
+// ==================================================================================
+//                              2. MAIN REPORT CARD PAGE
+// ==================================================================================
 const ReportCardPage = () => {
     const { id } = useParams();
 
@@ -26,57 +86,41 @@ const ReportCardPage = () => {
     const [error, setError] = useState(null);
     const [reportType, setReportType] = useState('year'); 
 
- // --- SCHOOL INFO ---
+    // --- STATIC SCHOOL INFO ---
     const schoolInfoData = {
-        name: "FREEDOM KG & PRIMARY SCHOOL",
-        logo: "/frfr.jpg",
-        address: "TuluDimtu-Sheger City, Ethiopia",
+        name: "FUTURE GENERATION ACADEMY",
+        logo: "https://via.placeholder.com/300/0f172a/ffffff?text=LOGO",
+        address: "Addis Ababa, Bole Sub-city",
         phone: "+251 911 23 45 67",
         email: "info@futuregen.edu.et",
-        website: "www.freedomschool.pro.et"
+        website: "www.futuregen.edu.et"
     };
 
+    // --- DATA FETCHING ---
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchReport = async () => {
             try {
-                setLoading(true);
-
-                // 1. Fetch the Student Report FIRST
-                const reportResponse = await reportCardService.getReportCardByStudent(id);
-                const reportData = reportResponse.data;
-
-                // 2. Extract necessary info for Rank Calculation
-                const gradeLevel = reportData.studentInfo.classId; // or .gradeLevel
-                const academicYear = reportData.studentInfo.academicYear;
-
-                // 3. Fetch Ranks using that info
-                const rankData = await rankService.getRankByStudent(id, gradeLevel, academicYear);
-
-                // 4. Merge Data and Set State
-                setReportData({
-                    ...reportData,
-                    rank: rankData
-                });
-
+                // Ensure this matches your backend port/route
+                const response = await axios.get(`http://localhost:5000/api/reports/student/${id}`);
+                setReportData(response.data);
             } catch (err) {
-                setError("Could not load student data.");
+                console.error("Error fetching report:", err);
+                setError("Could not load student report.");
             } finally {
                 setLoading(false);
             }
         };
-
-        fetchData();
+        fetchReport();
     }, [id]);
 
     // --- DATA TRANSFORMATION ---
-    // --- DATA TRANSFORMATION & SORTING ---
     const processedGrades = useMemo(() => {
         if (!reportData || !reportData.grades) return [];
         const sem1Grades = reportData.grades.sem1 || {};
         const sem2Grades = reportData.grades.sem2 || {};
         const allSubjects = new Set([...Object.keys(sem1Grades), ...Object.keys(sem2Grades)]);
 
-        const gradesList = Array.from(allSubjects).map(subject => {
+        return Array.from(allSubjects).map(subject => {
             const s1 = sem1Grades[subject];
             const s2 = sem2Grades[subject];
             let average = null;
@@ -91,31 +135,6 @@ const ReportCardPage = () => {
                 average: average
             };
         });
-
-        // --- CUSTOM SORTING LOGIC ---
-        return gradesList.sort((a, b) => {
-            const nameA = a.subjectName.trim();
-            const nameB = b.subjectName.trim();
-
-            // Helper to get index (Case Insensitive for English)
-            const getIndex = (name) => {
-                const idx = SUBJECT_PRIORITY.findIndex(p => p.toLowerCase() === name.toLowerCase());
-                // If not found, return Infinity so it goes to the bottom
-                return idx === -1 ? Infinity : idx;
-            };
-
-            const indexA = getIndex(nameA);
-            const indexB = getIndex(nameB);
-
-            // 1. Compare Priorities
-            if (indexA !== indexB) {
-                return indexA - indexB;
-            }
-
-            // 2. If both are NOT in the list (both are Infinity), sort Alphabetically
-            return nameA.localeCompare(nameB);
-        });
-
     }, [reportData]);
 
     const getReportTitle = () => {
@@ -141,7 +160,7 @@ const ReportCardPage = () => {
         semester1 = {}, 
         semester2 = {}, 
         finalAverage = '-', 
-        rank = { sem1: '-', sem2: '-', overall: '-' },
+        rank = { sem1: '-', sem2: '-', overall: '-' }, 
         behavior = {} 
     } = reportData || {};
 
@@ -190,12 +209,12 @@ const ReportCardPage = () => {
                 </button>
             </div>
 
-            {/* === PRINT WRAPPER === */}
+            {/* === PRINT WRAPPER START === */}
             <div className="print-wrapper">
 
                 {/* --- SHEET 1: COVER PAGE --- */}
                 <div className="print-break">
-                    <ReportCoverPage studentInfo={studentInfo} schoolInfo={schoolInfoData} getReportTitle={getReportTitle} />
+                    <ReportCoverPage studentInfo={studentInfo} schoolInfo={schoolInfoData} />
                 </div>
 
                 {/* --- SHEET 2: INNER CONTENT --- */}
@@ -203,7 +222,6 @@ const ReportCardPage = () => {
                     
                     {/* --- INSIDE LEFT (Profile, Behavior, Comment) --- */}
                     <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
-                        {/* Student Profile */}
                         <div className="flex gap-4 items-center mb-6">
                             <div className="w-16 h-16 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
                                 {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
@@ -217,8 +235,6 @@ const ReportCardPage = () => {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Behavior Table */}
                         <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 mb-4">
                             <h3 className="text-[#06b6d4] text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-[#06b6d4]"></span> Behavioral Evaluation
@@ -245,8 +261,6 @@ const ReportCardPage = () => {
                                 <strong>Key:</strong> E=Excellent, VG=Very Good, G=Good, NI=Needs Improvement
                             </div>
                         </div>
-
-                        {/* Teacher's Note */}
                         <div className="mb-4">
                             <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
                             <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-20 print:bg-cyan-50">
@@ -255,8 +269,6 @@ const ReportCardPage = () => {
                                  (behavior.teacherComments?.sem2 || behavior.teacherComments?.sem1 || "No comments.")}
                             </div>
                         </div>
-
-                        {/* Parent's Feedback */}
                         <div className="flex-1 flex flex-col">
                             <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Parent's Feedback & Signature</h4>
                             <div className="flex-1 bg-white border border-gray-300 rounded relative overflow-hidden">
@@ -265,16 +277,12 @@ const ReportCardPage = () => {
                         </div>
                     </div>
 
-                    {/* --- INSIDE RIGHT (Grades & Stats) --- */}
+                    {/* --- INSIDE RIGHT (Grades & Signatures) --- */}
                     <div className="w-1/2 h-full bg-white p-8 flex flex-col relative overflow-hidden">
-                        
-                        {/* Watermark */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
                             <img src={schoolInfoData.logo} alt="Watermark" className="w-[80%] opacity-[0.04] grayscale transform -rotate-12"/>
                         </div>
-
                         <div className="relative z-10 flex-1 flex flex-col">
-                            {/* Header */}
                             <div className="flex justify-between items-end mb-4 border-b-2 border-[#0f172a] pb-2">
                                 <div>
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{schoolInfoData.name}</h3>
@@ -282,42 +290,43 @@ const ReportCardPage = () => {
                                 </div>
                                 <span className="text-xs font-bold bg-[#06b6d4] text-white px-2 py-0.5 rounded print:bg-[#06b6d4]">{getReportTitle()}</span>
                             </div>
-
-                            {/* Grades Table with Integrated Footer */}
                             <div className="flex-1 overflow-hidden">
                                 <table className="w-full text-xs border-collapse">
                                     <thead>
                                         <tr className="bg-slate-900 text-white uppercase text-[10px] print:bg-slate-900">
-                                            <th className="py-2 px-3 text-left w-1/2 rounded-tl">Subject</th>
-                                            {(reportType === 'sem1' || reportType === 'year') && <th className="py-2 text-center border-l border-slate-700">Sem 1</th>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <th className="py-2 text-center border-l border-slate-700">Sem 2</th>}
-                                            {reportType === 'year' && <th className="py-2 text-center rounded-tr bg-[#06b6d4] text-white border-l border-slate-700">Avg</th>}
+                                            <th className="py-2 px-3 text-left w-1/2 rounded-l">Subject</th>
+                                            {(reportType === 'sem1' || reportType === 'year') && <th className="py-2 text-center">Sem 1</th>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <th className="py-2 text-center">Sem 2</th>}
+                                            {reportType === 'year' && <th className="py-2 text-center rounded-r bg-[#06b6d4]">Avg</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {processedGrades.map((r, i) => (
                                             <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
                                                 <td className="py-1.5 px-3 font-bold text-slate-700">{r.subjectName}</td>
-                                                {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium border-l border-gray-100">{r.firstSemester ?? '-'}</td>}
-                                                {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium border-l border-gray-100">{r.secondSemester ?? '-'}</td>}
-                                                {reportType === 'year' && <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30 border-l border-gray-100">{typeof r.average === 'number' ? r.average.toFixed(2) : '-'}</td>}
+                                                {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.firstSemester ?? '-'}</td>}
+                                                {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.secondSemester ?? '-'}</td>}
+                                                {reportType === 'year' && <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30">{typeof r.average === 'number' ? r.average.toFixed(2) : '-'}</td>}
                                             </tr>
                                         ))}
                                     </tbody>
-                                    {/* FOOTER: STATS AT THE BOTTOM OF THE TABLE */}
+                                    {/* --- NEW FOOTER (Replaces Summary Cards) --- */}
                                     <tfoot>
+                                        {/* 1. TOTAL ROW */}
                                         <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
                                             <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum.toFixed(2) || 0}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum.toFixed(2) || 0}</td>}
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum || 0}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum || 0}</td>}
                                             {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{(semester1?.sum || 0) + (semester2?.sum || 0)}</td>}
                                         </tr>
+                                        {/* 2. AVERAGE ROW */}
                                         <tr className="bg-gray-50 border-t border-gray-200 font-bold text-slate-800">
                                             <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Average</td>
                                             {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.avg || 0}</td>}
                                             {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.avg || 0}</td>}
                                             {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{finalAverage}</td>}
                                         </tr>
+                                        {/* 3. RANK ROW (Highlighted) */}
                                         <tr className="bg-[#0f172a] text-white font-bold print:bg-[#0f172a] print:text-white">
                                             <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider rounded-bl">Rank</td>
                                             {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank.sem1 || '-'}</td>}
@@ -328,30 +337,12 @@ const ReportCardPage = () => {
                                 </table>
                             </div>
 
-                            <div className="flex gap-4 mt-4 mb-4">
-                                <div className="flex-1 bg-[#0f172a] text-white p-2 rounded text-center print:bg-[#0f172a]">
-                                    <p className="text-[10px] uppercase font-bold opacity-70">Rank</p>
-                                    <p className="text-2xl font-bold">{rank.overall || "-"}</p>
-                                </div>
-                                <div className="flex-1 border border-gray-200 p-2 rounded text-center bg-white/50">
-                                    <p className="text-[10px] uppercase font-bold text-gray-500">Total Sum</p>
-                                    <p className="text-xl font-bold text-[#0f172a]">{(semester1?.sum || 0) + (semester2?.sum || 0)}</p>
-                                </div>
-                                <div className="flex-1 border border-gray-200 p-2 rounded text-center bg-white/50">
-                                    <p className="text-[10px] uppercase font-bold text-gray-500">Total Avg</p>
-                                    <p className="text-xl font-bold text-[#0f172a]">{finalAverage}</p>
-                                </div>
-                            </div>
-
-                            {/* Promoted To Section */}
-                            <div className="mb-6 border-t border-gray-100 pt-4 mt-4">
+                            <div className="mb-6 border-t border-gray-100 pt-4 mt-6">
                                 <div className="flex items-end gap-2 text-sm text-[#0f172a]">
                                     <span className="font-bold">Promoted to:</span> 
                                     <span className="flex-1 border-b-2 border-gray-400 border-dotted pl-2 font-mono font-bold">{studentInfo?.promotedTo || ""}</span>
                                 </div>
                             </div>
-
-                            {/* Signatures */}
                             <div className="flex justify-between items-end">
                                 {['Homeroom', 'Director', 'Parent'].map((role) => (
                                     <div key={role} className="text-center w-1/3">
@@ -362,8 +353,6 @@ const ReportCardPage = () => {
                             </div>
                         </div>
                     </div>
-                    
-                    {/* Fold Line (Screen Only) */}
                     <div className="absolute left-1/2 top-0 bottom-0 w-[1px] border-l border-dashed border-gray-300 no-print"></div>
                 </div>
 

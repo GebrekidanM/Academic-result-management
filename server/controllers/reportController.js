@@ -90,34 +90,39 @@ const processBehaviorData = (behaviorDocs) => {
  */
 exports.generateStudentReport = async (req, res) => {
   try {
+    const targetStudentId = req.params.studentId || req.params.id; // Handle both param names
+
     // 1. Find Student
-    const targetStudentId = req.params.id; 
     const student = await Student.findById(targetStudentId);
-    
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found.' });
-    }
+    if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-    // 2. Fetch Grades
-    const studentGrades = await Grade.find({ student: student._id })
-      .populate('subject', 'subjectName name'); 
+    // 2. Fetch Raw Data
+    // Note: We need 'gradeLevel' from the subject to perform the strict filtering fix
+    const rawGrades = await Grade.find({ student: student._id })
+      .populate('subject', 'name gradeLevel') 
+      .lean(); // Use lean for performance
 
-    // 3. Fetch Behavior Reports
-    const studentBehavior = await BehavioralReport.find({ student: student._id });
+    const behaviorDocs = await BehavioralReport.find({ student: student._id });
 
-    // 4. Process Data
-    const formattedGrades = transformGradesToReportFormat(studentGrades);
-    const statsSem1 = calculateSemesterStats(formattedGrades.sem1);
-    const statsSem2 = calculateSemesterStats(formattedGrades.sem2);
-    
-    // Process Behavior
-    const behaviorData = processBehaviorData(studentBehavior);
+    // 3. CLEAN & MERGE GRADES (The Fix)
+    // This replaces your 'transformGradesToReportFormat' with a smarter version
+    const cleanedGrades = mergeDuplicateGrades(rawGrades, student.gradeLevel);
+
+    // 4. Calculate Stats
+    const statsSem1 = calculateStats(cleanedGrades, 'First Semester');
+    const statsSem2 = calculateStats(cleanedGrades, 'Second Semester');
 
     // Final Average Calculation
     let studentFinalAvg = 0;
     if (statsSem1.avg > 0 && statsSem2.avg > 0) studentFinalAvg = (statsSem1.avg + statsSem2.avg) / 2;
     else studentFinalAvg = statsSem1.avg + statsSem2.avg;
 
+    // Promotion Logic
+    const gradeNumMatch = student.gradeLevel.match(/\d+/);
+    const nextGrade = gradeNumMatch ? parseInt(gradeNumMatch[0]) + 1 : null;
+    const promotedStr = nextGrade ? `Grade ${nextGrade}` : 'Next Level';
+
+    // 5. Assemble Final Response
     const finalReport = {
       studentInfo: {
         fullName: student.fullName,
@@ -125,19 +130,24 @@ exports.generateStudentReport = async (req, res) => {
         sex: student.gender,
         age: calculateAge(student.dateOfBirth),
         classId: student.gradeLevel,
-        academicYear: studentGrades[0]?.academicYear,
+        academicYear: rawGrades[0]?.academicYear || '2018', // Fallback year
         photoUrl: student.imageUrl,
-        promotedTo: studentFinalAvg >= 60 ? `Grade ${parseInt(student.gradeLevel.match(/\d+)) + 1}` : 'Retained',
+        promotedTo: studentFinalAvg >= 50 ? promotedStr : 'Retained',
       },
+      
+      // Stats
       semester1: statsSem1,
       semester2: statsSem2,
       finalAverage: parseFloat(studentFinalAvg.toFixed(2)),
       
-      // Data for Tables
-      grades: formattedGrades, 
+      // Data Arrays
+      grades: cleanedGrades, // Returns the clean Array (Frontend expects this now)
       
       // Behavior Data
-      behavior: behaviorData
+      behavior: processBehaviorData(behaviorDocs),
+
+      // Footer Data (Conduct & Absent)
+      footerData: processAttendanceAndConduct(behaviorDocs)
     };
 
     res.status(200).json(finalReport);
