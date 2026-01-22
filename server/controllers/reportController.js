@@ -37,12 +37,11 @@ const processAttendanceAndConduct = (behaviorDocs) => {
     return {
         sem1: {
             conduct: sem1?.conduct || '-',
-            // Assuming you added 'absentDays' to your model, or we look for it in evaluations
-            absent: sem1?.absentDays || sem1?.evaluations?.find(e => e.area === 'Attendance')?.result || '-'
+            absent: sem1?.absent || sem1?.evaluations?.find(e => e.area === 'Attendance')?.result || '-'
         },
         sem2: {
             conduct: sem2?.conduct || '-',
-            absent: sem2?.absentDays || sem2?.evaluations?.find(e => e.area === 'Attendance')?.result || '-'
+            absent: sem2?.absent || sem2?.evaluations?.find(e => e.area === 'Attendance')?.result || '-'
         }
     };
 };

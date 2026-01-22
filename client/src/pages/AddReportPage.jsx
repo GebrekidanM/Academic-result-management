@@ -37,7 +37,7 @@ const AddReportPage = () => {
         e.preventDefault();
         setLoading(true);
         setError(null);
-        const reportData = { studentId, semester, academicYear, teacherComment, conduct,, evaluations };
+        const reportData = { studentId, semester, academicYear, conduct,absent, evaluations };
         try {
             await behavioralReportService.addReport(reportData);
             alert('Behavioral report added successfully!');
