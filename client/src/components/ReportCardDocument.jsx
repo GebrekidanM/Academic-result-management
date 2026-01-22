@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react';
-import ReportCoverPage from '../pages/ReportCoverPage'; // Ensure path is correct
+import React, { useMemo, useState } from 'react';
+import ReportCoverPage from '../pages/ReportCoverPage';
 
-const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' }) => {
+const ReportCardDocument = ({ reportData, schoolInfoData }) => {
+    // አንተ በሰጠኸኝ መሰረት State እዚሁ እንዲሆን አድርጌዋለሁ
+    const [reportType, setReportType] = useState('year'); 
     
-    // --- DATA LOGIC (Calculates strictly based on props) ---
+    // --- DATA TRANSFORMATION ---
     const processedGrades = useMemo(() => {
         if (!reportData || !reportData.grades) return [];
         const sem1Grades = reportData.grades.sem1 || {};
@@ -33,6 +35,17 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         return "ANNUAL REPORT";
     };
 
+    // Safe Destructuring (Added footerData for Absent/Conduct)
+    const { 
+        studentInfo = {}, 
+        semester1 = {}, 
+        semester2 = {}, 
+        finalAverage = '-', 
+        rank = '-', 
+        behavior = {},
+        footerData = { sem1: {}, sem2: {} } // <--- ይሄ ከ Backend የሚመጣ ነው (Absent/Conduct)
+    } = reportData || {};
+
     const calculateAge = (dob) => {
         if (!dob) return '-';
         const birthYear = parseInt(String(dob).split('-')[0]);
@@ -40,23 +53,27 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         return isNaN(birthYear) ? '-' : (currentYear - 8) - birthYear;
     };
 
-    // Safe Destructuring
-    const { 
-        studentInfo = {}, 
-        semester1 = {}, 
-        semester2 = {}, 
-        finalAverage = '-', 
-        rank = {}, 
-        behavior = {} 
-    } = reportData || {};
+    // --- NEW: Automated Teacher Comment Logic ---
+    const getAutomatedComment = () => {
+        // ውጤቱን እንደ Report Type መምረጥ
+        let score = 0;
+        if (reportType === 'sem1') score = semester1?.avg || 0;
+        else if (reportType === 'sem2') score = semester2?.avg || 0;
+        else score = finalAverage || 0;
 
-    const getTeacherComment = () => {
-        if (reportType === 'sem1') return behavior.teacherComments?.sem1;
-        if (reportType === 'sem2') return behavior.teacherComments?.sem2;
-        return behavior.teacherComments?.sem2 || behavior.teacherComments?.sem1 || "No comments.";
+        const numScore = Number(score);
+
+        if (numScore >= 95) return "Excellent achievement! Keep up the outstanding work.";
+        if (numScore >= 90) return "Very superior performance.";
+        if (numScore >= 85) return "Superior performance.";
+        if (numScore >= 80) return "Very good performance.";
+        if (numScore >= 70) return "Good performance.";
+        if (numScore >= 60) return "Satisfactory. More effort is needed.";
+        if (numScore >= 50) return "Promoted, but needs significant improvement.";
+        return "Not Promoted. Hard work is required next year.";
     };
 
-    // Helper for Totals based on reportType
+    // Helpers for Totals
     const currentTotal = () => {
         if (reportType === 'sem1') return semester1?.sum;
         if (reportType === 'sem2') return semester2?.sum;
@@ -78,9 +95,19 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
     return (
         <div className="report-card-container mb-0" style={{ pageBreakAfter: 'always' }}>
             
+            {/* Buttons (አንተ በፈለከው ቦታ) */}
+            <div className="bg-white px-4 py-2 rounded-full shadow flex gap-4 no-print">
+                <span className="text-xs font-bold text-gray-400 uppercase self-center">View Mode:</span>
+                {['sem1', 'sem2', 'year'].map(type => (
+                    <button key={type} onClick={() => setReportType(type)} className={`text-xs font-bold uppercase ${reportType === type ? 'text-cyan-600 underline' : 'text-gray-500'}`}>
+                        {type === 'year' ? 'Annual' : type === 'sem1' ? 'Sem 1' : 'Sem 2'}
+                    </button>
+                ))}
+            </div>
+
             {/* --- SHEET 1: COVER --- */}
             <div className="print-break">
-                <ReportCoverPage getReportTitle={getReportTitle} studentInfo={studentInfo} schoolInfo={schoolInfoData} />
+                <ReportCoverPage studentInfo={studentInfo} schoolInfo={schoolInfoData} getReportTitle={getReportTitle}/>
             </div>
 
             {/* --- SHEET 2: INNER CONTENT --- */}
@@ -89,7 +116,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                 {/* --- INSIDE LEFT --- */}
                 <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
                     <div className="flex gap-4 items-center mb-6">
-                        <div className="w-20 h-20 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
+                        <div className="w-16 h-16 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
                             {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
                         </div>
                         <div>
@@ -123,7 +150,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                     </tr>
                                 ))}
                             </tbody>
-
                         </table>
                         <div className="text-[10px] text-gray-500 text-center border-t border-gray-100 pt-1">
                             <strong>Key:</strong> E=Excellent, VG=Very Good, G=Good, NI=Needs Improvement
@@ -132,8 +158,9 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
 
                     <div className="mb-4">
                         <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
-                        <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-20 print:bg-cyan-50">
-                            {getTeacherComment()}
+                        <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-20 print:bg-cyan-50 flex items-center">
+                            {/* እዚህ ጋር ነው Automated Comment የገባው */}
+                            {getAutomatedComment()}
                         </div>
                     </div>
 
@@ -179,45 +206,49 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                         </tr>
                                     ))}
                                 </tbody>
+                                {/* --- UPDATED FOOTER (Added Absent & Conduct) --- */}
                                 <tfoot>
-                                        <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
-                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum || 0}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum || 0}</td>}
-                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{(semester1?.sum || 0) + (semester2?.sum || 0)}</td>}
-                                        </tr>
-                                        <tr className="bg-gray-50 border-t border-gray-200 font-bold text-slate-800">
-                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Average</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.avg || 0}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.avg || 0}</td>}
-                                            {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{finalAverage}</td>}
-                                        </tr>
-                                        <tr className="bg-[#0f172a] text-white font-bold print:bg-[#0f172a] print:text-white">
-                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider rounded-bl">Rank</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank.sem1 || '-'}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank.sem2 || '-'}</td>}
-                                            {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4] rounded-br print:bg-[#06b6d4]">{rank.overall || '-'}</td>}
-                                        </tr>
-                                    </tfoot>
+                                    {/* Total */}
+                                    <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum || 0}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum || 0}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{currentTotal()}</td>}
+                                    </tr>
+                                    {/* Average */}
+                                    <tr className="bg-gray-50 border-t border-gray-200 font-bold text-slate-800">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Average</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.avg || 0}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.avg || 0}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{currentAvg()}</td>}
+                                    </tr>
+                                    {/* Rank */}
+                                    <tr className="bg-[#0f172a] text-white font-bold print:bg-[#0f172a] print:text-white">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Rank</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem1 || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem2 || '-'}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4] print:bg-[#06b6d4]">{rank?.overall || '-'}</td>}
+                                    </tr>
+                                    {/* Absent (New) */}
+                                    <tr className="bg-white border-t border-gray-300">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent || '-'}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
+                                    </tr>
+                                    {/* Conduct (New) */}
+                                    <tr className="bg-white border-t border-gray-200">
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-blue-900 tracking-wider">Conduct</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem1?.conduct || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem2?.conduct || '-'}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
 
-                        <div className="flex gap-4 mt-4 mb-4">
-                            <div className="flex-1 bg-[#0f172a] text-white p-2 rounded text-center print:bg-[#0f172a]">
-                                <p className="text-[10px] uppercase font-bold opacity-70">Rank</p>
-                                <p className="text-2xl font-bold">{currentRank()}</p>
-                            </div>
-                            <div className="flex-1 border border-gray-200 p-2 rounded text-center bg-white/50">
-                                <p className="text-[10px] uppercase font-bold text-gray-500">Total Sum</p>
-                                <p className="text-xl font-bold text-[#0f172a]">{currentTotal()}</p>
-                            </div>
-                            <div className="flex-1 border border-gray-200 p-2 rounded text-center bg-white/50">
-                                <p className="text-[10px] uppercase font-bold text-gray-500">Total Avg</p>
-                                <p className="text-xl font-bold text-[#0f172a]">{currentAvg()}</p>
-                            </div>
-                        </div>
-
-                        <div className="mb-6 border-t border-gray-100 pt-4">
+                        {/* ከዚህ በታች ያሉት ካርዶች አሁን በቴብል ፉተር ውስጥ ስለገቡ አያስፈልጉም፣ ግን ዲዛይኑ እንዳይበላሽ ቦታ መያዣ ከፈለክ መተው ትችላለህ */}
+                        <div className="mb-6 border-t border-gray-100 pt-4 mt-4">
                             <div className="flex items-end gap-2 text-sm text-[#0f172a]">
                                 <span className="font-bold">Promoted to:</span> 
                                 <span className="flex-1 border-b-2 border-gray-400 border-dotted pl-2 font-mono font-bold">{studentInfo?.promotedTo || ""}</span>
@@ -229,7 +260,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                 <div key={role} className="text-center w-1/3">
                                     <div className="h-4 border-b border-gray-300 w-2/3 mx-auto"></div>
                                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 block">{role}</span>
-                                    {/* Optional: Add dynamic signature images here */}
                                 </div>
                             ))}
                         </div>
