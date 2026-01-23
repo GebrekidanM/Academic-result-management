@@ -4,6 +4,7 @@ import reportCardService from '../services/reportCardService';
 import rankService from '../services/rankService';
 import ReportCoverPage from './ReportCoverPage';
 
+// The exact order you requested
 const SUBJECT_PRIORITY = [
     "አማርኛ",
     "ENGLISH",
@@ -17,11 +18,14 @@ const SUBJECT_PRIORITY = [
 
 const ReportCardPage = () => {
     const { id } = useParams();
+
+    // --- STATE ---
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [reportType, setReportType] = useState('year'); 
 
+    // --- SCHOOL INFO ---
     const schoolInfoData = {
         name: "FREEDOM KG & PRIMARY SCHOOL",
         logo: "/frfr.jpg",
@@ -36,14 +40,22 @@ const ReportCardPage = () => {
             try {
                 setLoading(true);
 
+                // 1. Fetch the Student Report FIRST
                 const reportResponse = await reportCardService.getReportCardByStudent(id);
                 const reportData = reportResponse.data;
 
+                // 2. Extract necessary info for Rank Calculation
                 const gradeLevel = reportData.studentInfo.classId; 
                 const academicYear = reportData.studentInfo.academicYear;
 
-                const rankData = await rankService.getRankByStudent(id, gradeLevel, academicYear);
+                // 3. Fetch Ranks using that info
+                // (Fallback if rank fetch fails)
+                let rankData = { sem1: '-', sem2: '-', overall: '-' };
+                try {
+                     rankData = await rankService.getRankByStudent(id, gradeLevel, academicYear);
+                } catch(e) { console.warn("Rank fetch failed", e); }
 
+                // 4. Merge Data and Set State
                 setReportData({
                     ...reportData,
                     rank: rankData
@@ -59,32 +71,52 @@ const ReportCardPage = () => {
         fetchData();
     }, [id]);
 
-                console.log("response", reportData)
-    
+
     // --- DATA TRANSFORMATION & SORTING ---
     const processedGrades = useMemo(() => {
-        if (!reportData || !reportData.grades) return [];
-        const sem1Grades = reportData.grades.sem1 || {};
-        const sem2Grades = reportData.grades.sem2 || {};
-        const allSubjects = new Set([...Object.keys(sem1Grades), ...Object.keys(sem2Grades)]);
+        // 1. Check if grades exist and is an array
+        if (!reportData || !Array.isArray(reportData.grades)) return [];
 
-        const gradesList = Array.from(allSubjects).map(subject => {
-            const s1 = sem1Grades[subject];
-            const s2 = sem2Grades[subject];
-            let average = null;
-            if (typeof s1 === 'number' && typeof s2 === 'number') average = (s1 + s2) / 2;
-            else if (typeof s1 === 'number') average = s1;
-            else if (typeof s2 === 'number') average = s2;
+        // 2. Pivot the Data: Group by Subject Name
+        const subjectMap = new Map();
 
-            return {
-                subjectName: subject,
-                firstSemester: s1 !== undefined ? s1 : '-',
-                secondSemester: s2 !== undefined ? s2 : '-',
-                average: average
-            };
+        reportData.grades.forEach(gradeEntry => {
+            const subjectName = gradeEntry.subject?.name || "Unknown";
+            
+            // Initialize entry if it doesn't exist
+            if (!subjectMap.has(subjectName)) {
+                subjectMap.set(subjectName, {
+                    subjectName: subjectName,
+                    firstSemester: '-',
+                    secondSemester: '-',
+                    average: '-'
+                });
+            }
+
+            const entry = subjectMap.get(subjectName);
+
+            // Assign score based on semester string from API
+            if (gradeEntry.semester === 'First Semester') {
+                entry.firstSemester = gradeEntry.finalScore;
+            } else if (gradeEntry.semester === 'Second Semester') {
+                entry.secondSemester = gradeEntry.finalScore;
+            }
         });
 
-        // --- CUSTOM SORTING LOGIC ---
+        // 3. Convert Map to Array and Calculate Average
+        const gradesList = Array.from(subjectMap.values()).map(item => {
+            const s1 = typeof item.firstSemester === 'number' ? item.firstSemester : null;
+            const s2 = typeof item.secondSemester === 'number' ? item.secondSemester : null;
+            
+            let average = null;
+            if (s1 !== null && s2 !== null) average = (s1 + s2) / 2;
+            else if (s1 !== null) average = s1;
+            else if (s2 !== null) average = s2;
+
+            return { ...item, average };
+        });
+
+        // 4. Custom Sorting Logic (Your existing logic)
         return gradesList.sort((a, b) => {
             const nameA = a.subjectName.trim();
             const nameB = b.subjectName.trim();
@@ -111,15 +143,12 @@ const ReportCardPage = () => {
         return "ANNUAL REPORT";
     };
 
-    const calculateAge = (dob) => {
-        if (!dob) return '-';
-        const birthYear = parseInt(String(dob).split('-')[0]);
-        const currentYear = new Date().getFullYear();
-        return isNaN(birthYear) ? '-' : (currentYear - 8) - birthYear;
-    };
- 
-    console.log(processedGrades)
-    // --- DESTRUCTURING (ADDED footerData for Absent/Conduct) ---
+   
+    if (loading) return <div className="flex h-screen items-center justify-center text-xl font-bold text-slate-900">Loading Report...</div>;
+    if (error) return <div className="flex h-screen items-center justify-center text-xl font-bold text-red-600">{error}</div>;
+    if (!reportData) return <div className="flex h-screen items-center justify-center text-xl font-bold text-red-600">No Data Found</div>;
+
+    // --- DESTRUCTURING ---
     const { 
         studentInfo = {}, 
         semester1 = {}, 
@@ -127,10 +156,10 @@ const ReportCardPage = () => {
         finalAverage = '-', 
         rank = { sem1: '-', sem2: '-', overall: '-' },
         behavior = {},
-        footerData = { sem1: {}, sem2: {} }
+        footerData = { sem1: {}, sem2: {} } // <--- ከ Backend የሚመጣው አዲስ ዳታ
     } = reportData || {};
 
-    // --- NEW: Automated Teacher Comment Logic ---
+    // --- AUTOMATED TEACHER COMMENT ---
     const getAutomatedComment = () => {
         let score = 0;
         if (reportType === 'sem1') score = semester1?.avg || 0;
@@ -161,10 +190,6 @@ const ReportCardPage = () => {
         if (reportType === 'sem2') return semester2?.avg;
         return finalAverage;
     };
-
-    if (loading) return <div className="flex h-screen items-center justify-center text-xl font-bold text-slate-900">Loading Report...</div>;
-    if (error) return <div className="flex h-screen items-center justify-center text-xl font-bold text-red-600">{error}</div>;
-    if (!reportData) return <div className="flex h-screen items-center justify-center text-xl font-bold text-red-600">No Data Found</div>;
 
     return (
         <div className="min-h-screen bg-gray-200 flex flex-col items-center p-8 font-sans print:p-0 print:m-0 print:bg-white print:block">
@@ -233,7 +258,7 @@ const ReportCardPage = () => {
                                 <h2 className="text-xl font-montserrat font-bold text-[#0f172a]">{studentInfo?.fullName || '...'}</h2>
                                 <div className="flex gap-2 text-xs font-bold text-gray-600 uppercase mt-1">
                                     <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">{studentInfo?.classId || '-'}</span>
-                                    <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Age: {calculateAge(studentInfo?.dateOfBirth)}</span>
+                                    <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Age: {studentInfo.age}</span>
                                     <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Sex: {studentInfo?.sex || '-'}</span>
                                 </div>
                             </div>
@@ -248,16 +273,16 @@ const ReportCardPage = () => {
                                 <thead>
                                     <tr className="text-gray-500 border-b border-gray-200">
                                         <th className="text-left font-bold pb-2">Trait</th>
-                                        <th className="text-center font-bold pb-2 w-10">S1</th>
-                                        <th className="text-center font-bold pb-2 w-10">S2</th>
+                                        {(reportType === 'sem1' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">S1</th>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">S2</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {behavior.progress && behavior.progress.map((item, index) => (
                                         <tr key={index} className="border-b border-gray-50 last:border-0">
                                             <td className="py-2 text-gray-800 font-medium">{item.area}</td>
-                                            <td className="text-center text-[#0f172a] font-bold">{item.sem1}</td>
-                                            <td className="text-center text-[#0f172a] font-bold">{item.sem2}</td>
+                                           {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-[#0f172a] font-bold">{item.sem1}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-[#0f172a] font-bold">{item.sem2}</td>}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -287,10 +312,14 @@ const ReportCardPage = () => {
 
                     {/* --- INSIDE RIGHT (Grades & Stats) --- */}
                     <div className="w-1/2 h-full bg-white p-8 flex flex-col relative overflow-hidden">
+                        
+                        {/* Watermark */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
                             <img src={schoolInfoData.logo} alt="Watermark" className="w-[80%] opacity-[0.04] grayscale transform -rotate-12"/>
                         </div>
+
                         <div className="relative z-10 flex-1 flex flex-col">
+                            {/* Header */}
                             <div className="flex justify-between items-end mb-4 border-b-2 border-[#0f172a] pb-2">
                                 <div>
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{schoolInfoData.name}</h3>
@@ -353,23 +382,25 @@ const ReportCardPage = () => {
                                         </tr>
                                         {/* 3. RANK */}
                                         <tr className="bg-[#0f172a] text-white font-bold print:bg-[#0f172a] print:text-white">
-                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Rank</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem1 || '-'}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem2 || '-'}</td>}
-                                            {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4]">{rank?.overall || '-'}</td>}
+                                            <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider rounded-bl">Rank</td>
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank.sem1 || '-'}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank.sem2 || '-'}</td>}
+                                            {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4] rounded-br print:bg-[#06b6d4]">{rank.overall || '-'}</td>}
                                         </tr>
                                         
                                     </tfoot>
                                 </table>
                             </div>
 
-                            <div className="mb-6 border-t border-gray-100 pt-4 mt-4">
+                            {/* Promoted To Section */}
+                            {( reportType === 'year')&& <div className="mb-6 border-t border-gray-100 pt-4 mt-4">
                                 <div className="flex items-end gap-2 text-sm text-[#0f172a]">
                                     <span className="font-bold">Promoted to:</span> 
                                     <span className="flex-1 border-b-2 border-gray-400 border-dotted pl-2 font-mono font-bold">{studentInfo?.promotedTo || ""}</span>
                                 </div>
-                            </div>
+                            </div>}
 
+                            {/* Signatures */}
                             <div className="flex justify-between items-end">
                                 {['Homeroom', 'Director', 'Parent'].map((role) => (
                                     <div key={role} className="text-center w-1/3">

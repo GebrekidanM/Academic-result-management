@@ -177,7 +177,12 @@ const StudentDetailPage = () => {
 
     return (
         <div className="space-y-8">
-            
+             <div className="flex justify-between items-center mb-6 border-b pb-4">
+                <h2 className="text-2xl font-bold text-gray-800">{t('student')} {t('detail')}</h2>
+                <Link to="/roster" className="text-pink-600 hover:underline font-bold text-sm">
+                    &larr; {t('back')}
+                </Link>
+             </div>
             {/* 1. Header & Quick Stats */}
             <div className={sectionWrapper}>
                 <div className="flex flex-col sm:flex-row justify-between items-start">

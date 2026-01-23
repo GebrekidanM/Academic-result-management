@@ -35,7 +35,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
             };
         });
 
-        // --- SORTING LOGIC ---
         // Your custom order
         const SUBJECT_PRIORITY = [
             "አማርኛ", "ENGLISH", "ሒሳብ", 
@@ -75,15 +74,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         behavior = {},
         footerData = { sem1: {}, sem2: {} } 
     } = reportData || {};
-
-    const calculateAge = (ageVal) => {
-        if (!ageVal) return '-';
-        // Your JSON already has "age": 14, so just return it if it's a number
-        if (typeof ageVal === 'number') return ageVal;
-        // Fallback for DOB string
-        const birthYear = parseInt(String(ageVal).split('-')[0]);
-        return isNaN(birthYear) ? '-' : (new Date().getFullYear() - 8) - birthYear;
-    };
 
     // Helper for Totals
     const currentTotal = () => {
@@ -137,7 +127,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                             <h2 className="text-xl font-montserrat font-bold text-[#0f172a]">{studentInfo?.fullName || '...'}</h2>
                             <div className="flex gap-2 text-xs font-bold text-gray-600 uppercase mt-1">
                                 <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">{studentInfo?.classId || '-'}</span>
-                                <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Age: {calculateAge(studentInfo?.age)}</span>
+                                <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Age: {studentInfo?.age}</span>
                                 <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Sex: {studentInfo?.sex?.charAt(0)}</span>
                             </div>
                         </div>
@@ -152,8 +142,8 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                             <thead>
                                 <tr className="text-gray-500 border-b border-gray-200">
                                     <th className="text-left font-bold pb-2">Trait</th>
-                                    <th className="text-center font-bold pb-2 w-10">S1</th>
-                                    <th className="text-center font-bold pb-2 w-10">S2</th>
+                                    {(reportType === 'sem1' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">S1</th>}
+                                    {(reportType === 'sem2' || reportType === 'year')&&<th className="text-center font-bold pb-2 w-10">S2</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -161,8 +151,8 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                 {behavior.progress && behavior.progress.map((item, index) => (
                                     <tr key={index} className="border-b border-gray-50 last:border-0">
                                         <td className="py-2 text-gray-800 font-medium">{item.area}</td>
-                                        <td className="text-center text-[#0f172a] font-bold">{item.sem1}</td>
-                                        <td className="text-center text-[#0f172a] font-bold">{item.sem2}</td>
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-[#0f172a] font-bold">{item.sem1}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-[#0f172a] font-bold">{item.sem2}</td>}
                                     </tr>
                                 ))}
                             </tbody>
@@ -262,12 +252,12 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                             </table>
                         </div>
 
-                        <div className="mb-6 border-t border-gray-100 pt-4 mt-6">
+                        {(reportType === 'year') && <div className="mb-6 border-t border-gray-100 pt-4 mt-6">
                             <div className="flex items-end gap-2 text-sm text-[#0f172a]">
                                 <span className="font-bold">Promoted to:</span> 
                                 <span className="flex-1 border-b-2 border-gray-400 border-dotted pl-2 font-mono font-bold">{studentInfo?.promotedTo || ""}</span>
                             </div>
-                        </div>
+                        </div>}
 
                         <div className="flex justify-between items-end">
                             {['Homeroom', 'Director', 'Parent'].map((role) => (

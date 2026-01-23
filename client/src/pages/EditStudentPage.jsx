@@ -8,7 +8,6 @@ const EditStudentPage = () => {
     const { id: studentId } = useParams();
     const navigate = useNavigate();
     const [isOnline, setIsOnline] = useState(navigator.onLine);
-
     // --- State Management ---
     const [studentData, setStudentData] = useState({
         fullName: '',
@@ -91,7 +90,17 @@ const EditStudentPage = () => {
     // --- Form submission ---
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
+        if (studentData.dateOfBirth) {
+                const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+                const isCorrectFormat = typeof studentData.dateOfBirth === 'string' && datePattern.test(studentData.dateOfBirth);
+
+                if (!isCorrectFormat) {
+                    setError('The birth date must follow this format YYYY-MM-DD')
+                    return;
+                } 
+            }
+
         if (!isOnline) {
             setError(t('offline_warning'));
             return;
@@ -99,11 +108,14 @@ const EditStudentPage = () => {
 
         setError(null);
         try {
+            setLoading(true)
             await studentService.updateStudent(studentId, studentData);
             alert(t('success_save') || 'Student profile updated successfully!');
             navigate(`/students/${studentId}`);
         } catch (err) {
             setError(t('error') || 'Failed to update student profile.');
+        }finally{
+            setLoading(false)
         }
     };
 
@@ -177,7 +189,7 @@ const EditStudentPage = () => {
                     </div>
                     <div>
                         <label htmlFor="dateOfBirth" className={inputLabel}>{t('dob')}</label>
-                        <input id="dateOfBirth" type="text" name="dateOfBirth" placeholder='dd/mm/yyyy' value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
+                        <input id="dateOfBirth" type="text" name="dateOfBirth" placeholder='yyyy-mm-dd' value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
                     </div>
 
                 </div>
@@ -210,7 +222,7 @@ const EditStudentPage = () => {
                 </fieldset>
 
                 <div className="mt-8">
-                    <button type="submit" className={submitButton} disabled={!isOnline}>
+                    <button type="submit" className={submitButton} disabled={!isOnline || loading}>
                         {t('update')} Profile
                     </button>
                 </div>
