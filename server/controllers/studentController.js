@@ -3,6 +3,7 @@ const fs = require('fs');
 const Student = require('../models/Student');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
+const calculateAge = require('../utils/calculateAge');
 
 // --- HELPER FUNCTIONS ---
 const capitalizeName = (name) => {
@@ -112,8 +113,12 @@ exports.getStudents = async (req, res) => {
 exports.getStudentById = async (req, res) => {
     try {
         const student = await Student.findById(req.params.id);
-        if (!student) return res.status(404).json({ message: 'Student not found' });
         
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+        
+        // Fetch grades for average calculation
         const grades = await Grade.find({ student: student._id });
         let promotionStatus = 'To Be Determined';
         let overallAverage = 0;
@@ -121,15 +126,27 @@ exports.getStudentById = async (req, res) => {
         if (grades.length > 0) {
             const totalScore = grades.reduce((sum, grade) => sum + grade.finalScore, 0);
             overallAverage = totalScore / grades.length;
-            if (overallAverage >= 50) promotionStatus = 'Promoted'; else promotionStatus = 'Not Promoted';
+            
+            // Simple promotion logic
+            if (overallAverage >= 50) {
+                promotionStatus = 'Promoted'; 
+            } else {
+                promotionStatus = 'Not Promoted';
+            }
         }
         
         const studentObject = student.toObject();
+
+        // --- INTEGRATION HERE ---
+        studentObject.age = calculateAge(student.dateOfBirth); 
+
         studentObject.promotionStatus = promotionStatus;
-        studentObject.overallAverage = overallAverage;
+        studentObject.overallAverage = parseFloat(overallAverage.toFixed(1));
         
         res.json({ success: true, data: studentObject });
+
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -254,6 +271,32 @@ exports.deleteStudent = async (req, res) => {
         }
 
         await student.deleteOne();
+        res.json({ success: true, message: 'Student deleted successfully' });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    DeActive a student
+// @route   POST /api/students/:id
+exports.deactiveStudent = async (req, res) => {
+    const {reason} = req.body;
+
+    try {
+        const currentUser = req.user;
+        const student = await Student.findById(req.params.id);
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+
+        if (currentUser.role === 'teacher') {
+            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+                return res.status(403).json({ message: 'You are not authorized to delete this student.' });
+            }
+        } else if (currentUser.role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to delete students.' });
+        }
+        student.status = reason; 
+        await student.save();
         res.json({ success: true, message: 'Student deleted successfully' });
 
     } catch (error) {

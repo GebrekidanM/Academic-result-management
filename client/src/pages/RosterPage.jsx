@@ -132,8 +132,6 @@ const RosterPage = () => {
         }, 1000);
     };
 
-    console.log(rosterData)
-
     // --- Styles ---
     const textInput = "shadow-sm border rounded-lg py-2 px-3 w-full focus:ring-blue-500 focus:border-blue-500";
     const submitButton = `bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`;
