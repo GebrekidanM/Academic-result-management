@@ -319,7 +319,7 @@ const StudentDetailPage = () => {
                 {reports.length ? (
                     <div className="space-y-4">
                         {reports.map(report => (
-                            <div key={report._id} className="bg-gray-50 p-4 rounded-lg border">
+                            <div key={report._id} className="bg-gray-50 p-4 rounded-lg border border-pink-300">
                                 <div className="flex justify-between items-center">
                                     <h4 className="font-bold text-gray-700">
                                         {report.semester === 'First Semester' ? t('sem_1') : t('sem_2')} - {report.academicYear}
@@ -331,8 +331,19 @@ const StudentDetailPage = () => {
                                         </div>
                                     )}
                                 </div>
-                                <p className="mt-2 text-gray-600"><strong>{t('teacher_comment')}:</strong> {report.teacherComment || 'N/A'}</p>
+                                <div className='w-full flex gap-3'>
+                                    <div className='border border-pink-500 rounded-sm p-2'>Conduct - {report.conduct}</div>
+                                    <div className='border border-pink-500 rounded-sm p-2'>Absent - {report.absent}</div>
+                                </div>
+                                <ul className='mt-3.5'>
+                                    { report.evaluations && report.evaluations?.map(eva=>(
+                                            <li key={eva.area} className='flex justify-between p-2 border-b-2 border-gray-200'><span className='font-bold font-lg'>{eva.area}</span> <span>{eva.result}</span></li>
+                                        )
+                                    )
+                                    }
+                                </ul>
                             </div>
+
                         ))}
                     </div>
                 ) : <p className="text-gray-500 text-center py-4">{t('no_comments')}</p>}

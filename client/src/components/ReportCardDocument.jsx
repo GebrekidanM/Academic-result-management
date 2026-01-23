@@ -1,31 +1,62 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import ReportCoverPage from '../pages/ReportCoverPage';
 
-const ReportCardDocument = ({ reportData, schoolInfoData }) => {
-    const [reportType, setReportType] = useState('year'); 
+const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' }) => {
     
-    // --- DATA TRANSFORMATION ---
+    // --- DATA TRANSFORMATION & SORTING ---
     const processedGrades = useMemo(() => {
         if (!reportData || !reportData.grades) return [];
-        const sem1Grades = reportData.grades.sem1 || {};
-        const sem2Grades = reportData.grades.sem2 || {};
-        const allSubjects = new Set([...Object.keys(sem1Grades), ...Object.keys(sem2Grades)]);
+        const sem1Grades = reportData.grades.filter(g => g.semester === 'First Semester');
+        const sem2Grades = reportData.grades.filter(g => g.semester === 'Second Semester');
 
-        return Array.from(allSubjects).map(subject => {
-            const s1 = sem1Grades[subject];
-            const s2 = sem2Grades[subject];
+        // Get unique subject names
+        const allSubjects = new Set([
+            ...sem1Grades.map(g => g.subject?.name),
+            ...sem2Grades.map(g => g.subject?.name)
+        ]);
+
+        const gradesList = Array.from(allSubjects).map(subjectName => {
+            const g1 = sem1Grades.find(g => g.subject?.name === subjectName);
+            const g2 = sem2Grades.find(g => g.subject?.name === subjectName);
+            
+            const s1 = g1 ? g1.finalScore : null;
+            const s2 = g2 ? g2.finalScore : null;
+            
             let average = null;
-            if (typeof s1 === 'number' && typeof s2 === 'number') average = (s1 + s2) / 2;
-            else if (typeof s1 === 'number') average = s1;
-            else if (typeof s2 === 'number') average = s2;
+            if (s1 !== null && s2 !== null) average = (s1 + s2) / 2;
+            else if (s1 !== null) average = s1;
+            else if (s2 !== null) average = s2;
 
             return {
-                subjectName: subject,
-                firstSemester: s1 !== undefined ? s1 : '-',
-                secondSemester: s2 !== undefined ? s2 : '-',
+                subjectName: subjectName,
+                firstSemester: s1 !== null ? s1 : '-',
+                secondSemester: s2 !== null ? s2 : '-',
                 average: average
             };
         });
+
+        // --- SORTING LOGIC ---
+        // Your custom order
+        const SUBJECT_PRIORITY = [
+            "አማርኛ", "ENGLISH", "ሒሳብ", 
+            "አካባቢ ሳይንስ", "አጠቃላይ ሳይንስ", 
+            "ግብረ ገብ", "የዜግነት ት/ት", "ህብረተሰብ"
+        ];
+
+        return gradesList.sort((a, b) => {
+            const nameA = a.subjectName.trim();
+            const nameB = b.subjectName.trim();
+            const getIndex = (name) => {
+                const idx = SUBJECT_PRIORITY.findIndex(p => p.toLowerCase() === name.toLowerCase());
+                return idx === -1 ? Infinity : idx;
+            };
+            const indexA = getIndex(nameA);
+            const indexB = getIndex(nameB);
+
+            if (indexA !== indexB) return indexA - indexB;
+            return nameA.localeCompare(nameB);
+        });
+
     }, [reportData]);
 
     const getReportTitle = () => {
@@ -34,44 +65,27 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
         return "ANNUAL REPORT";
     };
 
-    // Safe Destructuring (Added footerData for Absent/Conduct)
+    // Safe Destructuring (Updated with your JSON keys)
     const { 
         studentInfo = {}, 
         semester1 = {}, 
         semester2 = {}, 
         finalAverage = '-', 
-        rank = '-', 
+        rank = {}, // This comes from the parent component merging it
         behavior = {},
-        footerData = { sem1: {}, sem2: {} }
+        footerData = { sem1: {}, sem2: {} } 
     } = reportData || {};
 
-    const calculateAge = (dob) => {
-        if (!dob) return '-';
-        const birthYear = parseInt(String(dob).split('-')[0]);
-        const currentYear = new Date().getFullYear();
-        return isNaN(birthYear) ? '-' : (currentYear - 8) - birthYear;
+    const calculateAge = (ageVal) => {
+        if (!ageVal) return '-';
+        // Your JSON already has "age": 14, so just return it if it's a number
+        if (typeof ageVal === 'number') return ageVal;
+        // Fallback for DOB string
+        const birthYear = parseInt(String(ageVal).split('-')[0]);
+        return isNaN(birthYear) ? '-' : (new Date().getFullYear() - 8) - birthYear;
     };
 
-    // --- NEW: Automated Teacher Comment Logic ---
-    const getAutomatedComment = () => {
-        let score = 0;
-        if (reportType === 'sem1') score = semester1?.avg || 0;
-        else if (reportType === 'sem2') score = semester2?.avg || 0;
-        else score = finalAverage || 0;
-
-        const numScore = Number(score);
-
-        if (numScore >= 95) return "Excellent achievement! Keep up the outstanding work.";
-        if (numScore >= 90) return "Very superior performance.";
-        if (numScore >= 85) return "Superior performance.";
-        if (numScore >= 80) return "Very good performance.";
-        if (numScore >= 70) return "Good performance.";
-        if (numScore >= 60) return "Satisfactory. More effort is needed.";
-        if (numScore >= 50) return "Promoted, but needs significant improvement.";
-        return "Not Promoted. Hard work is required next year.";
-    };
-
-    // Helpers for Totals
+    // Helper for Totals
     const currentTotal = () => {
         if (reportType === 'sem1') return semester1?.sum;
         if (reportType === 'sem2') return semester2?.sum;
@@ -90,43 +104,46 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
         return rank?.overall;
     };
 
+    // Automated Comment
+    const getAutomatedComment = () => {
+        let score = Number(currentAvg() || 0);
+        if (score >= 95) return "Excellent achievement! Keep up the outstanding work.";
+        if (score >= 90) return "Very superior performance.";
+        if (score >= 85) return "Superior performance.";
+        if (score >= 80) return "Very good performance.";
+        if (score >= 70) return "Good performance.";
+        if (score >= 60) return "Satisfactory. More effort is needed.";
+        if (score >= 50) return "Promoted, but needs significant improvement.";
+        return "Not Promoted. Hard work is required next year.";
+    };
+
     return (
         <div className="report-card-container mb-0" style={{ pageBreakAfter: 'always' }}>
             
-            {/* Buttons */}
-            <div className="bg-white px-4 py-2 rounded-full shadow flex gap-4 no-print">
-                <span className="text-xs font-bold text-gray-400 uppercase self-center">View Mode:</span>
-                {['sem1', 'sem2', 'year'].map(type => (
-                    <button key={type} onClick={() => setReportType(type)} className={`text-xs font-bold uppercase ${reportType === type ? 'text-cyan-600 underline' : 'text-gray-500'}`}>
-                        {type === 'year' ? 'Annual' : type === 'sem1' ? 'Sem 1' : 'Sem 2'}
-                    </button>
-                ))}
-            </div>
-
-            {/* --- SHEET 1: COVER --- */}
             <div className="print-break">
-                <ReportCoverPage studentInfo={studentInfo} schoolInfo={schoolInfoData} getReportTitle={getReportTitle}/>
+                <ReportCoverPage studentInfo={studentInfo} schoolInfo={schoolInfoData} getReportTitle={getReportTitle} />
             </div>
 
-            {/* --- SHEET 2: INNER CONTENT --- */}
             <div className="w-[297mm] h-[210mm] bg-white shadow-2xl flex overflow-hidden relative print:shadow-none print:m-0 print:p-0">
                 
                 {/* --- INSIDE LEFT --- */}
                 <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
+                    {/* Student Header */}
                     <div className="flex gap-4 items-center mb-6">
-                        <div className="w-16 h-16 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
+                        <div className="w-20 h-20 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
                             {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
                         </div>
                         <div>
                             <h2 className="text-xl font-montserrat font-bold text-[#0f172a]">{studentInfo?.fullName || '...'}</h2>
                             <div className="flex gap-2 text-xs font-bold text-gray-600 uppercase mt-1">
                                 <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">{studentInfo?.classId || '-'}</span>
-                                <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Age: {calculateAge(studentInfo?.dateOfBirth)}</span>
-                                <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Sex: {studentInfo?.sex || '-'}</span>
+                                <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Age: {calculateAge(studentInfo?.age)}</span>
+                                <span className="bg-white px-2 py-1 rounded shadow-sm border border-gray-100">Sex: {studentInfo?.sex?.charAt(0)}</span>
                             </div>
                         </div>
                     </div>
 
+                    {/* Behavior Table */}
                     <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 mb-4">
                         <h3 className="text-[#06b6d4] text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-[#06b6d4]"></span> Behavioral Evaluation
@@ -140,6 +157,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
                                 </tr>
                             </thead>
                             <tbody>
+                                {/* Using 'behavior.progress' array from your JSON */}
                                 {behavior.progress && behavior.progress.map((item, index) => (
                                     <tr key={index} className="border-b border-gray-50 last:border-0">
                                         <td className="py-2 text-gray-800 font-medium">{item.area}</td>
@@ -154,14 +172,15 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
                         </div>
                     </div>
 
+                    {/* Teacher's Note */}
                     <div className="mb-4">
                         <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
                         <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-20 print:bg-cyan-50 flex items-center">
-                            {/* እዚህ ጋር ነው Automated Comment የገባው */}
-                            {getAutomatedComment()}
+                            "{getAutomatedComment()}"
                         </div>
                     </div>
 
+                    {/* Parent's Feedback */}
                     <div className="flex-1 flex flex-col">
                         <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Parent's Feedback & Signature</h4>
                         <div className="flex-1 bg-white border border-gray-300 rounded relative overflow-hidden">
@@ -200,20 +219,18 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
                                             <td className="py-1.5 px-3 font-bold text-slate-700">{r.subjectName}</td>
                                             {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.firstSemester ?? '-'}</td>}
                                             {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.secondSemester ?? '-'}</td>}
-                                            {reportType === 'year' && <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30">{typeof r.average === 'number' ? r.average.toFixed(2) : '-'}</td>}
+                                            {reportType === 'year' && <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30">{typeof r.average === 'number' ? r.average.toFixed(1) : '-'}</td>}
                                         </tr>
                                     ))}
                                 </tbody>
-                                {/* --- UPDATED FOOTER (Added Absent & Conduct) --- */}
                                 <tfoot>
-                                    {/* Absent (New) */}
                                     <tr className="bg-white border-t border-gray-300">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
                                         {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}
                                         {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent || '-'}</td>}
                                         {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
                                     </tr>
-                                    {/* Conduct (New) */}
+                                    {/* Conduct */}
                                     <tr className="bg-white border-t border-gray-200">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-blue-900 tracking-wider">Conduct</td>
                                         {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem1?.conduct || '-'}</td>}
@@ -236,18 +253,16 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
                                     </tr>
                                     {/* Rank */}
                                     <tr className="bg-[#0f172a] text-white font-bold print:bg-[#0f172a] print:text-white">
-                                        <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Rank</td>
+                                        <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider rounded-bl">Rank</td>
                                         {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem1 || '-'}</td>}
                                         {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem2 || '-'}</td>}
-                                        {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4] print:bg-[#06b6d4]">{rank?.overall || '-'}</td>}
+                                        {reportType === 'year' && <td className="text-center border-l border-slate-600 bg-[#06b6d4] rounded-br print:bg-[#06b6d4]">{rank?.overall || '-'}</td>}
                                     </tr>
-                                    
                                 </tfoot>
                             </table>
                         </div>
 
-                        {/* ከዚህ በታች ያሉት ካርዶች አሁን በቴብል ፉተር ውስጥ ስለገቡ አያስፈልጉም፣ ግን ዲዛይኑ እንዳይበላሽ ቦታ መያዣ ከፈለክ መተው ትችላለህ */}
-                        <div className="mb-6 border-t border-gray-100 pt-4 mt-4">
+                        <div className="mb-6 border-t border-gray-100 pt-4 mt-6">
                             <div className="flex items-end gap-2 text-sm text-[#0f172a]">
                                 <span className="font-bold">Promoted to:</span> 
                                 <span className="flex-1 border-b-2 border-gray-400 border-dotted pl-2 font-mono font-bold">{studentInfo?.promotedTo || ""}</span>
@@ -264,7 +279,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData }) => {
                         </div>
                     </div>
                 </div>
-                <div className="absolute left-1/2 top-0 bottom-0 w-[1px] border-l border-dashed border-gray-300 no-print"></div>
+                <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-dashed border-gray-300 no-print"></div>
             </div>
         </div>
     );

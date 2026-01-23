@@ -381,7 +381,7 @@ const ReportCardPage = () => {
                         </div>
                     </div>
                     
-                    <div className="absolute left-1/2 top-0 bottom-0 w-[1px] border-l border-dashed border-gray-300 no-print"></div>
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-dashed border-gray-300 no-print"></div>
                 </div>
 
             </div>

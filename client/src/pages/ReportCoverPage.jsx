@@ -22,7 +22,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
             `}</style>
 
             {/* === LEFT PANEL (BACK COVER) === */}
-            <div className="w-1/2 h-full bg-[#0B1120] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
+            <div className="w-1/2 h-full bg-[#030916] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
                 <div className="w-38 h-38 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl">
                     <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-cover " />
                 </div>
@@ -40,18 +40,18 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
             </div>
 
             {/* === RIGHT PANEL (FRONT COVER) === */}
-            <div className="w-1/2 h-full bg-white relative relative z-10 overflow-hidden">
+            <div className="w-1/2 h-full bg-white relative z-10 overflow-hidden">
                 <div className="absolute top-0 right-0 w-[60%] h-full bg-[#CFF0F6] bg-cyan-light cover-diagonal-shape z-0"></div>
                 <div className="relative z-10 h-full flex flex-col pt-24 pr-16 pl-8 text-right">
                     <h3 className="text-sm font-montserrat font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-[0.3em] mb-2">Official Transcript</h3>
                     <div className="flex flex-col items-end">
-                        <h1 className="text-6xl font-oswald font-bold text-[#0f172a] leading-tight mb-2">
+                        <h1 className="text-5xl font-oswald font-bold text-[#0f172a] leading-tight mb-2">
                             {getReportTitle()}<br/>
                             <span className="text-[#06b6d4]">CARD</span>
                         </h1>
                     </div>
                     <div className="mt-6 flex justify-end">
-                        <div className="bg-black bg-black-badge text-white font-oswald font-bold text-2xl px-10 py-2 year-badge-shape shadow-xl transform rotate-[-2deg]">{year}</div>
+                        <div className="bg-black bg-black-badge text-white font-oswald font-bold text-2xl px-10 py-2 year-badge-shape shadow-xl transform -rotate-2deg">{year}</div>
                     </div>
                     <div className="mt-auto mb-20 flex flex-col items-end">
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Prepared For</p>

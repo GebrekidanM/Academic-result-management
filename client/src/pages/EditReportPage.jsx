@@ -139,16 +139,17 @@ const EditReportPage = () => {
                     <div className="space-y-6">
                         <div>
                             <h3 className="text-lg font-bold text-gray-700 mb-2">
-                                {t('teacher_comment')}
+                                {t('Absent')}
                             </h3>
-                            <textarea
-                                id="teacherComment"
-                                name="teacherComment"
-                                value={reportData.teacherComment || ''}
+                            <input
+                                id="absent"
+                                type="text"
+                                name="absent"
+                                value={reportData.absent || '0'}
                                 onChange={handleChange}
-                                className={textAreaInput}
-                                placeholder="Enter observation..."
-                            />
+                                className={textInput}
+                                placeholder="e.g. 0"
+                            />                            
                         </div>
                         <div>
                              <h3 className="text-lg font-bold text-gray-700 mb-2">
