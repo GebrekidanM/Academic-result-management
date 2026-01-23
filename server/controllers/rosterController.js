@@ -57,6 +57,7 @@ exports.generateRoster = async (req, res) => {
             const overallCount = firstSemester.count + secondSemester.count;
             const overallAverage = overallCount > 0 ? overallTotal / overallCount : 0;
 
+            console.log("hello",student.dateOfBirth)
            
             return {
                 _id:student._id,
