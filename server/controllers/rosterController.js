@@ -88,7 +88,7 @@ exports.generateRoster = async (req, res) => {
 
 
             return {
-                _id:student._id
+                _id:student._id,
                 studentId: student.studentId, 
                 fullName: student.fullName,
                 gender: student.gender,

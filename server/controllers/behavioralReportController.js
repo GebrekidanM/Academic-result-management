@@ -6,7 +6,7 @@ const Student = require('../models/Student');
 // @route   POST /api/reports
 exports.addReport = async (req, res) => {
     try {
-        const { studentId, academicYear, semester, evaluations, teacherComment, conduct } = req.body;
+        const { studentId, academicYear, semester, evaluations,absent, conduct } = req.body;
 
         const student = await Student.findById(studentId);
         if (!student) {
