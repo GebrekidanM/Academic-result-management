@@ -14,6 +14,12 @@ const subjectSchema = new mongoose.Schema({
     gradeLevel: {
         type: String,
         required: [true, 'Grade level is required']
+    },
+    gradingType: {
+        type: String,
+        enum: ['numeric', 'descriptive'],
+        default: 'numeric',
+        required: true
     }
 }, {
     timestamps: true

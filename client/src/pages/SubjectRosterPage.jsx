@@ -103,12 +103,10 @@ const SubjectRosterPage = () => {
             
             {/* --- INJECT PRINT STYLES DIRECTLY --- */}
             <style>{`
+
                 @media print {
-                    @page { 
-                        size: A4 landscape; 
-                        margin: 5mm; 
-                    }
-                    
+                    @page { size: A4 landscape; margin: 0mm !important; }
+                    .print-wrapper { position: absolute; top: 0; left: 0; width: 297mm; margin: 0 !important; padding: 0 !important; }
                     .no-print, nav, button, .sidebar, header { display: none !important; }
                     
                     body, .min-h-screen { 
@@ -199,7 +197,7 @@ const SubjectRosterPage = () => {
 
                 {/* --- PRINTABLE ROSTER --- */}
                 {rosterData && (
-                    <div id="printable-area" className="p-6 print:p-0">
+                    <div id="printable-area" className={`print-wrapper p-6 print:p-0 w-full"`}>
                         
                         {/* Printable Header Card */}
                         <div className="mb-4 border-b-2 border-blue-900 pb-2">
@@ -221,7 +219,7 @@ const SubjectRosterPage = () => {
                         </div>
 
                         {/* Table */}
-                        <div className="overflow-x-auto print:overflow-visible">
+                        <div className="overflow-x-auto print:overflow-visible px-2">
                             <table className="min-w-full divide-y divide-gray-200 border-collapse border border-gray-400">
                                 <thead className="bg-gray-100 print:bg-gray-200">
                                     <tr>

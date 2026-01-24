@@ -5,7 +5,7 @@ import offlineAssessmentService from '../services/offlineAssessmentService';
 import authService from '../services/authService';
 import userService from '../services/userService';
 import { Link, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // Import translation hook
+import { useTranslation } from 'react-i18next';
 
 const MONTHS = [
   "September", "October", "November", "December",
@@ -20,7 +20,7 @@ function getEthiopianYear() {
 }
 
 const AssessmentTypesPage = () => {
-  const { t } = useTranslation(); // Use translation hook
+  const { t } = useTranslation(); 
   const location = useLocation();
   const subjectFromLink = location.state?.subject || null;
 
@@ -56,13 +56,11 @@ const AssessmentTypesPage = () => {
       setError('');
       try {
         let subjectsList = [];
-        // Attempt to fetch subjects. Service worker handles cache if offline.
         if (currentUser.role === 'admin') {
           const res = await subjectService.getAllSubjects();
           subjectsList = res.data.data;
         } else if (currentUser.role === 'teacher') {
           const res = await userService.getProfile();
-          // Safety check for subjectsTaught
           subjectsList = res.data.subjectsTaught ? res.data.subjectsTaught.map(s => s.subject).filter(Boolean) : [];
         }
         setSubjects(subjectsList);
@@ -86,7 +84,7 @@ const AssessmentTypesPage = () => {
     return grouped;
   }, [subjects]);
 
-  // --- Fetch assessments (Online/Cache + Offline Local) ---
+  // --- Fetch assessments ---
   const fetchAssessments = async () => {
     if (!selectedSubject) return;
     setAssessmentsLoading(true);
@@ -95,29 +93,18 @@ const AssessmentTypesPage = () => {
     let onlineData = [];
     let offlineData = [];
 
-    // 1. Fetch from API (Service Worker handles caching if offline)
     try {
         const res = await assessmentTypeService.getBySubject(selectedSubject._id);
-        
-        // Validation: Ensure we actually got data (not an offline error object)
         if (res.data && Array.isArray(res.data.data)) {
             onlineData = res.data.data;
-        } else if (res.data && res.data.error) {
-             console.warn("Offline mode: API cache miss.");
-        } else {
-             console.warn("Invalid response format.");
-        }
+        } 
     } catch (err) {
-        // If Axios fails completely (no cache available), just ignore and show offline items
         console.log("Using only offline items (No cache available).", err);
     }
 
-    // 2. Fetch Locally Created Items (Pending Sync)
     const allLocal = offlineAssessmentService.getLocalAssessments();
     offlineData = allLocal.filter(a => a.subject === selectedSubject._id);
 
-    // 3. Merge & Sort
-    // Filter out duplicates if any (though local items have TEMP_ IDs so unlikely)
     const merged = [...onlineData, ...offlineData].sort(
         (a, b) => MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month)
     );
@@ -126,8 +113,11 @@ const AssessmentTypesPage = () => {
     setAssessmentsLoading(false);
   };
 
+  // FETCH ASSESSMENTS ONLY IF SUBJECT IS NUMERIC
   useEffect(() => {
-    fetchAssessments();
+    if (selectedSubject && selectedSubject.gradingType !== 'descriptive') {
+        fetchAssessments();
+    }
   }, [selectedSubject]);
 
   // --- Form Handlers ---
@@ -144,8 +134,6 @@ const AssessmentTypesPage = () => {
 
     const payload = { ...formData, subjectId: selectedSubject._id, gradeLevel: selectedSubject.gradeLevel };
 
-    // --- OFFLINE MODE WRITE ---
-    // Use navigator.onLine here because we CANNOT write to the server offline
     if (!navigator.onLine) {
         if (editingId && !editingId.startsWith('TEMP_')) {
             alert("Cannot edit online assessments while offline.");
@@ -155,23 +143,12 @@ const AssessmentTypesPage = () => {
         try {
             if (editingId && editingId.startsWith('TEMP_')) {
                  offlineAssessmentService.removeLocalAssessment(editingId);
-                 offlineAssessmentService.addLocalAssessment({
-                    ...payload,
-                    subject: selectedSubject._id
-                 });
-                 if (!newAssess) {
-                      setSaving(false);
-                      return; 
-                  }
+                 offlineAssessmentService.addLocalAssessment({ ...payload, subject: selectedSubject._id });
                  alert("Offline assessment updated locally.");
             } else {
-                offlineAssessmentService.addLocalAssessment({
-                    ...payload,
-                    subject: selectedSubject._id 
-                });
+                offlineAssessmentService.addLocalAssessment({ ...payload, subject: selectedSubject._id });
                 alert("📴 Offline: Assessment created locally! Use Sync when online.");
             }
-            
             await fetchAssessments(); 
             setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
             setEditingId(null);
@@ -182,7 +159,6 @@ const AssessmentTypesPage = () => {
         return;
     }
 
-    // --- ONLINE MODE WRITE ---
     try {
       if (editingId && !editingId.startsWith('TEMP_')) {
         await assessmentTypeService.update(editingId, payload);
@@ -205,17 +181,10 @@ const AssessmentTypesPage = () => {
   };
 
   const handleEdit = (assessment) => {
-    // Allow editing TEMP items if you implement updateLocalAssessment, 
-    // otherwise warn.
     if (assessment._id.startsWith('TEMP_')) {
-        // Simple approach: Allow loading into form, but handle save as delete old + create new local
-        // Or for now, just restrict
-        if(!window.confirm("Editing offline items is limited. Do you want to delete and recreate?")) {
-             return;
-        }
+        if(!window.confirm("Editing offline items is limited. Do you want to delete and recreate?")) return;
         offlineAssessmentService.removeLocalAssessment(assessment._id);
         fetchAssessments();
-        // Continue to load form data so user can re-save
     }
 
     setEditingId(assessment._id);
@@ -265,13 +234,13 @@ const AssessmentTypesPage = () => {
                   <button
                     key={sub._id}
                     onClick={() => setSelectedSubject(sub)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors border ${
                       selectedSubject?._id === sub._id
-                        ? 'bg-pink-500 text-white'
-                        : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                        ? 'bg-pink-500 text-white border-pink-500'
+                        : 'bg-gray-50 hover:bg-gray-200 text-gray-800 border-gray-300'
                     }`}
                   >
-                    {sub.name}
+                    {sub.name} {sub.gradingType === 'descriptive' && ' (Letter Grades)'}
                   </button>
                 ))}
               </div>
@@ -284,67 +253,94 @@ const AssessmentTypesPage = () => {
 
       {selectedSubject && (
         <>
-          {/* FORM */}
-          <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg border mb-6">
-            <h3 className="text-xl font-bold mb-3 text-gray-700">
-              {editingId ? t('edit') : t('add')} {t('assessment')}
-            </h3>
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col md:flex-row gap-3">
-                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder={t('assessment') + " Name"} required className="border p-2 rounded w-full" />
-                <input type="number" name="totalMarks" value={formData.totalMarks} onChange={handleChange} min="1" placeholder={t('total')} required className="border p-2 rounded w-full" />
-              </div>
-              <div className="flex flex-col md:flex-row gap-3">
-                <select name="semester" value={formData.semester} onChange={handleChange} className="border p-2 rounded w-full">
-                  <option value="First Semester">{t('sem_1')}</option>
-                  <option value="Second Semester">{t('sem_2')}</option>
-                </select>
-                <select name="month" value={formData.month} onChange={handleChange} className="border p-2 rounded w-full">
-                  {MONTHS.map(m => <option key={m}>{m}</option>)}
-                </select>
-              </div>
-              <input type="number" name="year" value={formData.year} onChange={handleChange} placeholder={t('academic_year')} className="border p-2 rounded" />
-              
-              <button type="submit" disabled={saving} className={`col-span-2 py-2 rounded font-semibold text-white ${saving ? 'bg-green-300 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
-                {saving ? t('loading') : editingId ? t('update') : t('add')}
-              </button>
+          {/* --- CONDITIONAL RENDERING BASED ON GRADING TYPE --- */}
+          {selectedSubject.gradingType === 'descriptive' ? (
+            
+            // 1. DESCRIPTIVE SUBJECT VIEW (No Assessments needed)
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg shadow-sm text-blue-900">
+                <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                    <span>📝</span> Descriptive Subject Selected
+                </h3>
+                <p className="mb-4 text-sm font-medium">
+                    "{selectedSubject.name}" uses descriptive letter grading (e.g., E, VG, G, NI). 
+                    Individual numeric assessments (quizzes, tests) are not required for this subject type.
+                </p>
+                <Link 
+                    to="/subject-roster" 
+                    state={{ subjectId: selectedSubject._id }}
+                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow transition-all"
+                >
+                    Go to Grade Sheet to Enter Marks &rarr;
+                </Link>
             </div>
-          </form>
 
-          {/* LIST */}
-          <div>
-            <h4 className="font-bold mb-3 text-gray-700">{t('overview')}</h4>
-            {assessmentsLoading ? <p>{t('loading')}</p> : (
-              assessmentTypes.length > 0 ? (
-                <ul className="space-y-2">
-                  {assessmentTypes.map(a => (
-                    <li key={a._id} className={`flex justify-between items-center bg-gray-50 p-2 rounded border-l-4 ${a._id.startsWith('TEMP_') ? 'border-l-red-500' : 'border-l-blue-500'}`}>
-                      
-                      <Link
-                        to="/grade-sheet"
-                        state={{
-                            assessmentType: a,
-                            subject: { id: selectedSubject._id, name: selectedSubject.name, gradeLevel: selectedSubject.gradeLevel }
-                        }}
-                        className="flex-1 hover:underline flex flex-col"
-                      >
-                        <span className="text-gray-800 font-bold">{a.name} ({a.totalMarks})</span>
-                        <span className="text-xs text-gray-500">{a.month} | {a.semester} | {a.year}</span>
-                        {a._id.startsWith('TEMP_') && <span className="text-xs text-red-500 font-bold">[Offline - Pending Sync]</span>}
-                      </Link>
+          ) : (
 
-                      <div className="flex gap-3 ml-4">
-                        {!a._id.startsWith('TEMP_') && (
-                            <button onClick={() => handleEdit(a)} className="text-blue-500 hover:text-blue-700 text-sm font-bold">{t('edit')}</button>
-                        )}
-                        <button onClick={() => handleDelete(a._id)} className="text-red-500 hover:text-red-700 text-sm font-bold">{t('delete')}</button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : <p className="text-gray-500">{t('no_data_select_filters')} (If offline, ensure you loaded this page once while online)</p>
-            )}
-          </div>
+            // 2. NUMERIC SUBJECT VIEW (Form and List)
+            <>
+              {/* FORM */}
+              <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg border mb-6">
+                <h3 className="text-xl font-bold mb-3 text-gray-700">
+                  {editingId ? t('edit') : t('add')} {t('assessment')}
+                </h3>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder={t('assessment') + " Name"} required className="border p-2 rounded w-full" />
+                    <input type="number" name="totalMarks" value={formData.totalMarks} onChange={handleChange} min="1" placeholder={t('total')} required className="border p-2 rounded w-full" />
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <select name="semester" value={formData.semester} onChange={handleChange} className="border p-2 rounded w-full">
+                      <option value="First Semester">{t('sem_1')}</option>
+                      <option value="Second Semester">{t('sem_2')}</option>
+                    </select>
+                    <select name="month" value={formData.month} onChange={handleChange} className="border p-2 rounded w-full">
+                      {MONTHS.map(m => <option key={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <input type="number" name="year" value={formData.year} onChange={handleChange} placeholder={t('academic_year')} className="border p-2 rounded" />
+                  
+                  <button type="submit" disabled={saving} className={`col-span-2 py-2 rounded font-semibold text-white ${saving ? 'bg-green-300 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
+                    {saving ? t('loading') : editingId ? t('update') : t('add')}
+                  </button>
+                </div>
+              </form>
+
+              {/* LIST */}
+              <div>
+                <h4 className="font-bold mb-3 text-gray-700">{t('overview')}</h4>
+                {assessmentsLoading ? <p>{t('loading')}</p> : (
+                  assessmentTypes.length > 0 ? (
+                    <ul className="space-y-2">
+                      {assessmentTypes.map(a => (
+                        <li key={a._id} className={`flex justify-between items-center bg-gray-50 p-2 rounded border-l-4 ${a._id.startsWith('TEMP_') ? 'border-l-red-500' : 'border-l-blue-500'}`}>
+                          
+                          <Link
+                            to="/grade-sheet"
+                            state={{
+                                assessmentType: a,
+                                subject: { id: selectedSubject._id, name: selectedSubject.name, gradeLevel: selectedSubject.gradeLevel }
+                            }}
+                            className="flex-1 hover:underline flex flex-col"
+                          >
+                            <span className="text-gray-800 font-bold">{a.name} ({a.totalMarks})</span>
+                            <span className="text-xs text-gray-500">{a.month} | {a.semester} | {a.year}</span>
+                            {a._id.startsWith('TEMP_') && <span className="text-xs text-red-500 font-bold">[Offline - Pending Sync]</span>}
+                          </Link>
+
+                          <div className="flex gap-3 ml-4">
+                            {!a._id.startsWith('TEMP_') && (
+                                <button onClick={() => handleEdit(a)} className="text-blue-500 hover:text-blue-700 text-sm font-bold">{t('edit')}</button>
+                            )}
+                            <button onClick={() => handleDelete(a._id)} className="text-red-500 hover:text-red-700 text-sm font-bold">{t('delete')}</button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p className="text-gray-500">{t('no_data_select_filters')} (If offline, ensure you loaded this page once while online)</p>
+                )}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
