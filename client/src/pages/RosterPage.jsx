@@ -4,6 +4,20 @@ import rosterService from '../services/rosterService';
 import authService from '../services/authService';
 import { Link } from 'react-router-dom';
 
+function formatGrade(input) {
+  if (!input) return input;
+
+  input = input.trim().toLowerCase();
+
+  input = input.charAt(0).toUpperCase() + input.slice(1);
+
+  input = input.replace(/(\d)([a-z])/g, (match, num, letter) => {
+    return num + letter.toUpperCase();
+  });
+
+  return input;
+}
+
 const RosterPage = () => {
     const { t } = useTranslation(); 
     const [currentUser] = useState(authService.getCurrentUser());
@@ -23,14 +37,16 @@ const RosterPage = () => {
     const handleGenerateRoster = async (e) => {
         if (e) e.preventDefault();
         
+        
         if (!gradeLevel) {
             setError(t('error'));
             return;
         }
         setLoading(true); setError(null); setRosterData(null);
+        const trueGradeName = formatGrade(gradeLevel)
         
         try {
-            const response = await rosterService.getRoster({ gradeLevel, academicYear });
+            const response = await rosterService.getRoster({ gradeLevel:trueGradeName, academicYear });
             setRosterData(response.data);
             setHomeroomTeacher(response.data.homeroomTeacherName);
         } catch (err) { 

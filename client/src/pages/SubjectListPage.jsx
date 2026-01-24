@@ -3,6 +3,21 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; 
 import subjectService from '../services/subjectService';
 
+
+function formatGrade(input) {
+  if (!input) return input;
+
+  input = input.trim().toLowerCase();
+
+  input = input.charAt(0).toUpperCase() + input.slice(1);
+
+  input = input.replace(/(\d)([a-z])/g, (match, num, letter) => {
+    return num + letter.toUpperCase();
+  });
+
+  return input;
+}
+
 const SubjectListPage = () => {
     const { t } = useTranslation();
     const [gradingType, setGradingType] = useState('numeric');
@@ -57,12 +72,11 @@ const SubjectListPage = () => {
     const handleCreate = async (e) => {
         e.preventDefault();
         if (!searchedGrade) return;
-
         try {
             const newSubjectData = {
                 name: newSubjectName,
                 code: newSubjectCode,
-                gradeLevel: searchedGrade,
+                gradeLevel: formatGrade(searchedGrade),
                 gradingType: gradingType
             };
             await subjectService.createSubject(newSubjectData);
