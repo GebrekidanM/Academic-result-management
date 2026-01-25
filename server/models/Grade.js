@@ -1,16 +1,17 @@
+// backend/models/Grade.js
 const mongoose = require('mongoose');
 
 const assessmentSchema = new mongoose.Schema({
-        assessmentType: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'AssessmentType',
-            required: true
-        },
-        score: {
-            type: mongoose.Schema.Types.Mixed, 
-            required: true
-        }
-    }, { _id: false });
+    assessmentType: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AssessmentType',
+        required: true
+    },
+    score: {
+        type: Number,
+        required: true
+    }
+}, { _id: false });
 
 const gradeSchema = new mongoose.Schema({
     student: {
@@ -33,11 +34,10 @@ const gradeSchema = new mongoose.Schema({
         required: true
     },
     assessments: [assessmentSchema],
-    
     finalScore: {
-        type: mongoose.Schema.Types.Mixed,
+        type: Number,
         required: true,
-        default: 0 
+        min: 0
     }
 }, {
     timestamps: true

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // <--- Import Hook
+import { useTranslation } from 'react-i18next'; 
 import subjectService from '../services/subjectService';
 import assessmentTypeService from '../services/assessmentTypeService';
 import gradeService from '../services/gradeService';
@@ -9,9 +9,10 @@ import userService from '../services/userService';
 import studentService from '../services/studentService';
 import offlineGradeService from '../services/offlineGradeService'; 
 import offlineAssessmentService from '../services/offlineAssessmentService';
+import ScoreInput from '../components/ScoreInput'; // <--- IMPORT THIS
 
 const GradeSheetPage = () => {
-  const { t } = useTranslation(); // <--- Initialize Hook
+  const { t } = useTranslation();
   const location = useLocation();
   const assessmentTypeFromLink = location.state?.assessmentType || null;
   const subjectFromLink = location.state?.subject || null;
@@ -30,13 +31,18 @@ const GradeSheetPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // --- Helper to get current subject object ---
+  const currentSubjectObj = subjects.find(s => s._id === selectedSubject);
+
   // --- Load Subjects ---
   useEffect(() => {
     const loadSubjects = async () => {
       try {
         let subjectsToDisplay = [];
         if (currentUser.role === 'admin') {
-          const res = await subjectService.getAllSubjects();
+          // Use the combined endpoint if you want both Academic & Supportive in one list
+          // Or keep existing if you just want Academic here
+          const res = await subjectService.getAllSubjects(); 
           subjectsToDisplay = res.data.data;
         } else {
           const res = await userService.getProfile();
@@ -90,25 +96,20 @@ const GradeSheetPage = () => {
     setLoading(true);
     setError(null);
 
+    // ... (Your existing Offline Logic is fine here) ...
     if (selectedAssessment.toString().startsWith('TEMP_')) {
-
       try {
         const localAssessments = offlineAssessmentService.getLocalAssessments();
         const currentAssessment = localAssessments.find(a => a._id === selectedAssessment);
-
         if (!currentAssessment) throw new Error("Offline assessment data not found.");
-
         const currentSubject = subjects.find(s => s._id === selectedSubject);
         if (!currentSubject) throw new Error("Subject details not found.");
-
         const studentRes = await studentService.getAllStudents();
         
         if (!studentRes.data || !Array.isArray(studentRes.data.data)) {
              throw new Error("Student list not cached. Please view 'Students List' while online once.");
         }
-        
         const allStudents = studentRes.data.data;
-
         const classStudents = allStudents
           .filter(s => s.gradeLevel === currentSubject.gradeLevel)
           .sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -126,7 +127,6 @@ const GradeSheetPage = () => {
             score: null 
           }))
         };
-
         setSheetData(mockSheetData);
         const initialScores = {};
         mockSheetData.students.forEach(s => { initialScores[s._id] = ''; });
@@ -174,10 +174,17 @@ const GradeSheetPage = () => {
     }
   }, [assessmentTypeFromLink]);
 
+  // --- UPDATED SCORE HANDLER (Validation depends on Type) ---
   const handleScoreChange = (studentId, value) => {
-    if (sheetData && Number(value) > sheetData.assessmentType.totalMarks) {
-        return;
+    // Only validate Max Marks if it is Numeric
+    const isNumeric = currentSubjectObj?.gradingType !== 'descriptive';
+
+    if (isNumeric) {
+        if (Number(value) > sheetData.assessmentType.totalMarks) {
+            return; // Block invalid numbers
+        }
     }
+    
     setScores(prevScores => ({ ...prevScores, [studentId]: value }));
   };
 
@@ -188,7 +195,11 @@ const GradeSheetPage = () => {
 
     const scoresPayload = Object.keys(scores)
       .filter(id => scores[id] !== '' && scores[id] !== null)
-      .map(id => ({ studentId: id, score: Number(scores[id]) }));
+      .map(id => ({ 
+          studentId: id, 
+          // For Descriptive, send String. For Numeric, send Number.
+          score: currentSubjectObj?.gradingType === 'descriptive' ? scores[id] : Number(scores[id]) 
+      }));
 
     const payload = {
       assessmentTypeId: selectedAssessment,
@@ -198,15 +209,11 @@ const GradeSheetPage = () => {
       scores: scoresPayload,
     };
 
+    // ... (Keep your existing Save/Offline logic exactly as is) ...
     // Case A: TEMP ID
     if (selectedAssessment.toString().startsWith('TEMP_')) {
         try {
             offlineGradeService.addToQueue(payload);
-            if (result === -1) {
-                setSaveDisabled(false);
-                return; 
-            }
-
             alert(`✅ ${t('success_save')} (Offline). \n\n${t('sync_now')}`);
             setSaveDisabled(false);
         } catch (e) {
@@ -220,7 +227,6 @@ const GradeSheetPage = () => {
     if (!navigator.onLine) {
         try {
             offlineGradeService.addToQueue(payload);
-            // Translated Alert
             alert(`${t('saved_offline_msg')}`);
             setSaveDisabled(false); 
         } catch (e) {
@@ -230,7 +236,6 @@ const GradeSheetPage = () => {
     } else {
         try {
             await gradeService.saveGradeSheet(payload);
-            // Translated Alert
             alert(t('saved_online_msg'));
             setSaveDisabled(false);
         } catch (err) {
@@ -248,6 +253,7 @@ const GradeSheetPage = () => {
   return (
     <div>
       <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
+        {/* ... (Keep Header / Link to Roster) ... */}
         <Link
           to={'/subject-roster'}
           state={{subjectId: selectedSubject}}
@@ -270,7 +276,8 @@ const GradeSheetPage = () => {
               <option value="">-- {t('select_subject')} --</option>
               {subjects.map(s => (
                 <option key={s._id} value={s._id}>
-                  {s.name} ({s.gradeLevel})
+                  {s.name} ({s.gradeLevel}) 
+                  {s.gradingType === 'descriptive' ? ' [Letter]' : ''}
                 </option>
               ))}
             </select>
@@ -316,18 +323,19 @@ const GradeSheetPage = () => {
           </div>
         </div>
 
-        {error && (
-          <div className="text-red-500 text-center p-4 bg-red-50 rounded border border-red-200">
-            {error}
-          </div>
-        )}
+        {/* ... (Error display) ... */}
+        {error && <div className="text-red-500 text-center p-4 bg-red-50 rounded border border-red-200">{error}</div>}
 
-        {/* --- Subject Info --- */}
+        {/* ... (Subject Info Box) ... */}
         {subjectFromLink && (
           <div className="bg-gray-100 border rounded p-4 mt-4">
             <h3 className="font-semibold text-gray-800">{t('subject_info')}</h3>
             <p><strong>{t('full_name')}:</strong> {subjectFromLink.name}</p>
             <p><strong>{t('grade')}:</strong> {subjectFromLink.gradeLevel}</p>
+            {/* Show Grading Type */}
+            <p className="text-xs text-blue-600 font-bold uppercase mt-1">
+                Type: {currentSubjectObj?.gradingType || 'Numeric'}
+            </p>
           </div>
         )}
 
@@ -340,9 +348,12 @@ const GradeSheetPage = () => {
                   {t('scores_for')} <span className="text-pink-600">{sheetData.assessmentType.name}</span>
                   <span className="text-sm text-gray-500 ml-2">({sheetData.assessmentType.month})</span>
                 </h3>
-                <p className="text-sm text-gray-500">
-                  {t('total_marks')}: {sheetData.assessmentType.totalMarks}
-                </p>
+                {/* Only show Total Marks if numeric */}
+                {currentSubjectObj?.gradingType !== 'descriptive' && (
+                    <p className="text-sm text-gray-500">
+                      {t('total_marks')}: {sheetData.assessmentType.totalMarks}
+                    </p>
+                )}
               </div>
               <button
                 onClick={handleSave}
@@ -374,14 +385,12 @@ const GradeSheetPage = () => {
                         {student.fullName}
                       </td>
                       <td className="px-6 py-4">
-                        <input
-                          type="number"
-                          value={scores[student._id]}
-                          onChange={(e) => handleScoreChange(student._id, e.target.value)}
-                          max={sheetData.assessmentType.totalMarks}
-                          min="0"
-                          placeholder={`/ ${sheetData.assessmentType.totalMarks}`}
-                          className="w-24 text-center border-2 border-gray-300 rounded-md p-1 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 font-bold"
+                        {/* --- REPLACED <input> WITH <ScoreInput> --- */}
+                        <ScoreInput 
+                            gradingType={currentSubjectObj?.gradingType}
+                            maxMarks={sheetData.assessmentType.totalMarks}
+                            value={scores[student._id]}
+                            onChange={(val) => handleScoreChange(student._id, val)}
                         />
                       </td>
                     </tr>

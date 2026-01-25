@@ -68,6 +68,8 @@ import CertificatePage from './pages/CertificatePage';
 import SendNotificationPage from './pages/SendNotificationPage';
 import authService from './services/authService';
 import studentAuthService from './services/studentAuthService';
+import SupportiveGradingPage from './pages/SupportiveGradingPage';
+import SupportiveSubjectPage from './pages/SupportiveSubjectPage';
 
 
 function App() {
@@ -142,7 +144,8 @@ function App() {
             <Route path="/grade-sheet" element={<GradeSheetPage />} />
             <Route path="/students/add" element={<AddStudentPage />} />
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
-            
+            <Route path='/supportivesub' element={<SupportiveGradingPage/>}/>
+            <Route path='/supportivelist' element={<SupportiveSubjectPage/>}/>
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
               <Route path="/reports/batch" element={<ClassReportGenerator />} />

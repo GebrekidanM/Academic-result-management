@@ -146,7 +146,7 @@ const LoginPage = () => {
                     </div>
 
                     {/* Error Message */}
-                    <div className="mb-4 min-h-[20px]">
+                    <div className="mb-4 min-h-5">
                         {error && <p className={errorText}>{error}</p>}
                     </div>
 

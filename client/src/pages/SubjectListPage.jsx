@@ -20,7 +20,6 @@ function formatGrade(input) {
 
 const SubjectListPage = () => {
     const { t } = useTranslation();
-    const [gradingType, setGradingType] = useState('numeric');
     const [searchTerm, setSearchTerm] = useState('');
     const [searchedGrade, setSearchedGrade] = useState('');
     const [subjects, setSubjects] = useState([]);
@@ -77,7 +76,6 @@ const SubjectListPage = () => {
                 name: newSubjectName,
                 code: newSubjectCode,
                 gradeLevel: formatGrade(searchedGrade),
-                gradingType: gradingType
             };
             await subjectService.createSubject(newSubjectData);
             
@@ -248,22 +246,6 @@ const SubjectListPage = () => {
                                         placeholder={t('subject_code_placeholder') || "e.g. MATH-04"}
                                         className={textInput}
                                     />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">
-                                        {t('grading_system') || "Grading System"}
-                                    </label>
-                                    <select 
-                                        value={gradingType} 
-                                        onChange={(e) => setGradingType(e.target.value)}
-                                        className={textInput}
-                                    >
-                                        <option value="numeric">Numeric (0 - 100)</option>
-                                        <option value="descriptive">Descriptive (A, B, C / E, VG, G)</option>
-                                    </select>
-                                    <p className="text-[10px] text-gray-400 mt-1">
-                                        Select 'Descriptive' for KG subjects like Handwriting.
-                                    </p>
                                 </div>
                                 
                                 <div className="pt-4 mt-2 border-t">

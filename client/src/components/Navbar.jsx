@@ -76,11 +76,11 @@ const Navbar = ({ isOpen, setIsOpen }) => {
     `block md:inline-block text-white font-bold py-2 px-3 rounded-md transition-colors whitespace-nowrap ${isActive ? 'bg-pink-600' : 'hover:bg-gray-700'}`;
 
   return (
-    <nav className="bg-gray-900 min-h-[4rem] p-2 shadow-lg sticky top-0 z-50 font-sans print:hidden">
+    <nav className="bg-gray-900 min-h-16 p-2 shadow-lg sticky top-0 z-50 font-sans print:hidden">
       <div className="container mx-auto flex items-center justify-between flex-wrap">
         
         {/* Logo */}
-        <div className="flex items-center flex-shrink-0 text-white mr-6">
+        <div className="flex items-center shrink-0 text-white mr-6">
           <Link to={"/"} onClick={closeMenu} className="font-bold text-xl tracking-tight flex items-center gap-2">
             {t('app_name')}
           </Link>
@@ -95,7 +95,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
 
         {/* Navigation Links */}
         <div className={`w-full md:flex md:items-center md:w-auto ${isOpen ? 'block' : 'hidden'}`}>
-          <div className="text-sm md:flex-grow md:flex md:items-center md:gap-2 mt-4 md:mt-0">
+          <div className="text-sm md:grow md:flex md:items-center md:gap-2 mt-4 md:mt-0">
             
             {currentUser && (
               <>
@@ -159,6 +159,9 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     </NavLink>
                     <NavLink to="/admin/users" className={dropdownLinkClass} onClick={closeMenu}>
                         {t('manage_staff')}
+                    </NavLink>
+                    <NavLink to={'/supportivelist'} className={dropdownLinkClass} onClick={closeMenu}>
+                        Supportive Subjects
                     </NavLink>
                     <NavLink to="/send_notification" className={dropdownLinkClass} onClick={closeMenu}>
                         📢 Send Notification

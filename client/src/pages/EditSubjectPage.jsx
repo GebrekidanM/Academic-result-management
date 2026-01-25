@@ -3,13 +3,27 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import subjectService from '../services/subjectService';
 
+function formatGrade(input) {
+  if (!input) return input;
+
+  input = input.trim().toLowerCase();
+
+  input = input.charAt(0).toUpperCase() + input.slice(1);
+
+  input = input.replace(/(\d)([a-z])/g, (match, num, letter) => {
+    return num + letter.toUpperCase();
+  });
+
+  return input;
+}
+
 const EditSubjectPage = () => {
     const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-    const [subjectData, setSubjectData] = useState({ name: '', code: '', gradeLevel: '' });
+    const [subjectData, setSubjectData] = useState({ name: '', code: '', gradeLevel: '',gradingType });
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -41,6 +55,7 @@ const EditSubjectPage = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        console.log(name,value)
         setSubjectData({ ...subjectData, [name]: value });
     };
 
@@ -56,10 +71,9 @@ const EditSubjectPage = () => {
         setError(null);
         
         try {
-            // Auto-capitalize Grade Level (Consistency)
             const formattedData = {
                 ...subjectData,
-                gradeLevel: subjectData.gradeLevel.replace(/\b\w/g, c => c.toUpperCase())
+                gradeLevel: formatGrade(subjectData.gradeLevel)
             };
 
             await subjectService.updateSubject(id, formattedData);
@@ -123,6 +137,11 @@ const EditSubjectPage = () => {
                                 className={textInput} 
                             />
                         </div>
+                                 
+                        <select name='gradingType' className={textInput} value={subjectData.code || ""} onChange={handleChange}>
+                            <option value={'numeric'}>numeric</option>
+                            <option value="descriptive">descriptive</option>
+                        </select>
                         
                         {/* Grade Level */}
                         <div>
