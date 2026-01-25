@@ -80,7 +80,7 @@ exports.getAllSupportiveSubjects = async (req, res) => {
 exports.createSupportiveSubject = async (req, res) => {
     try {
         const { name, gradeLevel } = req.body;
-
+        console.log(name,gradeLevel)
         // Check duplicate
         const exists = await SupportiveSubject.findOne({ name, gradeLevel });
         if (exists) {

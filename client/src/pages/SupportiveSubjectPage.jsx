@@ -31,17 +31,16 @@ const SupportiveSubjectPage = () => {
         fetchSubjects();
     }, []);
 
-    // --- HANDLERS ---
     const handleCreate = async (e) => {
         e.preventDefault();
         if (!newName || !targetGrade) return;
-
+        console.log(newName,targetGrade)
         try {
             setLoading(true)
             await supportiveGradeService.create({ name: newName, gradeLevel: targetGrade });
             alert("Subject Created!");
             setNewName('');
-            fetchSubjects(); // Refresh list
+            fetchSubjects();
         } catch (err) {
             alert(err.response?.data?.message || "Error creating subject");
         }finally{
@@ -160,9 +159,9 @@ const SupportiveSubjectPage = () => {
                                 <button 
                                     type="submit" 
                                     className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition"
-                                    {...loading ? disabled : ''}
+                                    
                                 >
-                                    + Add Subject
+                                     {loading ? "Adding..." : "+ Add Subject"}
                                 </button>
                             </form>
                             
