@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import supportiveSubjectService from '../services/supportiveGradeService';
+import supportiveGradeService from '../services/supportiveGradeService';
 
 const SupportiveSubjectPage = () => {
     const { t } = useTranslation();
@@ -18,7 +18,7 @@ const SupportiveSubjectPage = () => {
     const fetchSubjects = async () => {
         setLoading(true);
         try {
-            const res = await supportiveSubjectService.getAll();
+            const res = await supportiveGradeService.getAll();
             setSubjects(res.data.data);
         } catch (err) {
             console.error(err);
@@ -37,19 +37,22 @@ const SupportiveSubjectPage = () => {
         if (!newName || !targetGrade) return;
 
         try {
-            await supportiveSubjectService.create({ name: newName, gradeLevel: targetGrade });
+            setLoading(true)
+            await supportiveGradeService.create({ name: newName, gradeLevel: targetGrade });
             alert("Subject Created!");
             setNewName('');
             fetchSubjects(); // Refresh list
         } catch (err) {
             alert(err.response?.data?.message || "Error creating subject");
+        }finally{
+            setLoading(false)
         }
     };
 
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure? This will delete the subject from the grade.")) {
             try {
-                await supportiveSubjectService.delete(id);
+                await supportiveGradeService.delete(id);
                 fetchSubjects();
             } catch (err) {
                 alert("Error deleting");
@@ -157,6 +160,7 @@ const SupportiveSubjectPage = () => {
                                 <button 
                                     type="submit" 
                                     className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition"
+                                    {...loading ? disabled : ''}
                                 >
                                     + Add Subject
                                 </button>

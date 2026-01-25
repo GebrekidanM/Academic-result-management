@@ -33,6 +33,7 @@ app.use('/api/delete-password', require('./deletePassword'));
 app.use('/api/library', require('./routes/LibraryRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/report-cards', require('./routes/reports'));
+app.use('/api/supportive-grades',require('./routes/supportiveGradeRoutes'))
 // --- Models ---
 const Grade = require('./models/Grade');
 
