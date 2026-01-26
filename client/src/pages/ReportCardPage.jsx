@@ -156,8 +156,11 @@ const ReportCardPage = () => {
         finalAverage = '-', 
         rank = { sem1: '-', sem2: '-', overall: '-' },
         behavior = {},
-        footerData = { sem1: {}, sem2: {} } // <--- ከ Backend የሚመጣው አዲስ ዳታ
+        footerData = { sem1: {}, sem2: {} },
+        supportiveGrades={sem1:{},sem2:{}}
     } = reportData || {};
+
+    console.log(supportiveGrades)
 
     // --- AUTOMATED TEACHER COMMENT ---
     const getAutomatedComment = () => {
@@ -251,7 +254,7 @@ const ReportCardPage = () => {
                     <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
                         {/* Student Profile */}
                         <div className="flex gap-4 items-center mb-6">
-                            <div className="w-20 h-20 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
+                            <div className="w-20 h-22 rounded-2xl border-2 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
                                 {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
                             </div>
                             <div>
@@ -273,8 +276,8 @@ const ReportCardPage = () => {
                                 <thead>
                                     <tr className="text-gray-500 border-b border-gray-200">
                                         <th className="text-left font-bold pb-2">Trait</th>
-                                        {(reportType === 'sem1' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">S1</th>}
-                                        {(reportType === 'sem2' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">S2</th>}
+                                            {(reportType === 'sem1' || reportType === 'year') && <th className="text-center font-bold pb-2  w-20">Sem 1</th>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <th className="text-center font-bold pb-2 w-20">Sem 2</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -295,8 +298,7 @@ const ReportCardPage = () => {
                         {/* Teacher's Note (AUTOMATED) */}
                         <div className="mb-4">
                             <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
-                            <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-20 print:bg-cyan-50 flex items-center">
-                                {/* The automated comment is called here */}
+                            <div className="px-3 py-2 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-16 print:bg-cyan-50 flex items-center">
                                 "{getAutomatedComment()}"
                             </div>
                         </div>
@@ -352,6 +354,13 @@ const ReportCardPage = () => {
                                     </tbody>
                                     {/* --- NEW FOOTER: TOTAL, AVG, RANK, ABSENT, CONDUCT --- */}
                                     <tfoot>
+                                        {supportiveGrades && supportiveGrades.map((r,i)=>(
+                                            <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
+                                                <td className="py-1.5 px-3 font-bold text-slate-700">{r.name}</td>
+                                                {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem1 ?? '-'}</td>}
+                                                {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem2 ?? '-'}</td>}
+                                            </tr>
+                                        ))}
                                         {/* 4. ABSENT (NEW) */}
                                         <tr className="bg-white border-t border-gray-300">
                                             <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>

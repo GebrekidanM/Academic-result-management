@@ -34,7 +34,6 @@ const SupportiveSubjectPage = () => {
     const handleCreate = async (e) => {
         e.preventDefault();
         if (!newName || !targetGrade) return;
-        console.log(newName,targetGrade)
         try {
             setLoading(true)
             await supportiveGradeService.create({ name: newName, gradeLevel: targetGrade });
@@ -159,7 +158,7 @@ const SupportiveSubjectPage = () => {
                                 <button 
                                     type="submit" 
                                     className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition"
-                                    
+                                    disabled={loading}
                                 >
                                      {loading ? "Adding..." : "+ Add Subject"}
                                 </button>

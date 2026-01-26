@@ -128,6 +128,9 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                   <NavLink to="/manage-assessments" className={dropdownLinkClass} onClick={closeMenu}>
                     {t('manage_assessments')}
                   </NavLink>
+                  <NavLink to={'/supportivesub'} className={dropdownLinkClass} onClick={closeMenu}>
+                        Supportive Subjects Grade
+                  </NavLink>
                   {(currentUser.role === 'admin' || currentUser.homeroomGrade) && (
                     <NavLink to="/roster" className={dropdownLinkClass} onClick={closeMenu}>
                         {t('class_roster')}

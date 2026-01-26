@@ -72,7 +72,8 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         finalAverage = '-', 
         rank = {}, // This comes from the parent component merging it
         behavior = {},
-        footerData = { sem1: {}, sem2: {} } 
+        footerData = { sem1: {}, sem2: {} },
+        supportiveGrades:{sem1:{},sem2:{}}
     } = reportData || {};
 
     // Helper for Totals
@@ -214,6 +215,13 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                     ))}
                                 </tbody>
                                 <tfoot>
+                                    {supportiveGrades && supportiveGrades.map((r,i)=>(
+                                            <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
+                                                <td className="py-1.5 px-3 font-bold text-slate-700">{r.name}</td>
+                                                {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem1 ?? '-'}</td>}
+                                                {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem2 ?? '-'}</td>}
+                                            </tr>
+                                        ))}
                                     <tr className="bg-white border-t border-gray-300">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
                                         {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}

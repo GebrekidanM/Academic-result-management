@@ -8,7 +8,7 @@ const { protect,authorize } = require('../middleware/authMiddleware');
 router.get('/sheet', protect, getGradingSheet);
 router.post('/save', protect, saveGrades);
 router.get('/', protect, getAllSupportiveSubjects);
-router.post('/', protect, authorize, createSupportiveSubject);
-router.delete('/:id', protect, authorize, deleteSupportiveSubject);
+router.post('/', protect, authorize('admin'), createSupportiveSubject);
+router.delete('/:id', protect, authorize('admin'), deleteSupportiveSubject);
 
 module.exports = router;

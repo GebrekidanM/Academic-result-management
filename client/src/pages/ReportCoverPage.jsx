@@ -14,7 +14,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
                 .cover-diagonal-shape { clip-path: polygon(35% 0%, 100% 0%, 100% 100%, 0% 100%); }
                 .year-badge-shape { clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%); }
                 @media print {
-                    .bg-navy-dark { background-color: #0B1120 !important; -webkit-print-color-adjust: exact; }
+                    .bg-navy-dark { background-color: #01313a !important; -webkit-print-color-adjust: exact; }
                     .bg-cyan-light { background-color: #CFF0F6 !important; -webkit-print-color-adjust: exact; }
                     .text-cyan-bold { color: #06b6d4 !important; -webkit-print-color-adjust: exact; }
                     .bg-black-badge { background-color: #000000 !important; color: white !important; -webkit-print-color-adjust: exact; }
@@ -22,7 +22,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
             `}</style>
 
             {/* === LEFT PANEL (BACK COVER) === */}
-            <div className="w-1/2 h-full bg-[#030916] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
+            <div className="w-1/2 h-full bg-[#01313a] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
                 <div className="w-38 h-38 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl">
                     <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-cover " />
                 </div>
@@ -42,6 +42,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
             {/* === RIGHT PANEL (FRONT COVER) === */}
             <div className="w-1/2 h-full bg-white relative z-10 overflow-hidden">
                 <div className="absolute top-0 right-0 w-[60%] h-full bg-[#CFF0F6] bg-cyan-light cover-diagonal-shape z-0"></div>
+                
                 <div className="relative z-10 h-full flex flex-col pt-24 pr-16 pl-8 text-right">
                     <h3 className="text-sm font-montserrat font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-[0.3em] mb-2">Official Transcript</h3>
                     <div className="flex flex-col items-end">

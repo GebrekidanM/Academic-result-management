@@ -80,8 +80,6 @@ exports.getAllSupportiveSubjects = async (req, res) => {
 exports.createSupportiveSubject = async (req, res) => {
     try {
         const { name, gradeLevel } = req.body;
-        console.log(name,gradeLevel)
-        // Check duplicate
         const exists = await SupportiveSubject.findOne({ name, gradeLevel });
         if (exists) {
             return res.status(400).json({ message: 'Subject already exists for this grade.' });
@@ -89,7 +87,6 @@ exports.createSupportiveSubject = async (req, res) => {
 
         const newSubject = await SupportiveSubject.create({ name, gradeLevel });
         res.status(201).json({ success: true, data: newSubject });
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
