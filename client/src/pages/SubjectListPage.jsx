@@ -26,27 +26,22 @@ const SubjectListPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // Add Form State
     const [newSubjectName, setNewSubjectName] = useState('');
     const [newSubjectCode, setNewSubjectCode] = useState('');
 
-    // --- Handlers ---
     const fetchSubjects = async (grade) => {
         setLoading(true);
         setError(null);
         try {
-            // Ideally backend should support ?gradeLevel=...
             const response = await subjectService.getAllSubjects();
-            const allSubs = response.data.data || response.data; // Handle { data: [...] } or [...]
+            const allSubs = response.data.data || response.data;
             
-            // Case-insensitive clean filter
             const filtered = allSubs.filter(s => 
                 s.gradeLevel.trim().toLowerCase() === grade.trim().toLowerCase()
             );
             
             setSubjects(filtered);
         } catch (err) {
-            console.error(err);
             setError(t('error_fetching_subjects') || "Failed to load subjects.");
         } finally {
             setLoading(false);
@@ -56,7 +51,6 @@ const SubjectListPage = () => {
     const handleSearch = (e) => {
         if (e) e.preventDefault();
         
-        // Allow searching by currently selected grade if input is empty but state exists
         const gradeToSearch = searchTerm || searchedGrade;
         
         if (!gradeToSearch) {
@@ -71,6 +65,7 @@ const SubjectListPage = () => {
     const handleCreate = async (e) => {
         e.preventDefault();
         if (!searchedGrade) return;
+        setError(null)
         try {
             const newSubjectData = {
                 name: newSubjectName,
@@ -79,17 +74,14 @@ const SubjectListPage = () => {
             };
             await subjectService.createSubject(newSubjectData);
             
-            // Clear form and refresh list
             setNewSubjectName('');
             setNewSubjectCode('');
-            setGradingType('numeric');
             alert(t('success_subject_created') || "Subject created successfully!");
             
-            // Refresh the list for the current grade
             fetchSubjects(searchedGrade);
 
         } catch (err) {
-            setError(err.response?.data?.message || t('error_creating_subject') || "Error creating subject.");
+            setError(err.response?.data?.message);
         }
     };
 
@@ -97,7 +89,6 @@ const SubjectListPage = () => {
         if (window.confirm(t('confirm_delete') || "Are you sure you want to delete this subject?")) {
             try {
                 await subjectService.deleteSubject(id);
-                // Refresh list
                 fetchSubjects(searchedGrade);
             } catch (err) {
                 alert(t('error_deleting') || "Error deleting subject.");
@@ -105,7 +96,6 @@ const SubjectListPage = () => {
         }
     };
     
-    // --- Styles ---
     const textInput = "shadow-sm border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
     const buttonPrimary = "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm";
     const buttonSuccess = "bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm";

@@ -1,31 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // <--- Import Hook
+import { useTranslation } from 'react-i18next'; 
 import subjectService from '../services/subjectService';
+
+
+function formatGrade(input) {
+  if (!input) return input;
+
+  input = input.trim().toLowerCase();
+
+  input = input.charAt(0).toUpperCase() + input.slice(1);
+
+  input = input.replace(/(\d)([a-z])/g, (match, num, letter) => {
+    return num + letter.toUpperCase();
+  });
+
+  return input;
+}
 
 const AddSubjectPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const [isOnline, setIsOnline] = useState(navigator.onLine);
 
     const [subjectData, setSubjectData] = useState({
         name: '',
         code: '',
         gradeLevel: ''
     });
-    const [error, setError] = useState(null);
+    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-
-    // --- Monitor Online Status ---
-    useEffect(() => {
-        const handleStatus = () => setIsOnline(navigator.onLine);
-        window.addEventListener('online', handleStatus);
-        window.addEventListener('offline', handleStatus);
-        return () => {
-            window.removeEventListener('online', handleStatus);
-            window.removeEventListener('offline', handleStatus);
-        };
-    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -34,27 +37,22 @@ const AddSubjectPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        if (!isOnline) {
-            setError(t('offline_warning'));
-            return;
-        }
-
+        setError('');
         setLoading(true);
-        setError(null);
         
         try {
-            // Auto-capitalize Grade Level (e.g. "grade 4" -> "Grade 4")
             const formattedData = {
                 ...subjectData,
-                gradeLevel: subjectData.gradeLevel.replace(/\b\w/g, c => c.toUpperCase())
+                gradeLevel: formatGrade(subjectData.gradeLevel)
             };
 
-            await subjectService.createSubject(formattedData);
-            alert('Subject created successfully!');
+
+             await subjectService.createSubject(formattedData);
+            alert(t('success_save') || 'Subject created successfully!');
             navigate('/subjects');
         } catch (err) {
-            setError(err.response?.data?.message || t('error'));
+            console.log(err);
+            setError(err.response?.data?.message);
             setLoading(false);
         }
     };
@@ -62,21 +60,15 @@ const AddSubjectPage = () => {
     // --- Tailwind CSS ---
     const inputLabel = "block text-gray-700 text-sm font-bold mb-2";
     const textInput = "shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500";
-    const submitButton = `w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 ${loading || !isOnline ? 'opacity-50 cursor-not-allowed' : ''}`;
+    const submitButton = `w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`;
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto mt-10">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('add_subject')}</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('add_subject')} (Academic)</h2>
             
             <Link to="/subjects" className="text-pink-500 hover:underline mb-6 block font-bold text-sm">
                 ← {t('back')}
             </Link>
-            
-            {!isOnline && (
-                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-4 rounded text-sm">
-                    ⚠️ {t('offline_warning')}
-                </div>
-            )}
 
             {error && <p className="text-red-500 text-center mb-4 bg-red-50 p-2 rounded border border-red-200">{error}</p>}
 
@@ -92,7 +84,7 @@ const AddSubjectPage = () => {
                             value={subjectData.name} 
                             onChange={handleChange} 
                             className={textInput} 
-                            placeholder="e.g., English" 
+                            placeholder="e.g., Mathematics" 
                             required 
                         />
                     </div>
@@ -107,7 +99,7 @@ const AddSubjectPage = () => {
                             value={subjectData.code} 
                             onChange={handleChange} 
                             className={textInput} 
-                            placeholder="e.g., ENG-04" 
+                            placeholder="e.g., MATH-04" 
                         />
                     </div>
 
@@ -126,9 +118,14 @@ const AddSubjectPage = () => {
                         />
                     </div>
                 </div>
+                
+                <div className="mt-4 bg-blue-50 p-3 rounded text-xs text-blue-800 border border-blue-100">
+                    ℹ️ This form creates <strong>Academic Subjects</strong> (Numeric Grades). 
+                    To create Descriptive subjects (Art, Sport), please use the <Link to="/supportive-subjects" className="underline font-bold">Supportive Subjects Page</Link>.
+                </div>
 
                 <div className="mt-8">
-                    <button type="submit" className={submitButton} disabled={loading || !isOnline}>
+                    <button type="submit" className={submitButton} disabled={loading}>
                         {loading ? t('loading') : t('save')}
                     </button>
                 </div>
