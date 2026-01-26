@@ -160,7 +160,6 @@ const ReportCardPage = () => {
         supportiveGrades={sem1:{},sem2:{}}
     } = reportData || {};
 
-    console.log(supportiveGrades)
 
     // --- AUTOMATED TEACHER COMMENT ---
     const getAutomatedComment = () => {

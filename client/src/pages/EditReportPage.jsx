@@ -45,6 +45,8 @@ const EditReportPage = () => {
         const { name, value } = e.target;
         setReportData({ ...reportData, [name]: value });
     };
+
+    console.log(reportData)
     
     const handleEvaluationChange = (index, value) => {
         const newEvaluations = [...reportData.evaluations];
@@ -145,7 +147,7 @@ const EditReportPage = () => {
                                 id="absent"
                                 type="text"
                                 name="absent"
-                                value={reportData.absent || '0'}
+                                value={reportData.absent}
                                 onChange={handleChange}
                                 className={textInput}
                                 placeholder="e.g. 0"

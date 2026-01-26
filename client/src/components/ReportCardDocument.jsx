@@ -37,9 +37,14 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
 
         // Your custom order
         const SUBJECT_PRIORITY = [
-            "አማርኛ", "ENGLISH", "ሒሳብ", 
-            "አካባቢ ሳይንስ", "አጠቃላይ ሳይንስ", 
-            "ግብረ ገብ", "የዜግነት ት/ት", "ህብረተሰብ"
+            "አማርኛ", 
+            "ENGLISH", 
+            "ሒሳብ", 
+            "አካባቢ ሳይንስ", 
+            "አጠቃላይ ሳይንስ", 
+            "ግብረ ገብ", 
+            "የዜግነት ት/ት", 
+            "ህብረተሰብ"
         ];
 
         return gradesList.sort((a, b) => {
@@ -89,12 +94,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         return finalAverage;
     };
 
-    const currentRank = () => {
-        if (reportType === 'sem1') return rank?.sem1;
-        if (reportType === 'sem2') return rank?.sem2;
-        return rank?.overall;
-    };
-
     // Automated Comment
     const getAutomatedComment = () => {
         let score = Number(currentAvg() || 0);
@@ -121,9 +120,9 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                 <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
                     {/* Student Header */}
                     <div className="flex gap-4 items-center mb-6">
-                        <div className="w-20 h-20 rounded-full border-4 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
-                            {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
-                        </div>
+                        <div className="w-20 h-22 rounded-2xl border-2 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
+                                {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
+                            </div>
                         <div>
                             <h2 className="text-xl font-montserrat font-bold text-[#0f172a]">{studentInfo?.fullName || '...'}</h2>
                             <div className="flex gap-2 text-xs font-bold text-gray-600 uppercase mt-1">
