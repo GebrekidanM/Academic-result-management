@@ -4,6 +4,7 @@ const SupportiveSubject = require('../models/SupportiveSubject'); // <--- IMPORT
 const Student = require('../models/Student');
 const Grade = require('../models/Grade');
 const SupportiveGrade = require('../models/SupportiveGrade'); // <--- IMPORT
+const AssessmentType = require('../models/AssessmentType')
 
 // --- 1. HELPER: ETHIOPIAN AGE CALCULATOR ---
 const calculateAge = (dob) => {
