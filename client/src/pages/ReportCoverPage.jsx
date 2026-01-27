@@ -14,7 +14,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
                 .cover-diagonal-shape { clip-path: polygon(35% 0%, 100% 0%, 100% 100%, 0% 100%); }
                 .year-badge-shape { clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%); }
                 @media print {
-                    .bg-navy-dark { background-color: #01313a !important; -webkit-print-color-adjust: exact; }
+                    .bg-navy-dark { background-color: #014450 !important; -webkit-print-color-adjust: exact; }
                     .bg-cyan-light { background-color: #CFF0F6 !important; -webkit-print-color-adjust: exact; }
                     .text-cyan-bold { color: #06b6d4 !important; -webkit-print-color-adjust: exact; }
                     .bg-black-badge { background-color: #000000 !important; color: white !important; -webkit-print-color-adjust: exact; }
@@ -22,7 +22,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
             `}</style>
 
             {/* === LEFT PANEL (BACK COVER) === */}
-            <div className="w-1/2 h-full bg-[#01313a] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
+            <div className="w-1/2 h-full bg-[#014450] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
                 <div className="w-38 h-38 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl">
                     <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-cover " />
                 </div>

@@ -78,7 +78,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         rank = {}, // This comes from the parent component merging it
         behavior = {},
         footerData = { sem1: {}, sem2: {} },
-        supportiveGrades:{sem1:{},sem2:{}}
+        supportiveGrades={sem1:{},sem2:{}}
     } = reportData || {};
 
     // Helper for Totals
@@ -165,7 +165,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                     {/* Teacher's Note */}
                     <div className="mb-4">
                         <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
-                        <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-20 print:bg-cyan-50 flex items-center">
+                        <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-10 print:bg-cyan-50 flex items-center">
                             "{getAutomatedComment()}"
                         </div>
                     </div>

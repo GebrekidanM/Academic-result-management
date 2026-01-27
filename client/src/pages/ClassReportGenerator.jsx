@@ -3,6 +3,7 @@ import studentService from '../services/studentService';
 import reportCardService from '../services/reportCardService';
 import ReportCardDocument from '../components/ReportCardDocument';
 import rankService from '../services/rankService';
+import {schoolInfoData} from '../utils/schoolInfoData';
 
 const ClassReportGenerator = () => {
     
@@ -13,16 +14,6 @@ const ClassReportGenerator = () => {
     const [classReportData, setClassReportData] = useState([]); 
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
-
-    // --- SCHOOL INFO ---
-    const schoolInfoData = {
-        name: "FREEDOM KG & PRIMARY SCHOOL",
-        logo: "/frfr.jpg", // Ensure this image exists in public folder
-        address: "TuluDimtu-Sheger City, Ethiopia",
-        phone: "+251 911 23 45 67",
-        email: "info@futuregen.edu.et",
-        website: "www.freedomschool.pro.et"
-    };
 
     useEffect(() => {
         const loadGrades = async () => {

@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import reportCardService from '../services/reportCardService';
 import rankService from '../services/rankService';
 import ReportCoverPage from './ReportCoverPage';
-
+import {schoolInfoData} from '../utils/schoolInfoData'
 // The exact order you requested
 const SUBJECT_PRIORITY = [
     "አማርኛ",
@@ -24,16 +24,6 @@ const ReportCardPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [reportType, setReportType] = useState('year'); 
-
-    // --- SCHOOL INFO ---
-    const schoolInfoData = {
-        name: "FREEDOM KG & PRIMARY SCHOOL",
-        logo: "/frfr.jpg",
-        address: "TuluDimtu-Sheger City, Ethiopia",
-        phone: "+251 911 23 45 67",
-        email: "info@futuregen.edu.et",
-        website: "www.freedomschool.pro.et"
-    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -297,7 +287,7 @@ const ReportCardPage = () => {
                         {/* Teacher's Note (AUTOMATED) */}
                         <div className="mb-4">
                             <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
-                            <div className="px-3 py-2 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-16 print:bg-cyan-50 flex items-center">
+                            <div className="px-3 py-2 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-10 print:bg-cyan-50 flex items-center">
                                 "{getAutomatedComment()}"
                             </div>
                         </div>
