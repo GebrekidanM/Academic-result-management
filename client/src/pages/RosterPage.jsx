@@ -223,8 +223,8 @@ const RosterPage = () => {
                                             <td key={`${subject}-1`} className={tdStyle}>{student.firstSemester.scores[subject] || '-'}</td>
                                         ))}
                                         
-                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.total.toFixed(0)}</td>
-                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.average.toFixed(1)}</td>
+                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.total.toFixed(2)}</td>
+                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.average.toFixed(2)}</td>
                                         <td className={`${tdStyle} bg-yellow-50 font-bold`}>{student.rank1st}</td>
                                     </tr>,
 
