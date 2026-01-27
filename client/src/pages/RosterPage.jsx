@@ -233,7 +233,7 @@ const RosterPage = () => {
                                         <td className={semLabelStyle}>{t('sem_2_short')}</td>
                                         
                                         {rosterData.subjects.map(subject => (
-                                            <td key={`${subject}-2`} className={tdStyle}>{student.secondSemester.scores[subject] || '-'}</td>
+                                            <td key={`${subject}-2`} className={tdStyle}>{student.secondSemester.scores[subject].toFixed(2) || '-'}</td>
                                         ))}
                                         
                                         <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.secondSemester.total.toFixed(2)}</td>
