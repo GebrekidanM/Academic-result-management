@@ -36,15 +36,19 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         });
 
         // Your custom order
-        const SUBJECT_PRIORITY = [
-            "አማርኛ", 
-            "ENGLISH", 
-            "ሒሳብ", 
-            "አካባቢ ሳይንስ", 
-            "አጠቃላይ ሳይንስ", 
-            "ግብረ ገብ", 
-            "የዜግነት ት/ት", 
-            "ህብረተሰብ"
+       const SUBJECT_PRIORITY = [
+            "አማርኛ",
+            "ENGLISH",
+            "ሒሳብ",
+            "አካባቢ ሳይንስ",
+            "አጠቃላይ ሳይንስ",
+            "ግብረ ገብ",
+            "የዜግነት ት/ት",
+            "ህብረተሰብ",
+            "Affan Oromo",
+            "ስነጥበብ",
+            "ሙያ",
+            "ጤሰማ"
         ];
 
         return gradesList.sort((a, b) => {

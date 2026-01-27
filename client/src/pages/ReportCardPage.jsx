@@ -13,7 +13,11 @@ const SUBJECT_PRIORITY = [
     "አጠቃላይ ሳይንስ",
     "ግብረ ገብ",
     "የዜግነት ት/ት",
-    "ህብረተሰብ"
+    "ህብረተሰብ",
+    "Affan Oromo",
+    "ስነጥበብ",
+    "ሙያ",
+    "ጤሰማ"
 ];
 
 const ReportCardPage = () => {
