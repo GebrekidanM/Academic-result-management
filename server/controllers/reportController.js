@@ -91,8 +91,8 @@ const calculateStats = (cleanedGrades, semesterName) => {
     const average = totalScore / semesterGrades.length;
 
     return { 
-        sum: parseFloat(totalScore.toFixed(0)), 
-        avg: parseFloat(average.toFixed(1)) 
+        sum: parseFloat(totalScore.toFixed(2)), 
+        avg: parseFloat(average.toFixed(2)) 
     };
 };
 
