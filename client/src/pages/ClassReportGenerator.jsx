@@ -31,41 +31,62 @@ const ClassReportGenerator = () => {
 
     const handleGenerate = async () => {
         if (!selectedGrade) return;
+        
         setLoading(true);
         setClassReportData([]);
+        setProgress(10); // Start progress
 
         try {
-            // 1. SINGLE CALL TO BACKEND
+            // 1. SINGLE CALL TO BACKEND (Fetches Grades & Behavior)
             const res = await reportCardService.getClassReports(selectedGrade);
             let reports = res.data.data;
 
             if (!reports || reports.length === 0) {
                 alert("No reports found for this class.");
                 setLoading(false);
+                setProgress(0);
                 return;
             }
 
-            // 2. Fetch Ranks for the whole list (Still needs to be done)
-            // Optimization: We can do this in parallel now that we have the list
+            // Update progress to 30% after fetching the main data
+            setProgress(30);
+
+            // 2. Fetch Ranks for the whole list with PROGRESS TRACKING
+            let completedCount = 0;
+            const totalStudents = reports.length;
+
             const reportsWithRank = await Promise.all(reports.map(async (report) => {
                 const { studentId, classId, academicYear } = report.studentInfo;
+                let rankData = { sem1: '-', sem2: '-', overall: '-' };
+
                 try {
-                    // This is still 1 call per student, but it's fast. 
-                    // (Ideally, backend rank controller should also support batch, but this works for now)
-                    const rankData = await rankService.getRankByStudent(studentId, classId, academicYear);
-                    return { ...report, rank: rankData };
+                    // Fetch Rank
+                    rankData = await rankService.getRankByStudent(studentId, classId, academicYear);
                 } catch (e) {
-                    return { ...report, rank: { sem1: '-', sem2: '-', overall: '-' } };
+                    console.warn(`Rank failed for ${studentId}`);
                 }
+
+                // --- PROGRESS LOGIC ---
+                completedCount++;
+                // Calculate percentage: Start at 30%, use remaining 70% for ranks
+                const currentProgress = 30 + Math.round((completedCount / totalStudents) * 70);
+                setProgress(currentProgress);
+                // ----------------------
+
+                return { ...report, rank: rankData };
             }));
 
+            // 3. Update State
             setClassReportData(reportsWithRank);
+            setProgress(100);
 
         } catch (err) {
-            console.error(err);
             alert("Error generating reports");
+            setProgress(0);
         } finally {
-            setLoading(false);
+            setTimeout(() => {
+                setLoading(false);
+            }, 500);
         }
     };
 
