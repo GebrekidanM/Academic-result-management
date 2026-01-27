@@ -21,18 +21,49 @@ const getCurrentEthDate = () => {
 const calculateAge = (dob) => {
     if (!dob) return '-';
 
-    // dob must be "YYYY-MM-DD" in Ethiopian Calendar
-    const [birthYear, birthMonth, birthDay] = dob
-        .split('-')
-        .map(Number);
+    let birthYear, birthMonth, birthDay;
+
+    // CASE 1: dob is a string "YYYY-MM-DD" (E.C)
+    if (typeof dob === 'string') {
+        const parts = dob.split('-').map(Number);
+        if (parts.length !== 3) return '-';
+        [birthYear, birthMonth, birthDay] = parts;
+    }
+
+    // CASE 2: dob is a Date object (from MongoDB)
+    else if (dob instanceof Date) {
+        // ⚠️ Assumes the stored date is already Ethiopian-equivalent
+        birthYear = dob.getFullYear();
+        birthMonth = dob.getMonth() + 1;
+        birthDay = dob.getDate();
+    }
+
+    // CASE 3: unknown format
+    else {
+        return '-';
+    }
 
     if (!birthYear || !birthMonth || !birthDay) return '-';
 
-    const { ethYear, ethMonth, ethDay } = getCurrentEthDate();
+    // ---- Current Ethiopian date ----
+    const now = new Date();
+    const gcYear = now.getFullYear();
+    const gcMonth = now.getMonth() + 1;
+    const gcDay = now.getDate();
 
+    const ethYear =
+        gcMonth > 9 || (gcMonth === 9 && gcDay >= 11)
+            ? gcYear - 7
+            : gcYear - 8;
+
+    let ethMonth = gcMonth - 8;
+    if (ethMonth <= 0) ethMonth += 12;
+
+    const ethDay = gcDay;
+
+    // ---- Age logic ----
     let age = ethYear - birthYear;
 
-    // If birthday has NOT occurred yet this year → subtract 1
     if (
         ethMonth < birthMonth ||
         (ethMonth === birthMonth && ethDay < birthDay)
@@ -42,5 +73,6 @@ const calculateAge = (dob) => {
 
     return age >= 0 ? age : '-';
 };
+
 
 module.exports = calculateAge;
