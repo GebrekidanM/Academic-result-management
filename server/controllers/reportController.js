@@ -3,6 +3,7 @@ const Student = require('../models/Student');
 const BehavioralReport = require('../models/BehavioralReport');
 const SupportiveGrade = require('../models/SupportiveGrade');
 const calculateAge = require("../utils/calculateAge")
+const Subject = require("../models/Subject")
 
 /**
  * HELPER 1: CLEAN & MERGE ACADEMIC GRADES (Numeric)
@@ -333,8 +334,11 @@ exports.getCertificateData = async (req, res) => {
         
         // 3. Fetch Grades
         const studentIds = students.map(s => s._id);
+        console.log(studentIds)
         const grades = await Grade.find({ student: { $in: studentIds }, academicYear })
             .select('student subject semester finalScore'); // We only need these fields
+console.log(academicYear)
+console.log("grades",grades)
 
         // --- CALCULATE TOTALS & AVERAGES ---
         let certificateList = students.map(student => {

@@ -24,7 +24,7 @@ const reportCardService = {
 
      getCertificateData: async (gradeLevel, academicYear) => {
         const config = getConfig();
-        const response = await api.get(`/certificate-data`, {
+        const response = await api.get(`${API_URL}/certificate-data`, {
             ...config,
             params: { gradeLevel, academicYear }
         });

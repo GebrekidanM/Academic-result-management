@@ -1,30 +1,40 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useReactToPrint } from 'react-to-print'; // Add this for perfect printing
-import rosterService from '../services/rosterService';
+import { useReactToPrint } from 'react-to-print';
+import reportCardService from '../services/reportCardService';
 import authService from '../services/authService';
 import userService from '../services/userService';
 import subjectService from '../services/subjectService';
 
+// --- 1. ADD DATE HELPER ---
+const getCurrentEthYear = () => {
+    const now = new Date();
+    const gcYear = now.getFullYear();
+    const gcMonth = now.getMonth() + 1; 
+    // If Month is Sept (9) or later, it's the new Eth Year (GC - 7), else (GC - 8)
+    return gcMonth >= 9 ? (gcYear - 7).toString() : (gcYear - 8).toString();
+};
+
 const CertificatePage = () => {
     const { t } = useTranslation();
-    const componentRef = useRef(); // Ref for print
+    const componentRef = useRef();
 
     const [currentUser] = useState(authService.getCurrentUser());
     
-    // Config State
+    // --- STATE ---
     const [availableGrades, setAvailableGrades] = useState([]);
     const [selectedGrade, setSelectedGrade] = useState('');
     const [semester, setSemester] = useState('First Semester');
-    const [academicYear, setAcademicYear] = useState('2018');
+    
+    // --- 2. FIX: USE DYNAMIC YEAR ---
+    const [academicYear, setAcademicYear] = useState(getCurrentEthYear());
+    
     const [awardDate, setAwardDate] = useState(new Date().toLocaleDateString('en-GB'));
-
-    // Data State
     const [topStudents, setTopStudents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // --- 1. Load available grades ---
+    // --- Load available grades ---
     useEffect(() => {
         const loadConfig = async () => {
             try {
@@ -46,7 +56,7 @@ const CertificatePage = () => {
         loadConfig();
     }, [currentUser]);
 
-    // --- 2. Generate Certificates ---
+    // --- Generate Certificates ---
     const handleGenerate = async (e) => {
         e.preventDefault();
         if (!selectedGrade) return;
@@ -55,22 +65,20 @@ const CertificatePage = () => {
         setTopStudents([]);
 
         try {
-            // Use the lightweight certificate endpoint
-            const response = await rosterService.getCertificateData(selectedGrade, academicYear);
-            const roster = response.data; // Note: API returns { data: [...] }
+            // Sends the corrected academicYear to the backend
+            const response = await reportCardService.getCertificateData(selectedGrade, academicYear);
+            const roster = response.data; 
             
-            // Filter Top 3
             const rankedList = roster.filter(student => {
                 let rank = 999;
                 if (semester === 'First Semester') rank = student.sem1.rank;
                 else if (semester === 'Second Semester') rank = student.sem2.rank;
-                else rank = student.overall.rank; // Support Annual
+                else rank = student.overall.rank; 
 
-                // Check valid rank
+                // Strictly check rank 1, 2, or 3
                 return rank !== '-' && Number(rank) >= 1 && Number(rank) <= 3;
             });
 
-            // Sort 1 -> 3
             rankedList.sort((a, b) => {
                 let rA, rB;
                 if (semester === 'First Semester') { rA = a.sem1.rank; rB = b.sem1.rank; }
@@ -80,13 +88,14 @@ const CertificatePage = () => {
             });
 
             if (rankedList.length === 0) {
-                setError(t('no_top_students') || "No top students found.");
+                setError(t('no_top_students') || "No top students found for this year/grade.");
             } else {
                 setTopStudents(rankedList);
             }
 
         } catch (err) {
-            setError(t('error'));
+            console.error(err);
+            setError(t('error_generating') || "Error loading data.");
         } finally {
             setLoading(false);
         }
@@ -97,7 +106,6 @@ const CertificatePage = () => {
         documentTitle: `Certificates_${selectedGrade}`,
     });
 
-    // --- Helpers ---
     const getStudentStats = (student) => {
         if (semester === 'First Semester') {
             return { rank: student.sem1.rank, avg: student.sem1.avg };
@@ -109,9 +117,9 @@ const CertificatePage = () => {
     };
 
     const getRankColor = (rank) => {
-        if (rank === 1) return "text-yellow-700 border-yellow-500 bg-yellow-50"; 
-        if (rank === 2) return "text-gray-600 border-gray-400 bg-gray-100";     
-        if (rank === 3) return "text-orange-700 border-orange-600 bg-orange-50"; 
+        if (Number(rank) === 1) return "text-yellow-700 border-yellow-500 bg-yellow-50"; 
+        if (Number(rank) === 2) return "text-gray-600 border-gray-400 bg-gray-100";     
+        if (Number(rank) === 3) return "text-orange-700 border-orange-600 bg-orange-50"; 
         return "text-blue-900 border-blue-900";
     };
 
@@ -125,13 +133,11 @@ const CertificatePage = () => {
                     @page { size: A4 landscape; margin: 10mm; }
                     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
                     .no-print { display: none !important; }
-                    
-                    /* Correct Page Size for A4 Landscape */
                     .print-page {
                         width: 277mm; 
                         height: 190mm; 
                         page-break-after: always;
-                        border: 8px double #1e3a8a !important; /* Force border */
+                        border: 8px double #1e3a8a !important; 
                         background-color: #fffdf5 !important;
                         margin: 0 auto;
                     }
@@ -165,8 +171,8 @@ const CertificatePage = () => {
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase">{t('date')}</label>
-                        <input type="text" value={awardDate} onChange={e => setAwardDate(e.target.value)} className="w-full border p-2 rounded" />
+                        <label className="text-xs font-bold text-gray-500 uppercase">{t('academic_year')}</label>
+                        <input type="text" value={academicYear} onChange={e => setAcademicYear(e.target.value)} className="w-full border p-2 rounded" />
                     </div>
                     <div className="flex gap-2">
                         <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700 w-full" disabled={loading}>
@@ -174,7 +180,7 @@ const CertificatePage = () => {
                         </button>
                         {topStudents.length > 0 && (
                             <button type="button" onClick={handlePrint} className="bg-gray-800 text-white px-4 py-2 rounded font-bold hover:bg-gray-900 shadow-lg">
-                                🖨️ Print
+                                🖨️ Print All
                             </button>
                         )}
                     </div>
@@ -182,15 +188,15 @@ const CertificatePage = () => {
                 {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
             </div>
 
-            {/* PREVIEW / PRINT AREA */}
+            {/* PREVIEW */}
             <div ref={componentRef} className="flex flex-col items-center gap-10 print:block">
                 {topStudents.map((student) => {
                     const stats = getStudentStats(student);
                     
                     return (
-                        <div key={student.studentId} className="print-page w-[270mm] h-[190mm] bg-[#fffdf5] border-8 border-double border-blue-900 p-8 relative shadow-xl print:shadow-none mx-auto flex flex-col justify-between mb-10 print:mb-0">
+                        <div key={student.studentId} className="print-page w-[270mm] h-[190mm] bg-[#fffdf5] border-[8px] border-double border-blue-900 p-8 relative shadow-xl print:shadow-none mx-auto flex flex-col justify-between mb-10 print:mb-0">
                             
-                            {/* Corners */}
+                            {/* Decorative Corners */}
                             <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-yellow-500"></div>
                             <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-yellow-500"></div>
                             <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-yellow-500"></div>
@@ -204,7 +210,7 @@ const CertificatePage = () => {
                                 <h2 className="text-3xl font-amharic font-bold text-blue-900">
                                     የላቀ ውጤት የምስክር ወረቀት
                                 </h2>
-                                <div className="w-1/3 h-1 bg-linear-to-r from-transparent via-yellow-500 to-transparent mx-auto mt-6"></div>
+                                <div className="w-1/3 h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent mx-auto mt-6"></div>
                             </div>
 
                             {/* BODY */}
@@ -225,7 +231,7 @@ const CertificatePage = () => {
                                     <div className="text-right flex-1">
                                         <p className="font-serif text-gray-700 text-xl">
                                             For achieving <span className={`font-bold px-3 py-1 rounded border ${getRankColor(Number(stats.rank))}`}>
-                                                {stats.rank === 1 || stats.rank === '1' ? '1st' : stats.rank === 2 || stats.rank === '2' ? '2nd' : '3rd'} Place
+                                                {stats.rank == 1 ? '1st' : stats.rank == 2 ? '2nd' : '3rd'} Place
                                             </span>
                                         </p>
                                         <p className="font-serif text-gray-700 text-lg mt-2">
