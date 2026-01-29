@@ -63,9 +63,8 @@ exports.generateRoster = async (req, res) => {
                 const grade1st = academicGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'First Semester');
                 const grade2nd = academicGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'Second Semester');
                 
-                const score1 = grade1st ? grade1st.finalScore : null;
-                const score2 = grade2nd ? grade2nd.finalScore : null;
-
+                const score1 = grade1st ? grade1st.finalScore.toFixed(2) : null;
+                const score2 = grade2nd ? grade2nd.finalScore.toFixed(2) : null;
                 firstSemester.scores[subject.name] = score1 ?? '-';
                 secondSemester.scores[subject.name] = score2 ?? '-';
 
@@ -107,27 +106,27 @@ exports.generateRoster = async (req, res) => {
                 
                 firstSemester: {
                     scores: firstSemester.scores,
-                    total: parseFloat(firstSemester.total.toFixed(2)),
+                    total: parseFloat(firstSemester.total || 0).toFixed(2),
                     count: firstSemester.count,
-                    average: parseFloat(firstSemester.average.toFixed(2)),
+                    average:parseFloat(firstSemester.average || 0).toFixed(2),
                 },
 
                 secondSemester: {
                     scores: secondSemester.scores,
-                    total: parseFloat(secondSemester.total.toFixed(2)),
+                    total: parseFloat(secondSemester.total).toFixed(2),
                     count: secondSemester.count,
-                    average: parseFloat(secondSemester.average.toFixed(2)),
+                    average: parseFloat(secondSemester.average).toFixed(2),
                 },
 
                 subjectAverages: Object.fromEntries(
                     Object.entries(subjectAverages).map(([key, val]) => [
                         key,
-                        typeof val === 'number' ? parseFloat(val.toFixed(2)) : val
+                        typeof val === 'number' ? parseFloat(val).toFixed(2) : val
                     ])
                 ),
 
-                overallTotal: parseFloat(overallTotalSum.toFixed(2)), 
-                overallAverage: parseFloat(overallAverage.toFixed(2)),
+                overallTotal: parseFloat(overallTotalSum).toFixed(2), 
+                overallAverage: parseFloat(overallAverage).toFixed(2),
                 rank1st: '-', rank2nd: '-', overallRank: '-',
             };
         });

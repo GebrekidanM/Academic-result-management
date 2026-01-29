@@ -223,7 +223,7 @@ const RosterPage = () => {
                                             <td key={`${subject}-1`} className={tdStyle}>{student.firstSemester.scores[subject] || '-'}</td>
                                         ))}
                                         
-                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.total.toFixed(2)}</td>
+                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.total}</td>
                                         <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.average}</td>
                                         <td className={`${tdStyle} bg-yellow-50 font-bold`}>{student.rank1st}</td>
                                     </tr>,
@@ -236,7 +236,7 @@ const RosterPage = () => {
                                             <td key={`${subject}-2`} className={tdStyle}>{student.secondSemester.scores[subject] || '-'}</td>
                                         ))}
                                         
-                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.secondSemester.total.toFixed(2)}</td>
+                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.secondSemester.total}</td>
                                         <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.secondSemester.average}</td>
                                         <td className={`${tdStyle} bg-yellow-50 font-bold`}>{student.rank2nd}</td>
                                     </tr>,
@@ -247,12 +247,12 @@ const RosterPage = () => {
                                         
                                         {rosterData.subjects.map(subject => (
                                             <td key={`${subject}-avg`} className={`${tdStyle} font-bold text-blue-900`}>
-                                                {typeof student.subjectAverages[subject] === 'number' ? student.subjectAverages[subject].toFixed(2) : '-'}
+                                                {typeof student.subjectAverages[subject] === 'number' ? student.subjectAverages[subject] : '-'}
                                             </td>
                                         ))}
                                         
-                                        <td className={`${tdStyle} bg-gray-300 font-black`}>{(student.overallTotal || 0).toFixed(2)}</td>
-                                        <td className={`${tdStyle} bg-gray-300 font-black`}>{(student.overallAverage || 0).toFixed(2)}</td>
+                                        <td className={`${tdStyle} bg-gray-300 font-black`}>{(student.overallTotal || 0)}</td>
+                                        <td className={`${tdStyle} bg-gray-300 font-black`}>{(student.overallAverage || 0)}</td>
                                         <td className={`${tdStyle} bg-yellow-200 font-black border-2 border-yellow-400`}>{student.overallRank}</td>
                                     </tr>
                                 ]))}
