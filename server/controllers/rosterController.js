@@ -109,14 +109,14 @@ exports.generateRoster = async (req, res) => {
                     scores: firstSemester.scores,
                     total: parseFloat(firstSemester.total),
                     count: firstSemester.count,
-                    average: parseFloat(firstSemester.average.toFixed(2)),
+                    average: parseFloat(firstSemester.average>.toFixed(2)),
                 },
 
                 secondSemester: {
                     scores: secondSemester.scores,
                     total: parseFloat(secondSemester.total),
                     count: secondSemester.count,
-                    average: parseFloat(secondSemester.average.toFixed(2)),
+                    average: parseFloat(secondSemester.average?.toFixed(2)),
                 },
 
                 subjectAverages: Object.fromEntries(
@@ -127,7 +127,7 @@ exports.generateRoster = async (req, res) => {
                 ),
 
                 overallTotal: parseFloat(overallTotalSum), 
-                overallAverage: parseFloat(overallAverage.toFixed(2)),
+                overallAverage: parseFloat(overallAverage?.toFixed(2)),
                 rank1st: '-', rank2nd: '-', overallRank: '-',
             };
         });
