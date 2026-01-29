@@ -20,7 +20,6 @@ const {
 // This handles the Yearly Roster request: GET /api/rosters
 router.get('/', protect, isHomeroomTeacherOrAdmin, generateRoster);
 
-
 // It MUST be defined to handle GET requests to /api/rosters/subject-details
 router.get('/subject-details', protect, isTeacherForSubject, generateSubjectRoster);
 // ================================================================
