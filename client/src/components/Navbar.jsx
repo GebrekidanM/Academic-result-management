@@ -107,6 +107,9 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     <NavLink to="/events/generator" className={dropdownLinkClass} onClick={closeMenu}>
                         🎉 {t('event_cards')}
                     </NavLink>
+                    <NavLink to={'/high-scorers'} className={dropdownLinkClass} onClick={closeMenu}>
+                        High scorer
+                    </NavLink>
                     <NavLink to="/reports/batch" className={dropdownLinkClass} onClick={closeMenu}>Report Card</NavLink>
                     <NavLink to="/id-cards" className={dropdownLinkClass} onClick={closeMenu}>
                         🪪 ID Cards
@@ -131,6 +134,7 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                   <NavLink to={'/supportivesub'} className={dropdownLinkClass} onClick={closeMenu}>
                         Supportive Subjects Grade
                   </NavLink>
+                  
                   {(currentUser.role === 'admin' || currentUser.homeroomGrade) && (
                     <NavLink to="/roster" className={dropdownLinkClass} onClick={closeMenu}>
                         {t('class_roster')}

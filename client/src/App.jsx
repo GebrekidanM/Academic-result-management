@@ -72,6 +72,7 @@ import SupportiveGradingPage from './pages/SupportiveGradingPage';
 import SupportiveSubjectPage from './pages/SupportiveSubjectPage';
 import ScheduleManager from './pages/ScheduleManager';
 import MasterSchedulePage from './pages/MasterSchedulePage';
+import HighScorers from './pages/HighScorers';
 
 
 function App() {
@@ -148,6 +149,8 @@ function App() {
             <Route path="/students/edit/:id" element={<EditStudentPage />} />
             <Route path='/supportivesub' element={<SupportiveGradingPage/>}/>
             <Route path='/supportivelist' element={<SupportiveSubjectPage/>}/>
+            <Route path="/high-scorers" element={<HighScorers />} />
+
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
               <Route path="/reports/batch" element={<ClassReportGenerator />} />
