@@ -28,6 +28,7 @@ const SubjectListPage = () => {
     
     const [newSubjectName, setNewSubjectName] = useState('');
     const [newSubjectCode, setNewSubjectCode] = useState('');
+    const [sessionsPerWeek,setSessionsPerWeek] = useState('')
 
     const fetchSubjects = async (grade) => {
         setLoading(true);
@@ -71,6 +72,7 @@ const SubjectListPage = () => {
                 name: newSubjectName,
                 code: newSubjectCode,
                 gradeLevel: formatGrade(searchedGrade),
+                sessionsPerWeek
             };
             await subjectService.createSubject(newSubjectData);
             
@@ -236,6 +238,25 @@ const SubjectListPage = () => {
                                         placeholder={t('subject_code_placeholder') || "e.g. MATH-04"}
                                         className={textInput}
                                     />
+                                </div>
+                                <div>
+                                    <label htmlFor="sessionsPerWeek" className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">
+                                        Weekly Periods (Load)
+                                    </label>
+                                    <input 
+                                        id="sessionsPerWeek"
+                                        type="number"
+                                        name="sessionsPerWeek"
+                                        min="1"
+                                        max="10"
+                                        value={sessionsPerWeek}
+                                        onChange={e=>setSessionsPerWeek(e.target.value)}
+                                        className={textInput}
+                                        required
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        How many times per week does this class meet?
+                                    </p>
                                 </div>
                                 
                                 <div className="pt-4 mt-2 border-t">

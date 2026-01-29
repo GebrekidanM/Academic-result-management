@@ -34,6 +34,7 @@ app.use('/api/library', require('./routes/LibraryRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/report-cards', require('./routes/reports'));
 app.use('/api/supportive-grades',require('./routes/supportiveGradeRoutes'))
+app.use('/api/schedule',require('./routes/scheduleRoutes'))
 
 // --- Default admin seeding ---
 const seedAdminUser = async () => {
@@ -55,6 +56,24 @@ const seedAdminUser = async () => {
   }
 };
 
+const fixSubjectLoads = async (req, res) => {
+    try {
+        // Find all subjects that DO NOT have the 'sessionsPerWeek' field
+        const result = await Subject.updateMany(
+            { sessionsPerWeek: { $exists: false } }, // Criteria
+            { $set: { sessionsPerWeek: 3 } }         // Default Value (e.g., 3)
+        );
+
+        res.json({ 
+            success: true, 
+            message: `Updated ${result.modifiedCount} subjects with default load of 3.` 
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Migration Failed' });
+    }
+};
+
 // --- STARTUP SEQUENCE ---
 const startServer = async () => {
     try {
@@ -62,7 +81,7 @@ const startServer = async () => {
         await connectDB();
         // 3. Seed Admin
         await seedAdminUser();
-
+        //await fixSubjectLoads();
         // 4. Start Server
         const PORT = process.env.PORT || 5001;
         app.listen(PORT, () => {

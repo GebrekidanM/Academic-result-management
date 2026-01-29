@@ -136,6 +136,11 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                         {t('class_roster')}
                     </NavLink>
                   )}
+                  {(currentUser.role === 'admin') && (
+                    <NavLink to="/schedule" className={dropdownLinkClass} onClick={closeMenu}>
+                        {t('Schedule')}
+                    </NavLink>
+                  )}
                 </NavDropdown>
 
                 {/* 3. ANALYTICS Dropdown */}

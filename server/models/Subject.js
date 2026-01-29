@@ -15,6 +15,13 @@ const subjectSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Grade level is required']
     },
+    sessionsPerWeek: {
+        type: Number,
+        required: true,
+        default: 3, // Default value if not specified
+        min: 1,
+        max: 10
+    }
   }, {
     timestamps: true
 });

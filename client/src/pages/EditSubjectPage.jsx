@@ -23,7 +23,7 @@ const EditSubjectPage = () => {
     const navigate = useNavigate();
     const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-    const [subjectData, setSubjectData] = useState({ name: '', code: '', gradeLevel: '',gradingType });
+    const [subjectData, setSubjectData] = useState({ name: '', code: '', gradeLevel: '',sessionsPerWeek:"" });
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -137,11 +137,17 @@ const EditSubjectPage = () => {
                                 className={textInput} 
                             />
                         </div>
-                                 
-                        <select name='gradingType' className={textInput} value={subjectData.code || ""} onChange={handleChange}>
-                            <option value={'numeric'}>numeric</option>
-                            <option value="descriptive">descriptive</option>
-                        </select>
+                        <div>
+                            <label htmlFor="session" className={inputLabel}>{t('Session per week')}</label>
+                            <input 
+                                id="session" 
+                                type="number" 
+                                name="sessionsPerWeek" 
+                                value={subjectData.sessionsPerWeek || ''} 
+                                onChange={handleChange} 
+                                className={textInput} 
+                            />
+                        </div>
                         
                         {/* Grade Level */}
                         <div>
