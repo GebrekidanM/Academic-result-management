@@ -94,11 +94,9 @@ exports.deleteSlot = async (req, res) => {
     }
 };
 
-// --- HELPERS ---
-
-// Fisher-Yates shuffle (True Randomness)
+// Fisher-Yates shuffle
 const shuffle = (arr) => {
-    const newArr = [...arr]; // Create a copy to avoid mutating original immediately
+    const newArr = [...arr];
     for (let i = newArr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
@@ -106,11 +104,8 @@ const shuffle = (arr) => {
     return newArr;
 };
 
-// Check if Grade is Kindergarten
 const isKG = (gradeLevel) => /^(kg|nursery|pre)/i.test(String(gradeLevel || ''));
 
-
-// --- MAIN CONTROLLER ---
 exports.autoGenerateSchedule = async (req, res) => {
     const { academicYear, category } = req.body;
 
@@ -134,16 +129,14 @@ exports.autoGenerateSchedule = async (req, res) => {
             return res.status(404).json({ message: `No classes found for category: ${category}` });
         }
 
-        // 2. Clear Old Schedule (Only for these grades in this year)
+        // 2. Clear Old Schedule
         await Schedule.deleteMany({
             academicYear,
             gradeLevel: { $in: targetGrades },
         });
 
-        // 3. Initialize Occupancy Trackers (Fast Lookups)
-        // classOccupied[grade][day][period] = true
+        // 3. Initialize Trackers
         const classOccupied = {};
-        // teacherOccupied[day][period] = Set(teacherIdStrings)
         const teacherOccupied = {};
         
         for (const d of DAYS) {
@@ -156,12 +149,10 @@ exports.autoGenerateSchedule = async (req, res) => {
         if (category === 'KG') {
             teacherFilter.schoolLevel = { $in: ['kg', 'all'] };
         } else {
-            // Regex to catch 'Primary', 'primary', 'High School', etc.
             teacherFilter.schoolLevel = { $in: [/primary/i, /high school/i, 'all'] };
         }
 
         const teachers = await User.find(teacherFilter).populate('subjectsTaught.subject');
-
         const newSchedule = [];
         const summary = {}; 
 
@@ -170,17 +161,14 @@ exports.autoGenerateSchedule = async (req, res) => {
             summary[grade] = 0;
             classOccupied[grade] = classOccupied[grade] || {};
 
-            // A. Get Subjects for this grade
+            // Get Subjects & Shuffle them so Math isn't always first
             let subjectsForGrade = allSubjects.filter(s => String(s.gradeLevel) === String(grade));
-
-            // B. SHUFFLE SUBJECTS (Fairness Fix)
-            // This ensures Mathematics doesn't always take the first slots
             subjectsForGrade = shuffle(subjectsForGrade);
 
             for (const subj of subjectsForGrade) {
                 if (!subj || !subj._id) continue;
 
-                // C. Find Teacher
+                // Find Teacher
                 const assignedTeacher = teachers.find(t =>
                     Array.isArray(t.subjectsTaught) &&
                     t.subjectsTaught.some(st => {
@@ -189,47 +177,41 @@ exports.autoGenerateSchedule = async (req, res) => {
                     })
                 );
 
-                if (!assignedTeacher) {
-                    // console.warn(`No teacher found for ${subj.name} in ${grade}`);
-                    continue;
-                }
+                if (!assignedTeacher) continue;
 
-                // D. Determine Load (Default 3 for KG, 4 for others)
+                // Determine Load
                 let sessionsNeeded = parseInt(subj.sessionsPerWeek || (category === 'KG' ? 3 : 4), 10);
                 
-                // Safety Cap
-                const maxPossibleSlots = DAYS.length * PERIODS.length;
-                if (sessionsNeeded > maxPossibleSlots) sessionsNeeded = maxPossibleSlots;
-
-                // E. Attempt Assignment
+                // --- THE CRITICAL FIX IS IN THIS LOOP ---
                 const randomDays = shuffle([...DAYS]);
-                let scheduledThisSubject = 0;
 
                 for (const day of randomDays) {
-                    if (sessionsNeeded === 0) break;
+                    // If we have finished assigning all sessions for this subject, STOP checking days
+                    if (sessionsNeeded <= 0) break;
 
                     classOccupied[grade][day] = classOccupied[grade][day] || {};
 
-                    // Rule: One Subject Per Day
+                    // Rule: One Subject Per Day Check
                     const alreadyScheduledToday = newSchedule.some(s =>
                         String(s.gradeLevel) === String(grade) && 
                         s.dayOfWeek === day && 
                         String(s.subject) === String(subj._id)
                     );
-                    if (alreadyScheduledToday) continue;
+                    if (alreadyScheduledToday) continue; // Skip this day completely
 
                     const randomPeriods = shuffle([...PERIODS]);
+                    
+                    // Boolean flag to know if we assigned a slot on this day
+                    let assignedToday = false; 
 
                     for (const period of randomPeriods) {
-                        if (sessionsNeeded === 0) break;
-
                         // 1. Class Conflict
                         if (classOccupied[grade][day][period]) continue;
 
                         // 2. Teacher Conflict
                         if (teacherOccupied[day][period].has(String(assignedTeacher._id))) continue;
 
-                        // Assign
+                        // --- ASSIGN SLOT ---
                         const slot = {
                             academicYear,
                             gradeLevel: grade,
@@ -246,25 +228,28 @@ exports.autoGenerateSchedule = async (req, res) => {
                         teacherOccupied[day][period].add(String(assignedTeacher._id));
                         
                         sessionsNeeded--;
-                        scheduledThisSubject++;
+                        scheduledThisSubject = (summary[grade] || 0) + 1;
+                        
+                        assignedToday = true; // Mark as done for this day
+                        break; // <--- CRITICAL FIX: STOP CHECKING PERIODS FOR THIS DAY
                     }
+
+                    // Loop continues to next DAY because of the break above
                 }
-                summary[grade] += scheduledThisSubject;
             }
         }
 
-        // 6. Save to DB
+        // 6. Save
         if (newSchedule.length > 0) {
             await Schedule.insertMany(newSchedule);
             return res.status(201).json({
                 success: true,
                 message: `Generated ${category} schedule (${newSchedule.length} slots).`,
-                count: newSchedule.length,
-                perGrade: summary
+                count: newSchedule.length
             });
         } else {
             return res.status(400).json({
-                message: "Could not generate schedule. Check teacher assignments and subject loads."
+                message: "Could not generate schedule. Ensure teachers are assigned to subjects."
             });
         }
 

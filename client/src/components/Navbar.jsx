@@ -136,14 +136,14 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                         {t('class_roster')}
                     </NavLink>
                   )}
-                  {/*{(currentUser.role === 'admin') && (
+                  {(currentUser.role === 'admin') && (
                     <NavLink to="/schedule" className={dropdownLinkClass} onClick={closeMenu}>
                         {t('Schedule')}
                     </NavLink>
                   )}
                   <NavLink to="/master" className={dropdownLinkClass} onClick={closeMenu}>
                         {t('All Class Schedule')}
-                    </NavLink>*/}
+                    </NavLink>
                 </NavDropdown>
 
                 {/* 3. ANALYTICS Dropdown */}
