@@ -224,7 +224,7 @@ const RosterPage = () => {
                                         ))}
                                         
                                         <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.total.toFixed(2)}</td>
-                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.average.toFixed(2)}</td>
+                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.firstSemester.average}</td>
                                         <td className={`${tdStyle} bg-yellow-50 font-bold`}>{student.rank1st}</td>
                                     </tr>,
 
@@ -237,7 +237,7 @@ const RosterPage = () => {
                                         ))}
                                         
                                         <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.secondSemester.total.toFixed(2)}</td>
-                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.secondSemester.average.toFixed(2)}</td>
+                                        <td className={`${tdStyle} bg-gray-50 font-bold`}>{student.secondSemester.average}</td>
                                         <td className={`${tdStyle} bg-yellow-50 font-bold`}>{student.rank2nd}</td>
                                     </tr>,
 
