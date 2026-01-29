@@ -1,24 +1,18 @@
 const User = require('../models/User');
 const Subject = require('../models/Subject');
-const SupportiveSubject = require('../models/SupportiveSubject'); // <--- IMPORT
+const SupportiveSubject = require('../models/SupportiveSubject'); 
 const Student = require('../models/Student');
 const Grade = require('../models/Grade');
-const SupportiveGrade = require('../models/SupportiveGrade'); // <--- IMPORT
-const AssessmentType = require('../models/AssessmentType')
+const SupportiveGrade = require('../models/SupportiveGrade'); 
+const calculateAge = require('../utils/calculateAge');
 
-// --- 1. HELPER: ETHIOPIAN AGE CALCULATOR ---
-const calculateAge = require('../utils/calculateAge')
-// --- SUBJECT ORDER CONFIG ---
 const SUBJECT_ORDER = [
-    "አማርኛ", "English",  "ሒሳብ", 
-    "አካባቢ ሳይንስ", "General Science","Affan Oromo","ህብረተሰብ","Social Studies", 
-    "ግብረ ገብ", "ICT", "ጤሰማ","ሙያ", 
-    "ስነጥበብ","Mathematics", "Spoken", "Grammer"
+    "አማርኛ", "English", "Mathematics", "ሒሳብ", 
+    "አካባቢ ሳይንስ", "General Science", "Social Studies", 
+    "Civics", "ግብረ ገብ", "ICT", "HPE", "ጤሰማ", 
+    "Art", "ስነጥበብ", "Spoken", "Grammar", "Affan Oromo"
 ];
 
-// =====================================================
-// MAIN ROSTER GENERATOR
-// =====================================================
 exports.generateRoster = async (req, res) => {
     const { gradeLevel, academicYear } = req.query;
 
@@ -28,175 +22,167 @@ exports.generateRoster = async (req, res) => {
 
     try {
         const homeroomTeacher = await User.findOne({ homeroomGrade: gradeLevel }).select('fullName');
+        
+        const academicSubjects = await Subject.find({ gradeLevel }).sort({ name: 1 }).lean();
+        const supportiveSubjects = await SupportiveSubject.find({ gradeLevel }).sort({ name: 1 }).lean();
 
-        const academicSubjects = await Subject.find({ gradeLevel }).lean();
-        const supportiveSubjects = await SupportiveSubject.find({ gradeLevel }).lean();
-
-        const students = await Student.find({ gradeLevel, status: 'Active' })
-            .select('studentId fullName gender dateOfBirth')
-            .sort({ fullName: 1 });
-
-        if (!students.length) {
-            return res.status(404).json({ message: 'No active students found.' });
+        if (academicSubjects.length === 0 && supportiveSubjects.length === 0) {
+            return res.status(404).json({ message: 'No subjects found.' });
         }
 
+        const students = await Student.find({ gradeLevel, status: 'Active' })
+            .select('studentId fullName gender dateOfBirth _id')
+            .sort({ fullName: 1 });
+        
+        if (students.length === 0) return res.status(404).json({ message: 'No active students found.' });
+        
         const studentIds = students.map(s => s._id);
 
         const [academicGrades, supportiveGrades] = await Promise.all([
-            Grade.find({ student: { $in: studentIds }, academicYear })
-                .populate('subject', 'name'),
-            SupportiveGrade.find({ student: { $in: studentIds }, academicYear })
-                .populate('subject', 'name')
+            Grade.find({ student: { $in: studentIds }, academicYear }).populate('subject', 'name'),
+            SupportiveGrade.find({ student: { $in: studentIds }, academicYear }).populate('subject', 'name')
         ]);
 
-        const rosterData = students.map(student => {
+        let rosterData = students.map(student => {
             const firstSemester = { scores: {}, total: 0, count: 0 };
             const secondSemester = { scores: {}, total: 0, count: 0 };
             const subjectAverages = {};
 
-            // ---------- ACADEMIC SUBJECTS ----------
+            // A. Process ACADEMIC (Fix: Keep numbers as numbers)
             academicSubjects.forEach(subject => {
-                const g1 = academicGrades.find(
-                    g => g.student.equals(student._id) &&
-                         g.subject?._id.equals(subject._id) &&
-                         g.semester === 'First Semester'
-                );
+                const grade1st = academicGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'First Semester');
+                const grade2nd = academicGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'Second Semester');
+                
+                // Get Raw Numbers (or null)
+                const val1 = grade1st ? grade1st.finalScore : null;
+                const val2 = grade2nd ? grade2nd.finalScore : null;
 
-                const g2 = academicGrades.find(
-                    g => g.student.equals(student._id) &&
-                         g.subject?._id.equals(subject._id) &&
-                         g.semester === 'Second Semester'
-                );
-
-                const s1 = g1 ? Number(g1.finalScore) : null;
-                const s2 = g2 ? Number(g2.finalScore) : null;
-
-                firstSemester.scores[subject.name] = s1 ?? '-';
-                secondSemester.scores[subject.name] = s2 ?? '-';
-
-                if (s1 !== null) {
-                    firstSemester.total += s1;
+                // --- CALCULATION LOGIC ---
+                if (val1 !== null) {
+                    firstSemester.total += val1; // Math addition (not string)
                     firstSemester.count++;
+                    firstSemester.scores[subject.name] = parseFloat(val1.toFixed(2)); // Store pretty value
+                } else {
+                    firstSemester.scores[subject.name] = '-';
                 }
 
-                if (s2 !== null) {
-                    secondSemester.total += s2;
+                if (val2 !== null) {
+                    secondSemester.total += val2;
                     secondSemester.count++;
+                    secondSemester.scores[subject.name] = parseFloat(val2.toFixed(2));
+                } else {
+                    secondSemester.scores[subject.name] = '-';
                 }
-
-                const valid = [s1, s2].filter(v => v !== null);
-                subjectAverages[subject.name] =
-                    valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+                
+                // Calculate Subject Average
+                const validScores = [val1, val2].filter(s => s !== null);
+                const avg = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : null;
+                subjectAverages[subject.name] = avg !== null ? parseFloat(avg.toFixed(2)) : '-';
             });
 
-            // ---------- SUPPORTIVE SUBJECTS ----------
+            // B. Process SUPPORTIVE
             supportiveSubjects.forEach(subject => {
-                const g1 = supportiveGrades.find(
-                    g => g.student.equals(student._id) &&
-                         g.subject?._id.equals(subject._id) &&
-                         g.semester === 'First Semester'
-                );
+                const grade1st = supportiveGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'First Semester');
+                const grade2nd = supportiveGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'Second Semester');
 
-                const g2 = supportiveGrades.find(
-                    g => g.student.equals(student._id) &&
-                         g.subject?._id.equals(subject._id) &&
-                         g.semester === 'Second Semester'
-                );
-
-                firstSemester.scores[subject.name] = g1 ? g1.score : '-';
-                secondSemester.scores[subject.name] = g2 ? g2.score : '-';
+                firstSemester.scores[subject.name] = grade1st ? grade1st.score : '-';
+                secondSemester.scores[subject.name] = grade2nd ? grade2nd.score : '-';
                 subjectAverages[subject.name] = '-';
             });
+            
+            // C. Averages Calculation
+            firstSemester.average = firstSemester.count > 0 ? firstSemester.total / firstSemester.count : 0;
+            secondSemester.average = secondSemester.count > 0 ? secondSemester.total / secondSemester.count : 0;
 
-            // ---------- AVERAGES ----------
-            firstSemester.average = firstSemester.count
-                ? firstSemester.total / firstSemester.count
-                : 0;
-
-            secondSemester.average = secondSemester.count
-                ? secondSemester.total / secondSemester.count
-                : 0;
-
-            const semestersUsed =
-                (firstSemester.count > 0) + (secondSemester.count > 0);
-
-            const overallAverage = semestersUsed
-                ? (firstSemester.average + secondSemester.average) / semestersUsed
-                : 0;
+            let overallAvgCalc = 0;
+            let divisor = 0;
+            if (firstSemester.count > 0) { overallAvgCalc += firstSemester.average; divisor++; }
+            if (secondSemester.count > 0) { overallAvgCalc += secondSemester.average; divisor++; }
+            const overallAverage = divisor > 0 ? overallAvgCalc / divisor : 0;
+            
+            // Sum of sums
+            const overallTotalSum = firstSemester.total + secondSemester.total;
 
             return {
-                studentId: student.studentId,
+                _id: student._id,
+                studentId: student.studentId, 
                 fullName: student.fullName,
                 gender: student.gender,
                 age: calculateAge(student.dateOfBirth),
-
+                
                 firstSemester: {
-                    scores: Object.fromEntries(
-                        Object.entries(firstSemester.scores).map(([k, v]) => [
-                            k,
-                            typeof v === 'number' ? v.toFixed(2) : v
-                        ])
-                    ),
-                    total: firstSemester.total.toFixed(2),
+                    scores: firstSemester.scores,
+                    total: parseFloat(firstSemester.total.toFixed(2)),
                     count: firstSemester.count,
-                    average: firstSemester.average.toFixed(2)
+                    average: parseFloat(firstSemester.average.toFixed(2)),
                 },
 
                 secondSemester: {
-                    scores: Object.fromEntries(
-                        Object.entries(secondSemester.scores).map(([k, v]) => [
-                            k,
-                            typeof v === 'number' ? v.toFixed(2) : v
-                        ])
-                    ),
-                    total: secondSemester.total.toFixed(2),
+                    scores: secondSemester.scores,
+                    total: parseFloat(secondSemester.total.toFixed(2)),
                     count: secondSemester.count,
-                    average: secondSemester.average.toFixed(2)
+                    average: parseFloat(secondSemester.average.toFixed(2)),
                 },
 
-                subjectAverages: Object.fromEntries(
-                    Object.entries(subjectAverages).map(([k, v]) => [
-                        k,
-                        typeof v === 'number' ? v.toFixed(2) : v
-                    ])
-                ),
+                subjectAverages: subjectAverages,
 
-                overallTotal: (firstSemester.total + secondSemester.total).toFixed(2),
-                overallAverage: overallAverage.toFixed(2),
-
-                rank1st: '-',
-                rank2nd: '-',
-                overallRank: '-'
+                overallTotal: parseFloat(overallTotalSum.toFixed(2)), 
+                overallAverage: parseFloat(overallAverage.toFixed(2)),
+                rank1st: '-', rank2nd: '-', overallRank: '-',
             };
         });
+        
+        // --- RANKING LOGIC ---
+        rosterData.sort((a, b) => b.firstSemester.average - a.firstSemester.average);
+        let currentRank = 1;
+        for (let i = 0; i < rosterData.length; i++) {
+            if (i > 0 && rosterData[i].firstSemester.average < rosterData[i - 1].firstSemester.average) { currentRank = i + 1; }
+            rosterData[i].rank1st = rosterData[i].firstSemester.count > 0 ? currentRank : '-';
+        }
 
-        // ---------- RANKING ----------
-        const rankBy = (key, rankField, countKey) => {
-            rosterData
-                .filter(r => r[countKey] > 0)
-                .sort((a, b) => b[key] - a[key])
-                .forEach((r, i) => r[rankField] = i + 1);
-        };
+        rosterData.sort((a, b) => b.secondSemester.average - a.secondSemester.average);
+        currentRank = 1;
+        for (let i = 0; i < rosterData.length; i++) {
+            if (i > 0 && rosterData[i].secondSemester.average < rosterData[i - 1].secondSemester.average) { currentRank = i + 1; }
+            rosterData[i].rank2nd = rosterData[i].secondSemester.count > 0 ? currentRank : '-';
+        }
 
-        rankBy('firstSemester.average', 'rank1st', 'firstSemester.count');
-        rankBy('secondSemester.average', 'rank2nd', 'secondSemester.count');
-        rankBy('overallAverage', 'overallRank', 'overallAverage');
+        rosterData.sort((a, b) => b.overallAverage - a.overallAverage);
+        currentRank = 1;
+        for (let i = 0; i < rosterData.length; i++) {
+            if (i > 0 && rosterData[i].overallAverage < rosterData[i - 1].overallAverage) { currentRank = i + 1; }
+            const hasAnyGrades = (rosterData[i].firstSemester.count + rosterData[i].secondSemester.count) > 0;
+            rosterData[i].overallRank = hasAnyGrades ? currentRank : '-';
+        }
+        
+        // --- SORT SUBJECT COLUMNS ---
+        academicSubjects.sort((a, b) => {
+            const indexA = SUBJECT_ORDER.indexOf(a.name);
+            const indexB = SUBJECT_ORDER.indexOf(b.name);
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        supportiveSubjects.sort((a, b) => a.name.localeCompare(b.name));
+
+        const allSubjects = [...academicSubjects, ...supportiveSubjects];
+        const subjectNames = allSubjects.map(s => s.name);
 
         rosterData.sort((a, b) => a.fullName.localeCompare(b.fullName));
 
-        res.json({
-            subjects: [...academicSubjects, ...supportiveSubjects].map(s => s.name),
+        res.status(200).json({ 
+            subjects: subjectNames, 
             roster: rosterData,
-            homeroomTeacherName: homeroomTeacher?.fullName || 'Not Assigned'
+            homeroomTeacherName: homeroomTeacher ? homeroomTeacher.fullName : 'Not Assigned'
         });
 
     } catch (error) {
-        console.error('Roster generation error:', error);
+        console.error("Roster generation error:", error);
         res.status(500).json({ message: 'Server error while generating roster' });
     }
 };
-
-
 // @desc    Generate a detailed roster for a single subject
 // @route   GET /api/rosters/subject-details?gradeLevel=...&subjectId=...&semester=...&academicYear=...
 // in backend/controllers/rosterController.js
