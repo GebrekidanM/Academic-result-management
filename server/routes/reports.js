@@ -1,8 +1,9 @@
 // server/routes/reports.js
 const express = require('express');
 const router = express.Router();
-const { generateStudentReport, generateClassReports } = require('../controllers/reportController');
+const { generateStudentReport, generateClassReports, getCertificateData } = require('../controllers/reportController');
 
 router.get('/student/:id', generateStudentReport);
 router.get('/class/:gradeLevel', generateClassReports);
+router.get('/certificate-data', protect, getCertificateData);
 module.exports = router;
