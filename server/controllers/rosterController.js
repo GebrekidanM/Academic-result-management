@@ -114,7 +114,7 @@ exports.generateRoster = async (req, res) => {
 
                 secondSemester: {
                     scores: secondSemester.scores,
-                    total: parseFloat(secondSemester.total.toFixed(2)),
+                    total: parseFloat(secondSemester.total),
                     count: secondSemester.count,
                     average: parseFloat(secondSemester.average.toFixed(2)),
                 },
