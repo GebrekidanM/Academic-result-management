@@ -85,8 +85,6 @@ const ScheduleManager = () => {
             alert(`${category} Schedule Generated Successfully!`);
             fetchSchedule(); 
         } catch (err) {
-            console.log(err)
-
             alert(err.response?.data?.message || "Generation Failed");
         }
     };

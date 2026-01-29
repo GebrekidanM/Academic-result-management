@@ -22,6 +22,32 @@ exports.getClassSchedule = async (req, res) => {
     }
 };
 
+// @desc    Get Master Schedule (All Grades)
+// @route   GET /api/schedule/master
+exports.getMasterSchedule = async (req, res) => {
+    try {
+        const { academicYear } = req.query;
+        
+        // Fetch everything for this year
+        const allSchedules = await Schedule.find({ academicYear })
+            .populate('subject', 'name')
+            .populate('teacher', 'fullName')
+            .lean();
+
+        // Group by Grade Level
+        const grouped = {};
+        allSchedules.forEach(item => {
+            const grade = item.gradeLevel; // e.g. "Grade 4A"
+            if (!grouped[grade]) grouped[grade] = [];
+            grouped[grade].push(item);
+        });
+
+        res.json({ success: true, data: grouped });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 // @desc    Assign/Update a slot (Manual Override)
 // @route   POST /api/schedule/assign
 exports.assignSlot = async (req, res) => {
@@ -68,24 +94,32 @@ exports.deleteSlot = async (req, res) => {
     }
 };
 
+// --- HELPERS ---
 
-// const SUBJECT_LOAD = { ... }; 
+// Fisher-Yates shuffle (True Randomness)
+const shuffle = (arr) => {
+    const newArr = [...arr]; // Create a copy to avoid mutating original immediately
+    for (let i = newArr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    }
+    return newArr;
+};
 
-// Helper: Shuffle
-const shuffle = (array) => array.sort(() => Math.random() - 0.5);
-// Helper: Identify KG vs Grade
-const isKG = (gradeLevel) => /^(kg|nursery|pre)/i.test(gradeLevel);
+// Check if Grade is Kindergarten
+const isKG = (gradeLevel) => /^(kg|nursery|pre)/i.test(String(gradeLevel || ''));
 
+
+// --- MAIN CONTROLLER ---
 exports.autoGenerateSchedule = async (req, res) => {
-    // category can be 'KG' or 'Grade'
-    const { academicYear, category } = req.body; 
+    const { academicYear, category } = req.body;
 
     if (!academicYear || !category) {
-        return res.status(400).json({ message: 'Academic Year and Category (KG/Grade) are required.' });
+        return res.status(400).json({ message: 'Academic Year and Category are required.' });
     }
 
     try {
-        // 1. Identify Target Grade Levels
+        // 1. Identify Target Grades
         const allSubjects = await Subject.find({});
         const allGradeLevels = [...new Set(allSubjects.map(s => s.gradeLevel))];
 
@@ -100,65 +134,87 @@ exports.autoGenerateSchedule = async (req, res) => {
             return res.status(404).json({ message: `No classes found for category: ${category}` });
         }
 
-        // 2. CLEAR OLD SCHEDULE (Only for target grades)
-        // We delete only the schedule for the selected category.
-        await Schedule.deleteMany({ 
-            academicYear, 
-            gradeLevel: { $in: targetGrades } 
+        // 2. Clear Old Schedule (Only for these grades in this year)
+        await Schedule.deleteMany({
+            academicYear,
+            gradeLevel: { $in: targetGrades },
         });
 
-        // 3. INITIALIZE TRACKERS (Fresh start for this category)
-        const teacherOccupied = {}; 
-        DAYS.forEach(d => {
+        // 3. Initialize Occupancy Trackers (Fast Lookups)
+        // classOccupied[grade][day][period] = true
+        const classOccupied = {};
+        // teacherOccupied[day][period] = Set(teacherIdStrings)
+        const teacherOccupied = {};
+        
+        for (const d of DAYS) {
             teacherOccupied[d] = {};
-            PERIODS.forEach(p => teacherOccupied[d][p] = new Set());
-        });
+            for (const p of PERIODS) teacherOccupied[d][p] = new Set();
+        }
 
-        // 4. FETCH TEACHERS
-         let teacherFilter = { role: 'teacher' };
-
-        if (category === 'Kg') {
-            // If generating KG schedule, get KG teachers + 'All'
+        // 4. Fetch Teachers
+        const teacherFilter = { role: 'teacher' };
+        if (category === 'KG') {
             teacherFilter.schoolLevel = { $in: ['kg', 'all'] };
         } else {
-            // If generating Grade schedule, get Primary/High School + 'All'
-            teacherFilter.schoolLevel = { $in: ['primary', 'high_school', 'all'] };
+            // Regex to catch 'Primary', 'primary', 'High School', etc.
+            teacherFilter.schoolLevel = { $in: [/primary/i, /high school/i, 'all'] };
         }
+
         const teachers = await User.find(teacherFilter).populate('subjectsTaught.subject');
-        if(teachers.length === 0) return res.status(404).json({message:"No teacher assigned for this school level"});
-        
+
         const newSchedule = [];
+        const summary = {}; 
 
         // 5. THE ALGORITHM
         for (const grade of targetGrades) {
-            
-            // Get subjects for this specific grade
-            const subjectsForGrade = allSubjects.filter(s => s.gradeLevel === grade);
+            summary[grade] = 0;
+            classOccupied[grade] = classOccupied[grade] || {};
+
+            // A. Get Subjects for this grade
+            let subjectsForGrade = allSubjects.filter(s => String(s.gradeLevel) === String(grade));
+
+            // B. SHUFFLE SUBJECTS (Fairness Fix)
+            // This ensures Mathematics doesn't always take the first slots
+            subjectsForGrade = shuffle(subjectsForGrade);
 
             for (const subj of subjectsForGrade) {
-                
-                // Find a teacher assigned to this Subject AND this Grade Level
-                const assignedTeacher = teachers.find(t => 
-                    t.subjectsTaught.some(st => st.subject && st.subject._id.equals(subj._id))
+                if (!subj || !subj._id) continue;
+
+                // C. Find Teacher
+                const assignedTeacher = teachers.find(t =>
+                    Array.isArray(t.subjectsTaught) &&
+                    t.subjectsTaught.some(st => {
+                        const subjId = st && st.subject && st.subject._id ? st.subject._id : st.subject;
+                        return subjId && String(subjId) === String(subj._id);
+                    })
                 );
 
                 if (!assignedTeacher) {
-                    // Optional: Log warning if a subject has no teacher
-                    // console.warn(`No teacher for ${subj.name} in ${grade}`);
-                    continue; 
+                    // console.warn(`No teacher found for ${subj.name} in ${grade}`);
+                    continue;
                 }
 
-                // Use dynamic load from Subject DB, or default based on category
-                let sessionsNeeded = subj.sessionsPerWeek || (category === 'KG' ? 3 : 4); 
+                // D. Determine Load (Default 3 for KG, 4 for others)
+                let sessionsNeeded = parseInt(subj.sessionsPerWeek || (category === 'KG' ? 3 : 4), 10);
+                
+                // Safety Cap
+                const maxPossibleSlots = DAYS.length * PERIODS.length;
+                if (sessionsNeeded > maxPossibleSlots) sessionsNeeded = maxPossibleSlots;
 
+                // E. Attempt Assignment
                 const randomDays = shuffle([...DAYS]);
+                let scheduledThisSubject = 0;
 
                 for (const day of randomDays) {
                     if (sessionsNeeded === 0) break;
-                    
-                    // Rule: Max 1 session per day per subject (Spread it out)
-                    const alreadyScheduledToday = newSchedule.some(s => 
-                        s.gradeLevel === grade && s.dayOfWeek === day && s.subject.equals(subj._id)
+
+                    classOccupied[grade][day] = classOccupied[grade][day] || {};
+
+                    // Rule: One Subject Per Day
+                    const alreadyScheduledToday = newSchedule.some(s =>
+                        String(s.gradeLevel) === String(grade) && 
+                        s.dayOfWeek === day && 
+                        String(s.subject) === String(subj._id)
                     );
                     if (alreadyScheduledToday) continue;
 
@@ -167,49 +223,53 @@ exports.autoGenerateSchedule = async (req, res) => {
                     for (const period of randomPeriods) {
                         if (sessionsNeeded === 0) break;
 
-                        // --- CONFLICT CHECKS ---
+                        // 1. Class Conflict
+                        if (classOccupied[grade][day][period]) continue;
 
-                        // 1. Is the Class busy?
-                        const classBusy = newSchedule.some(s => 
-                            s.gradeLevel === grade && s.dayOfWeek === day && s.period === period
-                        );
-                        if (classBusy) continue;
+                        // 2. Teacher Conflict
+                        if (teacherOccupied[day][period].has(String(assignedTeacher._id))) continue;
 
-                        // 2. Is the Teacher busy?
-                        // We only check against the current generation process since teachers don't overlap categories
-                        if (teacherOccupied[day][period].has(assignedTeacher._id.toString())) continue;
-
-                        // --- ASSIGN ---
-                        newSchedule.push({
+                        // Assign
+                        const slot = {
                             academicYear,
                             gradeLevel: grade,
                             dayOfWeek: day,
-                            period: period,
+                            period,
                             subject: subj._id,
-                            teacher: assignedTeacher._id
-                        });
+                            teacher: assignedTeacher._id,
+                        };
 
-                        teacherOccupied[day][period].add(assignedTeacher._id.toString());
+                        newSchedule.push(slot);
+                        
+                        // Update Trackers
+                        classOccupied[grade][day][period] = true;
+                        teacherOccupied[day][period].add(String(assignedTeacher._id));
+                        
                         sessionsNeeded--;
+                        scheduledThisSubject++;
                     }
                 }
+                summary[grade] += scheduledThisSubject;
             }
         }
 
-        // 6. SAVE
+        // 6. Save to DB
         if (newSchedule.length > 0) {
             await Schedule.insertMany(newSchedule);
-            res.status(201).json({ 
-                success: true, 
+            return res.status(201).json({
+                success: true,
                 message: `Generated ${category} schedule (${newSchedule.length} slots).`,
-                count: newSchedule.length
+                count: newSchedule.length,
+                perGrade: summary
             });
         } else {
-            res.status(400).json({ message: "Could not generate. Check if teachers are assigned to subjects." });
+            return res.status(400).json({
+                message: "Could not generate schedule. Check teacher assignments and subject loads."
+            });
         }
 
     } catch (error) {
         console.error("Auto-Schedule Error:", error);
-        res.status(500).json({ message: "Server Error", error: error.message });
+        return res.status(500).json({ message: "Server Error", error: error.message });
     }
 };

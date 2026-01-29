@@ -20,6 +20,9 @@ const scheduleService = {
      generate: (data) => {
         // data should be { academicYear: '2018', category: 'KG' }
         return api.post(`${API_URL}/generate`, data);
+    },
+    getMasterSchedule: (academicYear) => {
+        return api.get(`${API_URL}/master`, { params: { academicYear } });
     }
 };
 

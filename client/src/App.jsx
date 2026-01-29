@@ -71,6 +71,7 @@ import studentAuthService from './services/studentAuthService';
 import SupportiveGradingPage from './pages/SupportiveGradingPage';
 import SupportiveSubjectPage from './pages/SupportiveSubjectPage';
 import ScheduleManager from './pages/ScheduleManager';
+import MasterSchedulePage from './pages/MasterSchedulePage';
 
 
 function App() {
@@ -165,6 +166,7 @@ function App() {
               <Route path="/admin/users/:id" element={<UserEditPage />} />
               <Route path="/admin/users/import" element={<ImportUsersPage />} />
               <Route path='/schedule' element={<ScheduleManager/>}/>
+              <Route path='/master' element={<MasterSchedulePage/>}/>
             </Route>
           </Route>
           

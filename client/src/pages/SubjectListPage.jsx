@@ -3,19 +3,14 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; 
 import subjectService from '../services/subjectService';
 
-
 function formatGrade(input) {
   if (!input) return input;
-
-  input = input.trim().toLowerCase();
-
-  input = input.charAt(0).toUpperCase() + input.slice(1);
-
-  input = input.replace(/(\d)([a-z])/g, (match, num, letter) => {
+  let formatted = input.trim().toLowerCase();
+  formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  formatted = formatted.replace(/(\d)([a-z])/g, (match, num, letter) => {
     return num + letter.toUpperCase();
   });
-
-  return input;
+  return formatted;
 }
 
 const SubjectListPage = () => {
@@ -26,10 +21,12 @@ const SubjectListPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
+    // Form State
     const [newSubjectName, setNewSubjectName] = useState('');
     const [newSubjectCode, setNewSubjectCode] = useState('');
-    const [sessionsPerWeek,setSessionsPerWeek] = useState('')
+    const [sessionsPerWeek, setSessionsPerWeek] = useState(3); // Default to 3
 
+    // --- Handlers ---
     const fetchSubjects = async (grade) => {
         setLoading(true);
         setError(null);
@@ -43,6 +40,7 @@ const SubjectListPage = () => {
             
             setSubjects(filtered);
         } catch (err) {
+            console.error(err);
             setError(t('error_fetching_subjects') || "Failed to load subjects.");
         } finally {
             setLoading(false);
@@ -72,18 +70,21 @@ const SubjectListPage = () => {
                 name: newSubjectName,
                 code: newSubjectCode,
                 gradeLevel: formatGrade(searchedGrade),
-                sessionsPerWeek
+                sessionsPerWeek: sessionsPerWeek || 3 // Ensure value is sent
             };
             await subjectService.createSubject(newSubjectData);
             
+            // Reset Form
             setNewSubjectName('');
             setNewSubjectCode('');
+            setSessionsPerWeek(3);
+            
             alert(t('success_subject_created') || "Subject created successfully!");
             
             fetchSubjects(searchedGrade);
 
         } catch (err) {
-            setError(err.response?.data?.message);
+            setError(err.response?.data?.message || t('error'));
         }
     };
 
@@ -98,6 +99,7 @@ const SubjectListPage = () => {
         }
     };
     
+    // --- Styles ---
     const textInput = "shadow-sm border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
     const buttonPrimary = "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm";
     const buttonSuccess = "bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm";
@@ -176,11 +178,24 @@ const SubjectListPage = () => {
                                     <div key={sub._id} className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-all flex justify-between items-center group">
                                         <div>
                                             <h4 className="font-bold text-lg text-gray-800">{sub.name}</h4>
-                                            {sub.code ? (
-                                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-mono font-bold">{sub.code}</span>
-                                            ) : (
-                                                <span className="text-xs text-gray-400 italic">No Code</span>
-                                            )}
+                                            
+                                            {/* --- UPDATED DISPLAY: Code + Load --- */}
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                {/* Code Badge */}
+                                                {sub.code ? (
+                                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-mono font-bold">
+                                                        {sub.code}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400 italic">No Code</span>
+                                                )}
+
+                                                {/* Load Badge (New) */}
+                                                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1" title="Sessions per week">
+                                                    🕒 {sub.sessionsPerWeek || 3} / wk
+                                                </span>
+                                            </div>
+
                                         </div>
                                         <div className="flex gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Link 
@@ -250,12 +265,12 @@ const SubjectListPage = () => {
                                         min="1"
                                         max="10"
                                         value={sessionsPerWeek}
-                                        onChange={e=>setSessionsPerWeek(e.target.value)}
+                                        onChange={e => setSessionsPerWeek(e.target.value)}
                                         className={textInput}
                                         required
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        How many times per week does this class meet?
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        Used for auto-scheduling.
                                     </p>
                                 </div>
                                 
