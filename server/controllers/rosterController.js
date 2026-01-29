@@ -127,7 +127,7 @@ exports.generateRoster = async (req, res) => {
                 ),
 
                 overallTotal: parseFloat(overallTotalSum), 
-                overallAverage: parseFloat(overallAverage?.toFixed(2)),
+                overallAverage: parseFloat(overallAverage),
                 rank1st: '-', rank2nd: '-', overallRank: '-',
             };
         });
