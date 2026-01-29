@@ -109,7 +109,7 @@ exports.generateRoster = async (req, res) => {
                     scores: firstSemester.scores,
                     total: parseFloat(firstSemester.total),
                     count: firstSemester.count,
-                    average: parseFloat(firstSemester.average>.toFixed(2)),
+                    average: parseFloat(firstSemester.average?.toFixed(2)),
                 },
 
                 secondSemester: {
