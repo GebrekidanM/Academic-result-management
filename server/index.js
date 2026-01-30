@@ -107,7 +107,7 @@ const startServer = async () => {
         await seedAdminUser();
         //await fixSubjectLoads();
         // 4. Start Server
-        await migrateData()
+       // await migrateData()
         const PORT = process.env.PORT || 5001;
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
