@@ -448,7 +448,7 @@ exports.getCertificateData = async (req, res) => {
 };
 
 // ... imports (Student, Grade, Subject)
-
+/*
 exports.getHighScorers = async (req, res) => {
     const { academicYear } = req.query;
 
@@ -561,3 +561,5 @@ exports.getHighScorers = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+*/
