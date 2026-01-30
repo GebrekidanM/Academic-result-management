@@ -105,7 +105,7 @@ const TopStudentsPage = () => {
                                                 <h3 className="font-bold text-slate-800 truncate">{student.fullName}</h3>
                                                 <div className="flex justify-between items-center mt-1">
                                                     <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border">
-                                                        Avg: <strong className="text-slate-900 text-sm">{student.average}%</strong>
+                                                        Sum: <strong className="text-slate-900 text-sm">{student.average}</strong>
                                                     </span>
                                                 </div>
                                             </div>
