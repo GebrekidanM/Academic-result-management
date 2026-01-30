@@ -108,7 +108,6 @@ const HighScorers = () => {
               <tr>
                 {[
                   '#',
-                  'Photo',
                   'Student Name',
                   'Gender',
                   'S1 Avg',
@@ -136,19 +135,7 @@ const HighScorers = () => {
               {data[grade].map((s, index) => (
                 <tr key={s._id}>
                   <td style={cell}>{index + 1}</td>
-                  <td style={cell}>
-                    {s.photoUrl ? (
-                      <img
-                        src={s.photoUrl}
-                        alt={s.fullName}
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: '50%'
-                        }}
-                      />
-                    ) : '—'}
-                  </td>
+                  
                   <td style={cell}>{s.fullName}</td>
                   <td style={cell}>{s.gender}</td>
                   <td style={cell}>{s.sem1.avg}</td>

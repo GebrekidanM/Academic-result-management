@@ -107,9 +107,9 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     <NavLink to="/events/generator" className={dropdownLinkClass} onClick={closeMenu}>
                         🎉 {t('event_cards')}
                     </NavLink>
-                    {/*<NavLink to={'/high-scorers'} className={dropdownLinkClass} onClick={closeMenu}>
+                    {<NavLink to={'/high-scorers'} className={dropdownLinkClass} onClick={closeMenu}>
                         High scorer
-                    </NavLink>*/}
+                    </NavLink>}
                     <NavLink to="/reports/batch" className={dropdownLinkClass} onClick={closeMenu}>Report Card</NavLink>
                     <NavLink to="/id-cards" className={dropdownLinkClass} onClick={closeMenu}>
                         🪪 ID Cards
