@@ -447,3 +447,117 @@ exports.getCertificateData = async (req, res) => {
     }
 };
 
+// ... imports (Student, Grade, Subject)
+
+exports.getHighScorers = async (req, res) => {
+    const { academicYear } = req.query;
+
+    if (!academicYear) {
+        return res.status(400).json({ message: 'Academic Year is required.' });
+    }
+
+    try {
+        // 1. Fetch ALL Active Students
+        const students = await Student.find({ status: 'Active' })
+            .select('studentId fullName gender dateOfBirth gradeLevel photoUrl')
+            .lean();
+
+        if (students.length === 0) return res.status(404).json({ message: 'No students found.' });
+
+        const studentIds = students.map(s => s._id);
+        
+        // 2. Fetch Data
+        const academicSubjects = await Subject.find().sort({ name: 1 }).lean();
+        const grades = await Grade.find({ student: { $in: studentIds }, academicYear })
+            .select('student subject semester finalScore')
+            .lean();
+
+        // 3. Calculate Averages for ALL Students
+        const calculatedList = students.map(student => {
+            let s1Total = 0, s1Count = 0;
+            let s2Total = 0, s2Count = 0;
+
+            // Strict Filter: Only check subjects for THIS student's grade level
+            // This prevents fetching Grade 8 subjects for a Grade 1 student
+            const relevantSubjects = academicSubjects.filter(sub => sub.gradeLevel === student.gradeLevel);
+
+            relevantSubjects.forEach(sub => {
+                const g1 = grades.find(g => g.student.toString() === student._id.toString() && g.subject.toString() === sub._id.toString() && g.semester === 'First Semester');
+                const g2 = grades.find(g => g.student.toString() === student._id.toString() && g.subject.toString() === sub._id.toString() && g.semester === 'Second Semester');
+
+                const score1 = g1 && g1.finalScore != null ? parseFloat(g1.finalScore) : null;
+                const score2 = g2 && g2.finalScore != null ? parseFloat(g2.finalScore) : null;
+
+                if (score1 !== null) { s1Total += score1; s1Count++; }
+                if (score2 !== null) { s2Total += score2; s2Count++; }
+            });
+
+            const s1Avg = s1Count > 0 ? s1Total / s1Count : 0;
+            const s2Avg = s2Count > 0 ? s2Total / s2Count : 0;
+
+            // Overall Logic
+            let overallAvgCalc = 0;
+            let divisor = 0;
+            if (s1Count > 0) { overallAvgCalc += s1Avg; divisor++; }
+            if (s2Count > 0) { overallAvgCalc += s2Avg; divisor++; }
+            const finalOverallAvg = divisor > 0 ? overallAvgCalc / divisor : 0;
+
+            return {
+                ...student,
+                sem1Avg: parseFloat(s1Avg.toFixed(2)),
+                sem2Avg: parseFloat(s2Avg.toFixed(2)),
+                overallAvg: parseFloat(finalOverallAvg.toFixed(2))
+            };
+        });
+
+        // 4. GROUP BY GRADE LEVEL & FILTER TOP 3
+        const groupedByGrade = {};
+
+        // Grouping
+        calculatedList.forEach(student => {
+            if (!groupedByGrade[student.gradeLevel]) {
+                groupedByGrade[student.gradeLevel] = [];
+            }
+            groupedByGrade[student.gradeLevel].push(student);
+        });
+
+        // Ranking & Cutting
+        const finalResult = {};
+
+        Object.keys(groupedByGrade).forEach(grade => {
+            const classList = groupedByGrade[grade];
+
+            // Sort & Rank for EACH Semester context
+            // We return an object with top 3 for S1, S2, and Overall
+            
+            // Helper to get top 3
+            const getTop3 = (key) => {
+                return [...classList]
+                    .sort((a, b) => b[key] - a[key]) // Sort Descending
+                    .slice(0, 3) // Take Top 3
+                    .filter(s => s[key] > 0) // Remove students with 0 score
+                    .map((s, index) => ({
+                        _id: s._id,
+                        fullName: s.fullName,
+                        photoUrl: s.photoUrl,
+                        gender: s.gender,
+                        average: s[key],
+                        rank: index + 1
+                    }));
+            };
+
+            finalResult[grade] = {
+                sem1: getTop3('sem1Avg'),
+                sem2: getTop3('sem2Avg'),
+                overall: getTop3('overallAvg')
+            };
+        });
+
+        // Return: { "Grade 1A": { sem1: [...], overall: [...] }, "Grade 1B": ... }
+        res.json({ success: true, data: finalResult });
+
+    } catch (error) {
+        console.error("High Scorer Error:", error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

@@ -30,13 +30,8 @@ const reportCardService = {
         });
         return response.data;
     },
-    getHighScorer: async ( academicYear) => {
-        const config = getConfig();
-        const response = await api.get(`${API_URL}/high-scorer`, {
-            ...config,
-            params: {academicYear }
-        });
-        return response.data;
+    getHighScorers: (academicYear) => {
+        return api.get(`${API_URL}/high-scorers`, { params: { academicYear } });
     }
 };
 
