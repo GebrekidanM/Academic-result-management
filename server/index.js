@@ -74,6 +74,30 @@ const fixSubjectLoads = async (req, res) => {
     }
 };
 
+const BehavioralReport = mongoose.model('BehavioralReport', new mongoose.Schema({}, { strict: false }));
+
+const migrateData = async () => {
+    try {
+        console.log("Starting migration...");
+
+        // Find all reports that have "Attendance" in their evaluations array
+        // And Update them to "Responsibility"
+        const result = await BehavioralReport.updateMany(
+            { "evaluations.area": "Attendance" }, // Filter: Find docs with "Attendance"
+            { 
+                $set: { "evaluations.$.area": "Responsibility" } // Update: Change that specific item's name
+            }
+        );
+
+        console.log(`✅ Success! Updated ${result.modifiedCount} reports.`);
+        process.exit();
+    } catch (error) {
+        console.error("❌ Error:", error);
+        process.exit(1);
+    }
+};
+
+
 // --- STARTUP SEQUENCE ---
 const startServer = async () => {
     try {
@@ -83,6 +107,7 @@ const startServer = async () => {
         await seedAdminUser();
         //await fixSubjectLoads();
         // 4. Start Server
+        await migrateData()
         const PORT = process.env.PORT || 5001;
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);

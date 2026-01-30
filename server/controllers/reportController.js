@@ -105,7 +105,7 @@ const processBehaviorData = (behaviorDocs) => {
   const sem2 = behaviorDocs.find(b => b.semester === 'Second Semester');
 
   const standardTraits = [
-      "Punctuality", "Attendance",
+      "Punctuality", "Responsibility",
       "Communication book usage", "T-book & E-book condition", "Personal hygiene", 
       "Proper dressing of school uniform", "Following school rules and regulation", "Communication skill",
       "Participating in class", "English language usage"
