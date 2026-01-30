@@ -207,13 +207,34 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                         {reportType === 'year' && <th className="py-2 text-center rounded-r bg-[#06b6d4]">Avg</th>}
                                     </tr>
                                 </thead>
+                                {/* Updated JSX for the Table Body */}
                                 <tbody>
                                     {processedGrades.map((r, i) => (
                                         <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
                                             <td className="py-1.5 px-3 font-bold text-slate-700">{r.subjectName}</td>
-                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.firstSemester.toFixed(2) ?? '-'}</td>}
-                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.secondSemester.toFixed(2) ?? '-'}</td>}
-                                            {reportType === 'year' && <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30">{typeof r.average === 'number' ? r.average.toFixed(2) : '-'}</td>}
+                                            
+                                            {/* Semester 1 */}
+                                            {(reportType === 'sem1' || reportType === 'year') && (
+                                                <td className="text-center text-slate-700 font-medium border-l border-gray-100">
+                                                    {/* Safe check: is it a number? */}
+                                                    {typeof r.firstSemester === 'number' ? r.firstSemester.toFixed(2) : (r.firstSemester || '-')}
+                                                </td>
+                                            )}
+
+                                            {/* Semester 2 */}
+                                            {(reportType === 'sem2' || reportType === 'year') && (
+                                                <td className="text-center text-slate-700 font-medium border-l border-gray-100">
+                                                    {/* Safe check: is it a number? */}
+                                                    {typeof r.secondSemester === 'number' ? r.secondSemester.toFixed(2) : (r.secondSemester || '-')}
+                                                </td>
+                                            )}
+
+                                            {/* Average */}
+                                            {reportType === 'year' && (
+                                                <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30 border-l border-gray-100">
+                                                    {typeof r.average === 'number' ? r.average.toFixed(2) : '-'}
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
