@@ -448,7 +448,6 @@ exports.getCertificateData = async (req, res) => {
 };
 
 // ... imports (Student, Grade, Subject)
-/*
 exports.getHighScorers = async (req, res) => {
     const { academicYear } = req.query;
 
@@ -457,91 +456,143 @@ exports.getHighScorers = async (req, res) => {
     }
 
     try {
-        // 1. Fetch ALL Active Students
-        const students = await Student.find({ status: 'Active' })
-            .select('studentId fullName gender dateOfBirth gradeLevel photoUrl')
-            .lean();
+        const studentAverages = await Grade.aggregate([
+            // 1. Filter Grades by Year first (Drastically reduces data)
+            { 
+                $match: { academicYear: academicYear } 
+            },
+            // 2. Join with Students to get their details
+            {
+                $lookup: {
+                    from: 'students',
+                    localField: 'student',
+                    foreignField: '_id',
+                    as: 'studentInfo'
+                }
+            },
+            { $unwind: '$studentInfo' },
+            // 3. Filter: Only Active Students
+            {
+                $match: { 'studentInfo.status': 'Active' }
+            },
+            // 4. Join with Subjects to check Grade Level
+            {
+                $lookup: {
+                    from: 'subjects',
+                    localField: 'subject',
+                    foreignField: '_id',
+                    as: 'subjectInfo'
+                }
+            },
+            { $unwind: '$subjectInfo' },
+            // 5. STRICT FILTER: Only count subjects that match the student's current Grade Level
+            // (This prevents Grade 4B grades from counting for a student now in 4A)
+            {
+                $match: {
+                    $expr: { $eq: ["$studentInfo.gradeLevel", "$subjectInfo.gradeLevel"] }
+                }
+            },
+            // 6. GROUP BY STUDENT: Calculate Sums and Counts
+            {
+                $group: {
+                    _id: "$student",
+                    fullName: { $first: "$studentInfo.fullName" },
+                    studentId: { $first: "$studentInfo.studentId" },
+                    gradeLevel: { $first: "$studentInfo.gradeLevel" },
+                    photoUrl: { $first: "$studentInfo.imageUrl" },
+                    gender: { $first: "$studentInfo.gender" },
+                    
+                    // Semester 1 Math
+                    s1Sum: {
+                        $sum: {
+                            $cond: [{ $eq: ["$semester", "First Semester"] }, "$finalScore", 0]
+                        }
+                    },
+                    s1Count: {
+                        $sum: {
+                            $cond: [{ $eq: ["$semester", "First Semester"] }, 1, 0]
+                        }
+                    },
+                    
+                    // Semester 2 Math
+                    s2Sum: {
+                        $sum: {
+                            $cond: [{ $eq: ["$semester", "Second Semester"] }, "$finalScore", 0]
+                        }
+                    },
+                    s2Count: {
+                        $sum: {
+                            $cond: [{ $eq: ["$semester", "Second Semester"] }, 1, 0]
+                        }
+                    }
+                }
+            },
+            // 7. PROJECT AVERAGES
+            {
+                $project: {
+                    fullName: 1,
+                    studentId: 1,
+                    gradeLevel: 1,
+                    photoUrl: 1,
+                    gender: 1,
+                    
+                    sem1Avg: {
+                        $cond: [{ $gt: ["$s1Count", 0] }, { $divide: ["$s1Sum", "$s1Count"] }, 0]
+                    },
+                    sem2Avg: {
+                        $cond: [{ $gt: ["$s2Count", 0] }, { $divide: ["$s2Sum", "$s2Count"] }, 0]
+                    },
+                    // Pass counts to next stage to calculate overall
+                    s1Count: 1,
+                    s2Count: 1
+                }
+            },
+            // 8. CALCULATE OVERALL AVERAGE
+            // Formula: If both semesters exist, (S1+S2)/2. If only one, take that one.
+            {
+                $addFields: {
+                    overallAvg: {
+                        $cond: [
+                            { $and: [{ $gt: ["$s1Count", 0] }, { $gt: ["$s2Count", 0] }] },
+                            { $divide: [{ $add: ["$sem1Avg", "$sem2Avg"] }, 2] }, // (S1+S2)/2
+                            { $add: ["$sem1Avg", "$sem2Avg"] } // Just take the non-zero one
+                        ]
+                    }
+                }
+            }
+        ]);
 
-        if (students.length === 0) return res.status(404).json({ message: 'No students found.' });
-
-        const studentIds = students.map(s => s._id);
+        // --- POST-PROCESSING IN JS (Fast now because data is small) ---
+        // Group by Grade Level and Pick Top 3
         
-        // 2. Fetch Data
-        const academicSubjects = await Subject.find().sort({ name: 1 }).lean();
-        const grades = await Grade.find({ student: { $in: studentIds }, academicYear })
-            .select('student subject semester finalScore')
-            .lean();
-
-        // 3. Calculate Averages for ALL Students
-        const calculatedList = students.map(student => {
-            let s1Total = 0, s1Count = 0;
-            let s2Total = 0, s2Count = 0;
-
-            // Strict Filter: Only check subjects for THIS student's grade level
-            // This prevents fetching Grade 8 subjects for a Grade 1 student
-            const relevantSubjects = academicSubjects.filter(sub => sub.gradeLevel === student.gradeLevel);
-
-            relevantSubjects.forEach(sub => {
-                const g1 = grades.find(g => g.student.toString() === student._id.toString() && g.subject.toString() === sub._id.toString() && g.semester === 'First Semester');
-                const g2 = grades.find(g => g.student.toString() === student._id.toString() && g.subject.toString() === sub._id.toString() && g.semester === 'Second Semester');
-
-                const score1 = g1 && g1.finalScore != null ? parseFloat(g1.finalScore) : null;
-                const score2 = g2 && g2.finalScore != null ? parseFloat(g2.finalScore) : null;
-
-                if (score1 !== null) { s1Total += score1; s1Count++; }
-                if (score2 !== null) { s2Total += score2; s2Count++; }
-            });
-
-            const s1Avg = s1Count > 0 ? s1Total / s1Count : 0;
-            const s2Avg = s2Count > 0 ? s2Total / s2Count : 0;
-
-            // Overall Logic
-            let overallAvgCalc = 0;
-            let divisor = 0;
-            if (s1Count > 0) { overallAvgCalc += s1Avg; divisor++; }
-            if (s2Count > 0) { overallAvgCalc += s2Avg; divisor++; }
-            const finalOverallAvg = divisor > 0 ? overallAvgCalc / divisor : 0;
-
-            return {
-                ...student,
-                sem1Avg: parseFloat(s1Avg.toFixed(2)),
-                sem2Avg: parseFloat(s2Avg.toFixed(2)),
-                overallAvg: parseFloat(finalOverallAvg.toFixed(2))
-            };
-        });
-
-        // 4. GROUP BY GRADE LEVEL & FILTER TOP 3
         const groupedByGrade = {};
 
-        // Grouping
-        calculatedList.forEach(student => {
+        // 1. Group students into their classes
+        studentAverages.forEach(student => {
             if (!groupedByGrade[student.gradeLevel]) {
                 groupedByGrade[student.gradeLevel] = [];
             }
             groupedByGrade[student.gradeLevel].push(student);
         });
 
-        // Ranking & Cutting
         const finalResult = {};
 
+        // 2. Sort and slice Top 3 for each category
         Object.keys(groupedByGrade).forEach(grade => {
             const classList = groupedByGrade[grade];
 
-            // Sort & Rank for EACH Semester context
-            // We return an object with top 3 for S1, S2, and Overall
-            
-            // Helper to get top 3
             const getTop3 = (key) => {
                 return [...classList]
-                    .sort((a, b) => b[key] - a[key]) // Sort Descending
+                    .sort((a, b) => b[key] - a[key]) // Highest score first
                     .slice(0, 3) // Take Top 3
-                    .filter(s => s[key] > 0) // Remove students with 0 score
+                    .filter(s => s[key] > 0) // Remove 0 scores
                     .map((s, index) => ({
                         _id: s._id,
                         fullName: s.fullName,
+                        studentId: s.studentId,
                         photoUrl: s.photoUrl,
                         gender: s.gender,
-                        average: s[key],
+                        average: parseFloat(s[key].toFixed(2)),
                         rank: index + 1
                     }));
             };
@@ -553,13 +604,10 @@ exports.getHighScorers = async (req, res) => {
             };
         });
 
-        // Return: { "Grade 1A": { sem1: [...], overall: [...] }, "Grade 1B": ... }
         res.json({ success: true, data: finalResult });
 
     } catch (error) {
-        console.error("High Scorer Error:", error);
+        console.error("Aggregation Error:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
-
-*/
