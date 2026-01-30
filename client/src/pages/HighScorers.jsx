@@ -18,6 +18,7 @@ const HighScorers = () => {
           acc[student.gradeLevel].push(student);
           return acc;
         }, {});
+
         setData(grouped);
       } catch (err) {
         setError('Failed to load high scorers');
@@ -33,107 +34,148 @@ const HighScorers = () => {
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
 
   return (
-    <div style={{ padding: 24, background: '#f5f7fb', minHeight: '100vh' }}>
-      <h2 style={{ marginBottom: 20 }}>
-        🏆 High Scorer Students — {academicYear}
-      </h2>
+    <div style={{ padding: 20, fontFamily: 'Arial, sans-serif' }}>
+
+      {/* PRINT STYLES */}
+      <style>
+        {`
+          @media print {
+            body {
+              background: white;
+            }
+            button {
+              display: none !important;
+            }
+            .grade-card {
+              page-break-after: always;
+              box-shadow: none !important;
+            }
+            table {
+              font-size: 12px;
+            }
+            th {
+              background: #eee !important;
+            }
+          }
+        `}
+      </style>
+
+      {/* PRINT BUTTON */}
+      <button
+        onClick={() => window.print()}
+        style={{
+          background: '#1e40af',
+          color: '#fff',
+          border: 'none',
+          padding: '10px 18px',
+          borderRadius: 6,
+          cursor: 'pointer',
+          marginBottom: 20
+        }}
+      >
+        🖨️ Print Report
+      </button>
+
+      {/* HEADER */}
+      <div style={{ textAlign: 'center', marginBottom: 30 }}>
+        <h2>High Scorer Students Report</h2>
+        <p>Academic Year: {academicYear}</p>
+        <p>School Name: __________________________</p>
+      </div>
 
       {Object.keys(data).map(grade => (
         <div
           key={grade}
+          className="grade-card"
           style={{
             background: '#fff',
-            borderRadius: 12,
             padding: 20,
-            marginBottom: 30,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+            marginBottom: 40,
+            borderRadius: 8,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}
         >
-          <h3 style={{ marginBottom: 16 }}>Grade {grade}</h3>
+          <h3 style={{ marginBottom: 10 }}>Grade {grade}</h3>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f0f2f5' }}>
-                  {[
-                    '#',
-                    'Student',
-                    'Gender',
-                    'S1 Avg',
-                    'S1 Rank',
-                    'S2 Avg',
-                    'S2 Rank',
-                    'Overall Avg',
-                    'Overall Rank'
-                  ].map(h => (
-                    <th
-                      key={h}
-                      style={{
-                        textAlign: 'left',
-                        padding: '10px 8px',
-                        fontWeight: 600,
-                        fontSize: 14
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              textAlign: 'center'
+            }}
+          >
+            <thead>
+              <tr>
+                {[
+                  '#',
+                  'Photo',
+                  'Student Name',
+                  'Gender',
+                  'S1 Avg',
+                  'S1 Rank',
+                  'S2 Avg',
+                  'S2 Rank',
+                  'Overall Avg',
+                  'Overall Rank'
+                ].map(h => (
+                  <th
+                    key={h}
+                    style={{
+                      border: '1px solid #ccc',
+                      padding: 8,
+                      background: '#f3f4f6'
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {data[grade].map((s, index) => (
+                <tr key={s._id}>
+                  <td style={cell}>{index + 1}</td>
+                  <td style={cell}>
+                    {s.photoUrl ? (
+                      <img
+                        src={s.photoUrl}
+                        alt={s.fullName}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: '50%'
+                        }}
+                      />
+                    ) : '—'}
+                  </td>
+                  <td style={cell}>{s.fullName}</td>
+                  <td style={cell}>{s.gender}</td>
+                  <td style={cell}>{s.sem1.avg}</td>
+                  <td style={cell}>{s.sem1.rank}</td>
+                  <td style={cell}>{s.sem2.avg}</td>
+                  <td style={cell}>{s.sem2.rank}</td>
+                  <td style={cell}><strong>{s.overall.avg}</strong></td>
+                  <td style={cell}><strong>{s.overall.rank}</strong></td>
                 </tr>
-              </thead>
+              ))}
+            </tbody>
+          </table>
 
-              <tbody>
-                {data[grade].map((s, index) => {
-                  const isTop = s.overall.rank === 1;
-
-                  return (
-                    <tr
-                      key={s._id}
-                      style={{
-                        background: isTop ? '#fff8e1' : 'transparent',
-                        borderBottom: '1px solid #eee'
-                      }}
-                    >
-                      <td style={{ padding: 8 }}>{index + 1}</td>
-
-                      <td style={{ padding: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <img
-                            src={s.photoUrl || '/avatar.png'}
-                            alt={s.fullName}
-                            width={40}
-                            height={40}
-                            style={{ borderRadius: '50%', objectFit: 'cover' }}
-                          />
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{s.fullName}</div>
-                            <small style={{ color: '#777' }}>{s.studentId}</small>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td style={{ padding: 8 }}>{s.gender}</td>
-                      <td style={{ padding: 8 }}>{s.sem1.avg}</td>
-                      <td style={{ padding: 8 }}>{s.sem1.rank}</td>
-                      <td style={{ padding: 8 }}>{s.sem2.avg}</td>
-                      <td style={{ padding: 8 }}>{s.sem2.rank}</td>
-
-                      <td style={{ padding: 8, fontWeight: 700 }}>
-                        {s.overall.avg}
-                      </td>
-
-                      <td style={{ padding: 8, fontWeight: 700 }}>
-                        {isTop ? '🥇' : s.overall.rank}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {/* SIGNATURE */}
+          <div style={{ marginTop: 40, textAlign: 'right' }}>
+            <p>__________________________</p>
+            <p>Director / Principal</p>
           </div>
         </div>
       ))}
     </div>
   );
+};
+
+const cell = {
+  border: '1px solid #ccc',
+  padding: 8
 };
 
 export default HighScorers;
