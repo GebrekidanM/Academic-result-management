@@ -223,46 +223,100 @@ exports.generateStudentReport = async (req, res) => {
 };
 
 /**
- * @desc    Generate Reports for an Entire Class (OPTIMIZED BATCH)
+ * @desc    Generate Reports for an Entire Class (AGGREGATION APPROACH)
  * @route   GET /api/reports/class/:gradeLevel
  */
 exports.generateClassReports = async (req, res) => {
     try {
-        const { gradeLevel } = req.params;
+        const { gradeLevel } = req.query;
         const { academicYear } = req.query; 
 
-        // 1. Find all Active Students in this Grade
-        const students = await Student.find({ gradeLevel, status: 'Active' }).sort({ fullName: 1 });
-
-        if (!students.length) {
-            return res.status(404).json({ message: 'No students found in this grade.' });
+        if (!gradeLevel) {
+            return res.status(400).json({ message: 'Grade Level is required' });
         }
 
-        const studentIds = students.map(s => s._id);
-
-        // 2. BULK FETCH (Optimization: 3 DB calls instead of 3 * N)
-        // Added SupportiveGrade.find here
-        const [allGrades, allBehaviors, allSupportive] = await Promise.all([
-            Grade.find({ student: { $in: studentIds } }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
-            BehavioralReport.find({ student: { $in: studentIds } }),
-            SupportiveGrade.find({ student: { $in: studentIds } }).populate('subject', 'name').lean()
+        // 1. AGGREGATION PIPELINE
+        // This fetches students and immediately attaches their specific data
+        const studentsWithData = await Student.aggregate([
+            // A. Match Students in this Grade
+            { 
+                $match: { gradeLevel: gradeLevel, status: 'Active' } 
+            },
+            // B. Sort Alphabetically
+            { 
+                $sort: { fullName: 1 } 
+            },
+            // C. Join Grades (Only for this student & year)
+            {
+                $lookup: {
+                    from: 'grades',
+                    let: { studentId: '$_id' },
+                    pipeline: [
+                        { 
+                            $match: { 
+                                $expr: { $eq: ['$student', '$$studentId'] },
+                                // Apply Academic Year Filter directly in DB if provided
+                                ...(academicYear ? { academicYear: academicYear } : {})
+                            } 
+                        }
+                    ],
+                    as: 'rawGrades'
+                }
+            },
+            // D. Join Behavior
+            {
+                $lookup: {
+                    from: 'behavioralreports',
+                    let: { studentId: '$_id' },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ['$student', '$$studentId'] } } }
+                    ],
+                    as: 'behaviorDocs'
+                }
+            },
+            // E. Join Supportive Grades
+            {
+                $lookup: {
+                    from: 'supportivegrades',
+                    let: { studentId: '$_id' },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ['$student', '$$studentId'] } } }
+                    ],
+                    as: 'rawSupportive'
+                }
+            }
         ]);
 
-        // 3. Process in Memory
-        const classReports = students.map(student => {
-            try {
-                // Filter relevant data for this student from the big lists
-                const rawGrades = allGrades.filter(g => g.student.toString() === student._id.toString());
-                const behaviorDocs = allBehaviors.filter(b => b.student.toString() === student._id.toString());
-                const rawSupportive = allSupportive.filter(s => s.student.toString() === student._id.toString());
+        if (studentsWithData.length === 0) {
+            return res.status(404).json({ message: 'No students found.' });
+        }
 
-                // Process Logic (Same as single report)
-                const cleanedGrades = mergeDuplicateGrades(rawGrades, student.gradeLevel);
+        // 2. POPULATE DETAILS
+        // Aggregation returns IDs for references. We use Mongoose to populate them efficiently.
+        await Student.populate(studentsWithData, [
+            { 
+                path: 'rawGrades.subject', 
+                select: 'name gradeLevel' 
+            },
+            { 
+                path: 'rawGrades.assessments.assessmentType', 
+                select: 'name totalMarks month' 
+            },
+            { 
+                path: 'rawSupportive.subject', 
+                select: 'name' 
+            }
+        ]);
+
+        // 3. PROCESS DATA (Using Helper Functions)
+        // Now 'student.rawGrades' already contains only THAT student's grades.
+        const classReports = studentsWithData.map(student => {
+            try {
+                // Process Logic
+                const cleanedGrades = mergeDuplicateGrades(student.rawGrades, student.gradeLevel);
                 const statsSem1 = calculateStats(cleanedGrades, 'First Semester');
                 const statsSem2 = calculateStats(cleanedGrades, 'Second Semester');
-
-                // Process Supportive Grades (Letters)
-                const supportiveData = processSupportiveGrades(rawSupportive);
+                const supportiveData = processSupportiveGrades(student.rawSupportive);
 
                 let finalAverage = 0;
                 if (statsSem1.avg > 0 && statsSem2.avg > 0) finalAverage = (statsSem1.avg + statsSem2.avg) / 2;
@@ -285,20 +339,19 @@ exports.generateClassReports = async (req, res) => {
                         promotedTo: finalAverage >= 50 ? promotedStr : 'Retained',
                     },
                     grades: cleanedGrades,
-                    supportiveGrades: supportiveData, // <--- Added this to the batch report
+                    supportiveGrades: supportiveData,
                     semester1: statsSem1,
                     semester2: statsSem2,
                     finalAverage: parseFloat(finalAverage.toFixed(2)),
-                    behavior: processBehaviorData(behaviorDocs),
-                    footerData: processAttendanceAndConduct(behaviorDocs),
+                    behavior: processBehaviorData(student.behaviorDocs),
+                    footerData: processAttendanceAndConduct(student.behaviorDocs),
                     rank: null
                 };
-
             } catch (err) {
                 console.error(`Error processing student ${student.fullName}:`, err);
                 return null;
             }
-        }).filter(r => r !== null); // Remove failed entries
+        }).filter(r => r !== null);
 
         res.json({ success: true, count: classReports.length, data: classReports });
 
@@ -307,7 +360,6 @@ exports.generateClassReports = async (req, res) => {
         res.status(500).json({ message: 'Server Error generating class reports' });
     }
 };
-
 
 
 /**
