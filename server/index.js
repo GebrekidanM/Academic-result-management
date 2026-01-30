@@ -74,7 +74,7 @@ const fixSubjectLoads = async (req, res) => {
     }
 };
 
-const BehavioralReport = mongoose.model('BehavioralReport', new mongoose.Schema({}, { strict: false }));
+const BehavioralReport = require('./models/BehavioralReport');
 
 const migrateData = async () => {
     try {
