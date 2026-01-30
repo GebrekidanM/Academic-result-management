@@ -228,7 +228,7 @@ exports.generateStudentReport = async (req, res) => {
  */
 exports.generateClassReports = async (req, res) => {
     try {
-        const { gradeLevel } = req.query;
+        const { gradeLevel } = req.params;
         const { academicYear } = req.query; 
 
         if (!gradeLevel) {

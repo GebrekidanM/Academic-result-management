@@ -19,6 +19,7 @@ const reportCardService = {
 
     // NEW: Get Whole Class
     getClassReports: async (gradeLevel) => {
+        console.log(gradeLevel)
         return await api.get(`${API_URL}/class/${gradeLevel}`);
     },
 
