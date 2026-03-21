@@ -7,8 +7,8 @@ const AssessmentType = require('../models/AssessmentType')
 // @route   POST /api/subjects
 exports.createSubject = async (req, res) => {
     try {
-        const { name, code, gradeLevel } = req.body;
-        const subject = await Subject.create({ name, code, gradeLevel });
+        const { name, code, gradeLevel,load } = req.body;
+        const subject = await Subject.create({ name, code, gradeLevel,sessionsPerWeek:load });
         res.status(201).json({ success: true, data: subject });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
@@ -115,13 +115,15 @@ exports.bulkCreateSubjects = async (req, res) => {
         const subjectsToCreate = subjectsJson.map(subject => ({
             name: subject['Name'] || subject['name'],
             gradeLevel: subject['Grade Level'] || subject['gradeLevel'],
-            code: subject['Code'] || subject['code'] || '' // Code is optional
+            code: subject['Code'] || subject['code'] || '',
+            sessionsPerWeek: subject['Credit']
+
         }));
 
         // Insert all new subjects into the database
         const createdSubjects = await Subject.insertMany(subjectsToCreate, { ordered: false });
 
-        fs.unlinkSync(filePath); // Clean up the temporary file
+        fs.unlinkSync(filePath);
 
         res.status(201).json({
             message: `${createdSubjects.length} subjects imported successfully.`,
@@ -129,8 +131,7 @@ exports.bulkCreateSubjects = async (req, res) => {
         });
 
     } catch (error) {
-        fs.unlinkSync(filePath); // Clean up even if there's an error
-        // Handle duplicate errors (based on the index on 'name' and 'gradeLevel')
+        fs.unlinkSync(filePath);
         if (error.code === 11000 || error.name === 'MongoBulkWriteError') {
             return res.status(400).json({ message: 'Import failed. Some subjects in the file may already exist for the same grade level.' });
         }

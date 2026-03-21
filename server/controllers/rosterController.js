@@ -191,42 +191,80 @@ exports.generateRoster = async (req, res) => {
 exports.generateSubjectRoster = async (req, res) => {
     const { gradeLevel, subjectId, semester, academicYear } = req.query;
 
+    // 1. Validation
     if (!gradeLevel || !subjectId || !semester || !academicYear) {
         return res.status(400).json({ message: 'Grade Level, Subject, Semester, and Year are required.' });
     }
-    
+
+    // 2. Define Semester Logic
+    // Adjust these arrays to match your school's actual academic calendar
+    const SEMESTER_CONFIG = {
+        "First Semester": ["September", "October", "November", "December", "January"],
+        "Second Semester": ["February", "March", "April", "May", "June"]
+    };
+
+    const validMonths = SEMESTER_CONFIG[semester];
+    if (!validMonths) {
+        return res.status(400).json({ message: 'Invalid semester provided.' });
+    }
+
     try {
-        const allAssessmentsForSubject = await AssessmentType.find({ subject: subjectId, gradeLevel ,year:academicYear}).sort({ name: 1 });
+        // 3. Fetch Assessment Types (Filtered by Semester months if stored that way, or sorted later)
+        const allAssessmentsForSubject = await AssessmentType.find({ 
+            subject: subjectId, 
+            gradeLevel, 
+            year: academicYear,
+            month: { $in: validMonths } // Database-level filtering for efficiency
+        });
+
         if (allAssessmentsForSubject.length === 0) {
-            return res.status(404).json({ message: 'No assessment types found for this subject.' });
+            return res.status(404).json({ message: 'No assessment types found for this semester.' });
         }
 
-        const MONTH_ORDER = ["September", "October", "November", "December", "January", "February", "March", "April", "May", "June"];
+        // 4. Group and Sort Months based on Semester Order
         const assessmentTypesByMonth = {};
         allAssessmentsForSubject.forEach(at => {
             if (!assessmentTypesByMonth[at.month]) assessmentTypesByMonth[at.month] = [];
             assessmentTypesByMonth[at.month].push(at);
         });
-        
-        const sortedMonths = Object.keys(assessmentTypesByMonth).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+
+        const sortedMonths = validMonths.filter(m => assessmentTypesByMonth[m]);
+
+        // 5. Fetch Students and Grades
         const students = await Student.find({ gradeLevel, status: 'Active' })
             .select('studentId fullName gender dateOfBirth')
             .sort({ fullName: 1 });
 
         if (students.length === 0) return res.status(404).json({ message: 'No active students found.' });
-        
-        const studentIds = students.map(s => s._id);
-        const grades = await Grade.find({ student: { $in: studentIds }, subject: subjectId, semester, academicYear }).populate('assessments.assessmentType');
 
+        const studentIds = students.map(s => s._id);
+        const grades = await Grade.find({ 
+            student: { $in: studentIds }, 
+            subject: subjectId, 
+            semester, 
+            academicYear 
+        }).populate('assessments.assessmentType');
+
+        // 6. Optimization: Map grades by Student ID for O(1) access
+        const gradeMap = new Map();
+        grades.forEach(g => gradeMap.set(g.student.toString(), g));
+
+        // 7. Ranking Logic (Sort grades by finalScore descending)
+        const sortedGradesForRanking = [...grades].sort((a, b) => b.finalScore - a.finalScore);
+
+        // 8. Construct Roster Data
         const rosterData = students.map(student => {
             const studentDetailedScores = {};
-            const gradeDoc = grades.find(g => g.student.equals(student._id));
+            const gradeDoc = gradeMap.get(student._id.toString());
+
+            // Check rank (1-based index)
+            const rank = gradeDoc 
+                ? sortedGradesForRanking.findIndex(g => g._id.equals(gradeDoc._id)) + 1 
+                : '-';
 
             allAssessmentsForSubject.forEach(at => {
                 let score = '-';
-                if (gradeDoc) {
-                    // --- THIS IS THE CRITICAL SAFETY CHECK ---
-                    // We check if 'a.assessmentType' exists before trying to access its properties
+                if (gradeDoc && gradeDoc.assessments) {
                     const assessment = gradeDoc.assessments.find(a => 
                         a.assessmentType && a.assessmentType._id.equals(at._id)
                     );
@@ -236,16 +274,19 @@ exports.generateSubjectRoster = async (req, res) => {
             });
 
             return {
-                studentId: student.studentId, 
+                studentId: student.studentId,
                 fullName: student.fullName,
                 gender: student.gender,
-                age: calculateAge(student.dateOfBirth),
+                age: typeof calculateAge === 'function' ? calculateAge(student.dateOfBirth) : 'N/A',
                 detailedScores: studentDetailedScores,
                 finalScore: gradeDoc ? parseFloat(gradeDoc.finalScore.toFixed(2)) : '-',
+                rank: rank
             };
         });
 
+        // 9. Send Response
         res.status(200).json({
+            semester: semester,
             sortedMonths: sortedMonths,
             assessmentsByMonth: assessmentTypesByMonth,
             roster: rosterData

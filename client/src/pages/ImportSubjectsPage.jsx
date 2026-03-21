@@ -6,7 +6,7 @@ import subjectService from '../services/subjectService';
 const ImportSubjectsPage = () => {
     // --- State Management ---
     const [selectedFile, setSelectedFile] = useState(null);
-    const [result, setResult] = useState(null); // Will hold the full success response
+    const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -54,8 +54,9 @@ const ImportSubjectsPage = () => {
                 <p><strong>Instructions:</strong></p>
                 <ul className="list-disc list-inside mt-2">
                     <li>Your file must be in .xlsx or .csv format. The first row must be the header.</li>
-                    <li>Required columns are: <strong>Name</strong> and <strong>Grade Level</strong>.</li>
+                    <li>Required columns are: <strong>Name</strong>, <strong>Grade Level</strong> and <strong>Credit per week</strong>.</li>
                     <li>Optional column: <strong>Code</strong>.</li>
+
                     <li>
                         <a href="/subject-template.xlsx" download className="font-bold text-blue-600 hover:underline">
                             Download Template File
@@ -76,6 +77,7 @@ const ImportSubjectsPage = () => {
                                     <th className={tableHeader}>Subject Name</th>
                                     <th className={tableHeader}>Grade Level</th>
                                     <th className={tableHeader}>Code</th>
+                                    <th className={tableHeader}>Credit</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -84,6 +86,7 @@ const ImportSubjectsPage = () => {
                                         <td className={`${tableCell} text-gray-900`}>{subject.name}</td>
                                         <td className={`${tableCell} text-gray-700`}>{subject.gradeLevel}</td>
                                         <td className={`${tableCell} font-mono text-gray-500`}>{subject.code}</td>
+                                        <td className={`${tableCell} font-gray-700`}>{subject.sessionsPerWeek}</td>
                                     </tr>
                                 ))}
                             </tbody>

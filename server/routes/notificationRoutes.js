@@ -5,27 +5,36 @@ const { createNotification, getMyNotifications, updateNotification, deleteNotifi
 
 // --- MIDDLEWARE TO ALLOW BOTH USERS AND STUDENTS ---
 const protectUniversal = async (req, res, next) => {
-    if (req.headers.authorization) {
-        try {
-            await protect(req, res, () => {}); // Try protect
-            if (req.user) return next(); // Success
-        } catch (e) {
-            console.log("User token failed, trying student token...");
-        } 
-        
-        try {
-            await protectStudent(req, res, () => {}); // Try protectStudent
-            if (req.student) {
-                req.user = { ...req.student.toObject(), role: 'parent' }; 
-                return next();
-            }
-        } catch (e) {
-            console.log("Student token failed.");
-        }
+    if (!req.headers.authorization) {
+        return res.status(401).json({ message: "Not Authorized" });
     }
-    return res.status(401).json({ message: "Not Authorized" });
-};
 
+    try {
+        await protect(req, res, () => {});
+        if (req.user) {
+            return next();
+        }
+    } catch (e) {
+        console.log("User token failed, trying student token...");
+    }
+
+    // If protect() already sent a response, stop here
+    if (res.headersSent) return;
+
+    try {
+        await protectStudent(req, res, () => {});
+        if (req.student) {
+            req.user = { ...req.student.toObject(), role: "parent" };
+            return next();
+        }
+    } catch (e) {
+        console.log("Student token failed.");
+    }
+
+    if (!res.headersSent) {
+        return res.status(401).json({ message: "Not Authorized" });
+    }
+};
 // Routes
 router.get('/', protectUniversal, getMyNotifications);
 router.post('/', protect, authorize('admin', 'staff'), createNotification);

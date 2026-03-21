@@ -7,7 +7,7 @@ const api = axios.create({
   baseURL: apiUrl,
   headers: { 'Content-Type': 'application/json' },
 });
-
+console.log(api)
 const smallApi = axios.create({
   baseURL: Url,
   headers: { 'Content-Type': 'application/json' },

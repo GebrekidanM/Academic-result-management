@@ -18,7 +18,7 @@ const subjectSchema = new mongoose.Schema({
     sessionsPerWeek: {
         type: Number,
         required: true,
-        default: 3, // Default value if not specified
+        default: 3,
         min: 1,
         max: 10
     }
