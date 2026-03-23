@@ -38,24 +38,11 @@ const LevelBadge = ({ level }) => {
     );
 };
 
-const HomePage = () => {
+const HomePage = ({currentUser}) => {
     const { t } = useTranslation();
 
-    // --- 2. UPDATED STATE INITIALIZATION ---
-    // Check for Staff first, then check for Parent/Student
-    const [currentUser] = useState(() => {
-        const staffUser = authService.getCurrentUser();
-        if (staffUser) return staffUser;
 
-        const studentUser = studentAuthService.getCurrentStudent();
-        if (studentUser) {
-            // Ensure the object has the role property set to 'parent'
-            // (Student objects might not have 'role' in the database)
-            return { ...studentUser, role: 'parent' };
-        }
-
-        return null;
-    });
+    
 
     const [profileData, setProfileData] = useState(null);
     const [stats, setStats] = useState(null);
@@ -163,7 +150,6 @@ const HomePage = () => {
         );
     }
 
-    return <LoggedOut />;
 };
 
 export default HomePage;

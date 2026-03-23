@@ -78,16 +78,19 @@ import TopStudentsPage from './pages/TopStudentsPage';
 function App() {
   const [isOpen, setIsOpen] = useState(false);
   
-  const [currentUser, setCurrentUser] = useState(null);
-  const [currentStudent, setCurrentStudent] = useState(null);
-
-  useEffect(() => {
-    const user = authService.getCurrentUser();
-    const student = studentAuthService.getCurrentStudent();
-    if (user) setCurrentUser(user);
-    else if (student) setCurrentStudent(student);
-  }, []);
-
+  const [currentUser] = useState(() => {
+          const staffUser = authService.getCurrentUser();
+          if (staffUser) return staffUser;
+  
+          const studentUser = studentAuthService.getCurrentStudent();
+          if (studentUser) {
+              // Ensure the object has the role property set to 'parent'
+              // (Student objects might not have 'role' in the database)
+              return { ...studentUser, role: 'parent' };
+          }
+  
+          return null;
+      });
 
 
   // Register service worker (for offline/PWA)
@@ -116,15 +119,15 @@ function App() {
       {/* ----------------------------- */}
       <NotificationPermission />
 
-      {(currentUser || currentStudent) && (
-          <Navbar isOpen={isOpen} setIsOpen={setIsOpen}/> 
+      {(currentUser ) && (
+          <Navbar isOpen={isOpen} setIsOpen={setIsOpen} /> 
       )}
 
       <main className={"container mx-auto p-4"} onClick={()=> setIsOpen(false)}>
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<HomePage currentUser={currentUser}/>} />
           <Route path="*" element={<LoginPage />} />
 
           {/* ===== 2. STAFF-ONLY ROUTES ====== */}

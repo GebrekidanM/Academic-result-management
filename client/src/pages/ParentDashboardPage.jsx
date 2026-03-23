@@ -339,39 +339,57 @@ const ParentDashboardPage = () => {
                                             </div>
                                         </div>
 
-                                        <table className="w-full text-sm border-collapse border border-slate-300">
-                                            <thead className="bg-slate-100">
-                                                <tr>
-                                                    <th className="border border-slate-300 px-4 py-2 text-left w-1/4">{t('subject')}</th>
-                                                    <th className="border border-slate-300 px-4 py-2 text-left w-24">{t('month')}</th>
-                                                    <th className="border border-slate-300 px-4 py-2 text-left">{t('assessment')}</th>
-                                                    <th className="border border-slate-300 px-4 py-2 text-right">{t('score')}</th>
-                                                    <th className="border border-slate-300 px-4 py-2 text-center bg-slate-200 w-28">{t('total')}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white">
-                                                {processedGrades.map((grade) => {
-                                                    const rows = grade.flatAssessments.length > 0 ? grade.flatAssessments : [{ id: 'empty' }]; 
-                                                    return rows.map((assess, index) => (
-                                                        <tr key={`${grade._id}-${index}`} className="border-b border-slate-300">
-                                                            {index === 0 && <td rowSpan={rows.length} className="border border-slate-300 px-4 py-2 font-bold bg-white align-top text-slate-800">{grade.subject.name}</td>}
-                                                            {assess.monthRowSpan > 0 && <td rowSpan={assess.monthRowSpan} className="border border-slate-300 px-4 py-2 text-slate-700 font-medium align-middle bg-slate-50">{assess.monthName}</td>}
-                                                            <td className="border border-slate-300 px-4 py-2 text-slate-600">{assess.testName || '-'}</td>
-                                                            <td className="border border-slate-300 px-4 py-2 text-right font-mono text-slate-700">{assess.score !== undefined ? `${assess.score} / ${assess.totalMarks}` : '-'}</td>
-                                                            {/* UPDATED TOTAL COLUMN: SHOW SCORE / MAX */}
-                                                            {index === 0 && <td rowSpan={rows.length} className="border border-slate-300 px-4 py-2 font-bold text-center align-middle bg-slate-100 text-blue-900">{grade.finalScore} / {grade.subjectTotalMax}</td>}
-                                                        </tr>
-                                                    ));
-                                                })}
-                                            </tbody>
-                                            <tfoot>
-                                                <tr className="bg-slate-800 text-white font-bold">
-                                                    <td colSpan={4} className="px-4 py-2 text-right uppercase text-xs tracking-wider">{t('grand_total')}</td>
-                                                    {/* UPDATED GRAND TOTAL: SHOW OBTAINED / MAX */}
-                                                    <td className="px-4 py-2 text-center text-lg">{semesterObtained.toFixed(0)} / {semesterMax}</td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
+                                        {processedGrades.map((grade) => (
+    <div key={grade._id} className="mb-6 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        {/* SUBJECT TITLE BAR */}
+        <div className="bg-slate-800 p-4 flex justify-between items-center text-white">
+            <h5 className="text-lg font-bold tracking-wide uppercase">{grade.subject.name}</h5>
+            <div className="text-right">
+                <span className="text-xs opacity-70 uppercase block">{t('subject_total')}</span>
+                <span className="text-xl font-black">
+                    {grade.finalScore} <span className="text-sm opacity-50">/ {grade.subjectTotalMax}</span>
+                </span>
+            </div>
+        </div>
+
+        {/* MONTHLY BREAKDOWN */}
+        <div className="p-4 space-y-4">
+            {/* Grouping by Month inside the card */}
+            {Object.entries(
+                grade.flatAssessments.reduce((acc, curr) => {
+                    acc[curr.monthName] = acc[curr.monthName] || [];
+                    acc[curr.monthName].push(curr);
+                    return acc;
+                }, {})
+            ).map(([month, assessments]) => (
+                <div key={month} className="border-l-4 border-blue-500 pl-4 py-1">
+                    <h6 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                        📅 {t(month)}
+                    </h6>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {assessments.map((assess) => (
+                            <div key={assess.id} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                                <span className="text-sm text-slate-600">{assess.testName}</span>
+                                <span className="font-mono font-bold text-slate-800">
+                                    {assess.score} <span className="text-[10px] text-slate-400">/ {assess.totalMarks}</span>
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+
+        {/* PROGRESS VISUALIZER */}
+        <div className="h-1.5 w-full bg-slate-100">
+            <div 
+                className="h-full bg-blue-500 transition-all duration-500" 
+                style={{ width: `${(grade.finalScore / grade.subjectTotalMax) * 100}%` }}
+            ></div>
+        </div>
+    </div>
+))}
 
                                         <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-sm italic text-slate-700">
                                             <strong>{t('teacher_comment')}:</strong> "{reports.find(r => r.semester === semester)?.teacherComment || "No comment available."}"
