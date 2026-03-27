@@ -44,8 +44,8 @@ const gradeSchema = new mongoose.Schema({
 });
 
 gradeSchema.index(
-  { student: 1, subject: 1, semester: 1, academicYear: 1, "assessments.assessmentType": 1 },
-  { unique: false } 
+ { student: 1, subject: 1, semester: 1, academicYear: 1, "assessments.assessmentType": 1 },
+ { unique: true }
 );
 
 module.exports = mongoose.model('Grade', gradeSchema);

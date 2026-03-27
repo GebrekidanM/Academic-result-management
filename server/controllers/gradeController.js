@@ -244,93 +244,99 @@ exports.getGradeSheet = async (req, res) => {
 // @desc    Save or update multiple grades for one assessment
 // @route   POST /api/grades/sheet
 exports.saveGradeSheet = async (req, res) => {
-  const { assessmentTypeId, subjectId, semester, academicYear, scores } = req.body;
 
-  const ethiopianYear = parseInt(new Intl.DateTimeFormat('en-US', { calendar: 'ethiopic', year: 'numeric' }).format(new Date()).replace(/\D/g, ''));
+  const {
+    studentId,
+    subjectId,
+    semester,
+    academicYear,
+    assessments
+  } = req.body;
 
-  if(academicYear > ethiopianYear){
-    return res.status(400).json({message: "You did not inter the correct year."})
-  }
-
-  if (!assessmentTypeId || !subjectId || !Array.isArray(scores)) {
-    return res.status(400).json({ message: 'Missing required data.' });
-  }
+  console.log(req.body);
 
   try {
-    // Perform all updates in parallel
-    const updatePromises = scores.map(async ({ studentId, score }) => {
-      if (score == null || score === '' || isNaN(score)) return;
 
-      // Update existing assessment
-      const updateResult = await Grade.updateOne(
-        {
-          student: studentId,
-          subject: subjectId,
-          semester,
-          academicYear,
-          "assessments.assessmentType": assessmentTypeId
-        },
-        {
-          $set: {
-            "assessments.$.score": score,
-            semester,
-            academicYear,
-            subject: subjectId
-          }
-        }
-      );
+    if (!studentId || !subjectId || !semester || !academicYear) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
 
-      // If no match, push new assessment
-      if (updateResult.matchedCount === 0) {
-        await Grade.updateOne(
-          { student: studentId, subject: subjectId, semester, academicYear },
-          {
-            $setOnInsert: { student: studentId, subject: subjectId, semester, academicYear },
-            $push: { assessments: { assessmentType: assessmentTypeId, score } }
-          },
-          { upsert: true }
-        );
-      }
-
-      const gradeDoc = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear });
-      if (gradeDoc) {
-        const validAssessments = gradeDoc.assessments.filter(a => a.score !== null && a.score !== undefined);
-
-        const totalScore = validAssessments.reduce(
-          (sum, a) => sum + (a.score || 0),
-          0
-        );
-
-        gradeDoc.finalScore = totalScore;
-        await gradeDoc.save();
-      }
+    // 1️⃣ Find existing grade document
+    let gradeDoc = await Grade.findOne({
+      student: studentId,
+      subject: subjectId,
+      semester,
+      academicYear
     });
-    await Promise.all(updatePromises);
 
-    // --- NEW: TRIGGER NOTIFICATION ---
-        // 1. Get Details for the message
-        const assessment = await AssessmentType.findById(assessmentTypeId).populate('subject');
-        
-        if (assessment) {
-            const subjectName = assessment.subject?.name || "Subject";
-            
-            await sendSystemNotification(
-                `Grades Posted: ${subjectName} 📊`,
-                `Results for ${assessment.name} (${semester}) have been released. Check the dashboard.`,
-                ['parent', 'admin', 'staff'], // Target Audience
-                assessment.gradeLevel, // Only parents of this grade
-                req.user._id
-            );
-        }
-        // ---------------------------------
+    // 2️⃣ Create if not exists
+    if (!gradeDoc) {
+      gradeDoc = new Grade({
+        student: studentId,
+        subject: subjectId,
+        semester,
+        academicYear,
+        assessments: [],
+        finalScore: 0
+      });
+    }
 
+    // 3️⃣ Merge assessments
+    assessments.forEach(update => {
 
+  if (update.score === null || update.score === undefined || update.score === '') return;
 
-    res.status(200).json({ success: true, message: 'Grades saved or updated successfully.' });
-  } catch (error) {
-    console.error("Error saving grade sheet:", error);
-    res.status(500).json({ message: 'Server error saving grades.' });
+  const existingIndex = gradeDoc.assessments.findIndex(
+    a => a.assessmentType.toString() === update.assessmentType.toString()
+  );
+
+  if (existingIndex > -1) {
+
+    // update existing score
+    gradeDoc.assessments[existingIndex].score = Number(update.score);
+
+  } else {
+
+    // add new assessment
+    gradeDoc.assessments.push({
+      assessmentType: update.assessmentType,
+      score: Number(update.score)
+    });
+
   }
+
+});
+
+    // 4️⃣ Remove broken assessments
+    gradeDoc.assessments = gradeDoc.assessments.filter(
+      a => a.assessmentType
+    );
+
+    // 5️⃣ Calculate final score
+    gradeDoc.finalScore = gradeDoc.assessments.reduce(
+      (sum, a) => sum + (a.score || 0),
+      0
+    );
+
+    // 6️⃣ Save
+    await gradeDoc.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Grades saved successfully"
+    });
+
+  } catch (error) {
+
+    console.error("Grade save error:", error);
+
+    res.status(500).json({
+      message: "Server error saving grades",
+      error: error.message
+    });
+
+  }
+
 };
 
 // @route GET /api/grades/clean

@@ -232,7 +232,7 @@ exports.generateSubjectRoster = async (req, res) => {
 
         // 5. Fetch Students and Grades
         const students = await Student.find({ gradeLevel, status: 'Active' })
-            .select('studentId fullName gender dateOfBirth')
+            .select('_id studentId fullName gender dateOfBirth')
             .sort({ fullName: 1 });
 
         if (students.length === 0) return res.status(404).json({ message: 'No active students found.' });
@@ -249,18 +249,10 @@ exports.generateSubjectRoster = async (req, res) => {
         const gradeMap = new Map();
         grades.forEach(g => gradeMap.set(g.student.toString(), g));
 
-        // 7. Ranking Logic (Sort grades by finalScore descending)
-        const sortedGradesForRanking = [...grades].sort((a, b) => b.finalScore - a.finalScore);
-
         // 8. Construct Roster Data
         const rosterData = students.map(student => {
             const studentDetailedScores = {};
             const gradeDoc = gradeMap.get(student._id.toString());
-
-            // Check rank (1-based index)
-            const rank = gradeDoc 
-                ? sortedGradesForRanking.findIndex(g => g._id.equals(gradeDoc._id)) + 1 
-                : '-';
 
             allAssessmentsForSubject.forEach(at => {
                 let score = '-';
@@ -274,13 +266,13 @@ exports.generateSubjectRoster = async (req, res) => {
             });
 
             return {
+                _id:student._id,
                 studentId: student.studentId,
                 fullName: student.fullName,
                 gender: student.gender,
                 age: typeof calculateAge === 'function' ? calculateAge(student.dateOfBirth) : 'N/A',
                 detailedScores: studentDetailedScores,
                 finalScore: gradeDoc ? parseFloat(gradeDoc.finalScore.toFixed(2)) : '-',
-                rank: rank
             };
         });
 
