@@ -1,7 +1,6 @@
 // src/services/authService.js
 import api from './api';
 
-console.log("api",api)
 // Helper to get the teacher/admin token config
 const getAuthConfig = () => {
     const user = JSON.parse(localStorage.getItem('user'));

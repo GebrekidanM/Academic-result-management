@@ -12,9 +12,10 @@ const userSchema = new mongoose.Schema({
         trim: true,
         index: true
     },
+    imageUrl: { type: String, default: '/images/students/default-avatar.png' },
 
     password: { type: String, required: true, select: false },
-    pushSubscription: { type: Object }, // For web push notifications
+    pushSubscription: { type: Object }, 
     schoolLevel:{
         type: String, 
         required: true,

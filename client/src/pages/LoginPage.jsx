@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // <--- Import Hook
+import { useNavigate, useLocation } from 'react-router-dom'; // useLocation ተጨምሯል
+import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService';
 
 const LoginPage = () => {
-    const { t } = useTranslation(); // <--- Initialize Hook
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({ username: '', password: '', role: '' });
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const navigate = useNavigate();
+    const location = useLocation(); // URL ለመስማት
 
     // --- Monitor Online Status ---
     useEffect(() => {
@@ -23,12 +24,54 @@ const LoginPage = () => {
         };
     }, []);
 
+    // --- AUTO LOGIN LOGIC (አዲስ የተጨመረ) ---
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        const mode = urlParams.get('mode');
+
+        if (mode === 'demo' && isOnline) {
+            // እዚህ ጋር ያንተን እውነተኛ የዴሞ መረጃዎች ተካ
+            const demoUser = {
+                username: "admin", 
+                password: "admin@123", 
+                role: "admin"
+            };
+
+            setFormData(demoUser);
+            
+            const timer = setTimeout(() => {
+                performAutoLogin(demoUser);
+            }, 800);
+
+            return () => clearTimeout(timer);
+        }
+    }, [location.search, isOnline]);
+
+    const performAutoLogin = async (data) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await authService.login({
+                username: data.username,
+                password: data.password
+            });
+            if (response.data.token) {
+                localStorage.setItem('user', JSON.stringify(response.data));
+                navigate('/');
+                window.location.reload();
+            }
+        } catch (err) {
+            setError("Demo Login failed. Please enter credentials manually.");
+            setLoading(false);
+        }
+    };
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault(); // Event ካለ ብቻ prevent ያደርጋል
         
         if (!isOnline) {
             setError(t('offline_mode') || "You are currently offline. Cannot login.");
@@ -36,7 +79,7 @@ const LoginPage = () => {
         }
 
         if (!formData.role) {
-            setError(t('error') || "Select your Role!"); // Fallback if key missing
+            setError(t('error') || "Select your Role!");
             return;
         }
 
@@ -60,7 +103,6 @@ const LoginPage = () => {
                 if (response.data.token) {
                     localStorage.setItem('student-user', JSON.stringify(response.data));
 
-                    // Force Password Change Check
                     if (response.data.isInitialPassword) {
                         navigate('/parent/change-password');
                     } else {
@@ -71,91 +113,92 @@ const LoginPage = () => {
             } 
         } catch (err) {
             console.error(err);
-            // Try to get a specific error message, otherwise fallback to generic
             const msg = err.response?.data?.message || t('error') || 'Login failed.';
             setError(msg);
             setLoading(false);
         }
     };
 
-    // --- Tailwind CSS class strings ---
-    const cardContainer = "min-h-[calc(100vh-5rem)] flex items-center justify-center bg-gray-100 p-4";
-    const formCard = "bg-white p-8 rounded-xl shadow-lg w-full max-w-md border border-gray-200";
-    const formTitle = "text-3xl font-bold text-center text-gray-800 mb-6";
-    const inputGroup = "mb-4";
-    const inputLabel = "block text-gray-700 text-sm font-bold mb-2";
-    const textInput = "shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all";
-    const submitButton = `w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 ${loading || !isOnline ? 'opacity-50 cursor-not-allowed' : ''}`;
-    const errorText = "bg-red-50 border border-red-200 text-red-600 text-sm text-center p-3 rounded-md";
+    // --- Tailwind CSS class strings (ያለህበት ይቀጥላል) ---
+    const cardContainer = "min-h-[calc(100vh-5rem)] flex items-center justify-center bg-gray-100 p-4 font-sans";
+    const formCard = "bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100";
+    const formTitle = "text-3xl font-black text-center text-slate-800 mb-2";
+    const textInput = "shadow-sm appearance-none border border-gray-200 rounded-xl w-full py-3.5 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all";
+    const submitButton = `w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 px-4 rounded-xl focus:outline-none shadow-lg shadow-blue-100 transition-all duration-200 ${loading || !isOnline ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`;
 
     return (
         <div className={cardContainer}>
             <div className={formCard}>
+                <div className="flex justify-center mb-6">
+                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <span className="text-white font-bold text-xl">F</span>
+                    </div>
+                </div>
                 <h2 className={formTitle}>{t('welcome')}!</h2>
+                <p className="text-center text-slate-400 text-sm mb-8 font-medium italic">Please enter your credentials to continue</p>
                 
                 {!isOnline && (
-                    <div className="bg-yellow-50 text-yellow-800 p-3 rounded mb-4 text-sm text-center font-bold border border-yellow-200">
-                        ⚠️ {t('offline_mode')}
+                    <div className="bg-red-50 text-red-700 p-3 rounded-xl mb-6 text-sm text-center font-bold border border-red-100 flex items-center justify-center gap-2">
+                        <WifiOff size={16} /> {t('offline_mode')}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    
-                    {/* Username */}
-                    <div className={inputGroup}>
-                        <label htmlFor="username" className={inputLabel}>{t('username')}</label>
+                    <div className="mb-5">
+                        <label className="block text-slate-700 text-xs font-black uppercase tracking-wider mb-2 ml-1">{t('username')}</label>
                         <input 
-                            id="username"
-                            type="text" 
                             name="username" 
+                            type="text" 
                             className={textInput}
                             onChange={handleChange} 
-                            placeholder={t('username')}
+                            value={formData.username}
+                            placeholder="Enter username"
                             required 
                         />
                     </div>
 
-                    {/* Role Selection */}
-                    <div className={inputGroup}>
-                        <label htmlFor="role" className={inputLabel}>{t('role') || "Role"}</label>
+                    <div className="mb-5">
+                        <label className="block text-slate-700 text-xs font-black uppercase tracking-wider mb-2 ml-1">{t('role')}</label>
                         <select 
                             name="role" 
                             onChange={handleChange} 
-                            className={`${textInput} bg-white`} 
+                            className={`${textInput} bg-white cursor-pointer`} 
                             required
                             value={formData.role}
                         >
-                            <option value=""> {t('select_Role')}</option>
+                            <option value="">{t('select_Role')}</option>
                             <option value="staff">{t('admin_staff')}</option>
                             <option value="parent">{t('parent_guardian')}</option>
                         </select>
                     </div>
 
-                    {/* Password */}
-                    <div className={inputGroup}>
-                        <label htmlFor="password" className={inputLabel}>{t('password')}</label>
+                    <div className="mb-6">
+                        <label className="block text-slate-700 text-xs font-black uppercase tracking-wider mb-2 ml-1">{t('password')}</label>
                         <input 
-                            id="password"
-                            type="password" 
                             name="password" 
+                            type="password" 
                             className={textInput}
                             onChange={handleChange} 
+                            value={formData.password}
                             placeholder="••••••••"
                             required 
                         />
                     </div>
 
-                    {/* Error Message */}
-                    <div className="mb-4 min-h-5">
-                        {error && <p className={errorText}>{error}</p>}
-                    </div>
+                    {error && (
+                        <div className="mb-6 bg-red-50 border border-red-100 text-red-600 text-xs font-bold p-4 rounded-xl text-center animate-pulse">
+                            {error}
+                        </div>
+                    )}
 
-                    {/* Submit Button */}
-                    <div className="mt-2">
-                        <button type="submit" className={submitButton} disabled={loading || !isOnline}>
-                            {loading ? t('loading') : t('login')}
-                        </button>
-                    </div>
+                    <button type="submit" className={submitButton} disabled={loading || !isOnline}>
+                        {loading ? (
+                            <div className="flex items-center justify-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                {t('loading')}...
+                            </div>
+                        ) : t('login')}
+                    </button>
                 </form>
             </div>
         </div>

@@ -98,8 +98,6 @@ const HomePage = ({currentUser}) => {
         return <Navigate to="/parent/dashboard" replace />;
     }
 
-    // Ensure profile data is loaded for staff/admin before continuing
-    if (!profileData) return <LoggedOut />;
 
     const { role, schoolLevel } = profileData;
 
