@@ -11,19 +11,77 @@ const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const features = [
-    { id: 1, title: "የተማሪዎች ዲጂታል አስተዳደር", desc: "የተማሪዎችን መረጃ በአንድ ማዕከላዊ ቦታ በማደራጀት በቀላሉ ለማግኘት እና ለማስተዳደር ይረዳል።", icon: <Users className="text-blue-600" size={28} />, bg: "bg-blue-50" },
-    { id: 2, title: "አውቶማቲክ የውጤት አስተዳደር", desc: "ሲስተሙ አማካይ፣ ድምር እና ደረጃን (Rank) በራሱ ያሰላል፤ የሰው ስህተትን ያስቀራል።", icon: <BarChart3 className="text-emerald-600" size={28} />, bg: "bg-emerald-50" },
-    { id: 3, title: "ፈጣን ሪፖርት ማመንጨት", desc: "በአንድ ክሊክ ፕሮፌሽናል የሪፖርት ካርድ እና አጠቃላይ የክፍል ሰነዶችን (Rosters) ያዘጋጃል።", icon: <FileText className="text-purple-600" size={28} />, bg: "bg-purple-50" },
-    { id: 4, title: "የተጠቃሚ ሚና እና ቁጥጥር", desc: "ለመምህራን፣ ለወላጆች እና ለአስተዳዳሪዎች የተለያየ የፈቃድ ደረጃ በመስጠት ደህንነትን ይጠብቃል።", icon: <Lock className="text-amber-600" size={28} />, bg: "bg-amber-50" },
-    { id: 5, title: "የወላጆች ፖርታል", desc: "ወላጆች የልጆቻቸውን ውጤት፣ ባህሪ እና የክፍያ ሁኔታ በማንኛውም ሰዓት በስልካቸው ያያሉ።", icon: <LayoutDashboard className="text-rose-600" size={28} />, bg: "bg-rose-50" },
-    { id: 6, title: "የቡድን ምዝገባ (Bulk Import)", desc: "በሺዎች የሚቆጠሩ ተማሪዎችን መረጃ ከExcel ፋይል በቀጥታ ወደ ሲስተሙ በፍጥነት ያስገባል።", icon: <UploadCloud className="text-cyan-600" size={28} />, bg: "bg-cyan-50" },
-    { id: 7, title: "የውጤት ትንተና (Risk Analytics)", desc: "ደካማ ውጤት ያላቸውን ተማሪዎች (ከ60% በታች) በመለየት ፈጣን ድጋፍ እንዲያገኙ ይረዳል።", icon: <AlertCircle className="text-red-600" size={28} />, bg: "bg-red-50" },
-    { id: 8, title: "ዲጂታል መታወቂያ እና ምስክር ወረቀት", desc: "መታወቂያዎችን እና ሰርተፊኬቶችን ያለ ተጨማሪ የህትመት ወጪ በራስ-ሰር ያዘጋጃል።", icon: <IdCard className="text-indigo-600" size={28} />, bg: "bg-indigo-50" },
-    { id: 9, title: "ዘመናዊ ግንኙነት እና ላይብረሪ", desc: "ማሳሰቢያዎችን ለወላጆች መላክ እና መጻሕፍትን በዲጂታል መንገድ ማጋራት ያስችላል።", icon: <Bell className="text-orange-600" size={28} />, bg: "bg-orange-50" },
-    { id: 10, title: "የብዙ ቋንቋ አማራጭ", desc: "በእንግሊዝኛ፣ በአማርኛ፣ በኦሮሚኛ፣ በትግርኛ፣ በሶማሊኛ እና በአፋርኛ ቋንቋዎች ይሰራል።", icon: <Globe2 className="text-teal-600" size={28} />, bg: "bg-teal-50" },
-    { id: 11, title: "ከኢንተርኔት ነጻ መረጃ መሙላት", desc: "ኢንተርኔት በሌለበት ውጤት ሞልተው በኋላ ላይ ወደ ሲስተሙ መጫን (Upload) ያስችላል።", icon: <WifiOff className="text-slate-600" size={28} />, bg: "bg-slate-50" },
-    { id: 12, title: "70/30 የውጤት አሰጣጥ", desc: "የኢትዮጵያን የትምህርት ፖሊሲ መሰረት ያደረገ የውጤት አሰጣጥ ስልትን ይደግፋል።", icon: <CheckCircle2 className="text-green-600" size={28} />, bg: "bg-green-50" }
-  ];
+  { 
+    id: 1, 
+    title: "የተማሪዎች ዲጂታል አስተዳደር", 
+    desc: "የተማሪዎችን መረጃ በአንድ ማዕከላዊ ቦታ በማደራጀት በቀላሉ ለማግኘት እና ለማስተዳደር ይረዳል።", 
+    icon: <Users className="text-blue-600" size={28} />, 
+    bg: "bg-blue-50" 
+  },
+  { 
+    id: 2, 
+    title: "አውቶማቲክ የውጤት አስተዳደር", 
+    desc: "ሲስተሙ አማካይ፣ ድምር እና ደረጃን (Rank) በራሱ ያሰላል፤ የሰው ስህተትን ያስቀራል።", 
+    icon: <BarChart3 className="text-emerald-600" size={28} />, 
+    bg: "bg-emerald-50" 
+  },
+  { 
+    id: 3, 
+    title: "ፈጣን ሪፖርት ማመንጨት", 
+    desc: "በአንድ ክሊክ ፕሮፌሽናል የሪፖርት ካርድ እና አጠቃላይ የክፍል ሰነዶችን (Rosters) ያዘጋጃል።", 
+    icon: <FileText className="text-purple-600" size={28} />, 
+    bg: "bg-purple-50" 
+  },
+  { 
+    id: 4, 
+    title: "የተጠቃሚ ሚና እና ቁጥጥር", 
+    desc: "ለመምህራን፣ ለወላጆች እና ለአስተዳዳሪዎች የተለያየ የፈቃድ ደረጃ በመስጠት ደህንነትን ይጠብቃል።", 
+    icon: <Lock className="text-amber-600" size={28} />, 
+    bg: "bg-amber-50" 
+  },
+  { 
+    id: 5, 
+    title: "የወላጆች ፖርታል", 
+    desc: "ወላጆች የልጆቻቸውን ውጤት፣ ባህሪ እና የክፍያ ሁኔታ በማንኛውም ሰዓት በስልካቸው ያያሉ።", 
+    icon: <LayoutDashboard className="text-rose-600" size={28} />, 
+    bg: "bg-rose-50" 
+  },
+  { 
+    id: 6, 
+    title: "የቡድን ምዝገባ (Bulk Import)", 
+    desc: "በሺዎች የሚቆጠሩ ተማሪዎችን መረጃ ከExcel ፋይል በቀጥታ ወደ ሲስተሙ በፍጥነት ያስገባል።", 
+    icon: <UploadCloud className="text-cyan-600" size={28} />, 
+    bg: "bg-cyan-50" 
+  },
+  { 
+    id: 7, 
+    title: "የውጤት ትንተና (Risk Analytics)", 
+    desc: "ደካማ ውጤት ያላቸውን ተማሪዎች (ከ60% በታች) በመለየት ፈጣን ድጋፍ እንዲያገኙ ይረዳል።", 
+    icon: <AlertCircle className="text-red-600" size={28} />, 
+    bg: "bg-red-50" 
+  },
+  { 
+    id: 8, 
+    title: "ዲጂታል መታወቂያ እና ምስክር ወረቀት", 
+    desc: "መታወቂያዎችን እና ሰርተፊኬቶችን ያለ ተጨማሪ የህትመት ወጪ በራስ-ሰር ያዘጋጃል።", 
+    icon: <IdCard className="text-indigo-600" size={28} />, 
+    bg: "bg-indigo-50" 
+  },
+  { 
+    id: 9, 
+    title: "የማስታወቂያ ስርዓት", 
+    desc: "ለተማሪዎች፣ ለመምህራን እና ለወላጆች አስፈላጊ ማስታወቂያዎችን በፍጥነት ማስረከብ።", 
+    icon: <Bell className="text-orange-600" size={28} />, 
+    bg: "bg-orange-50" 
+  },
+  { 
+    id: 10, 
+    title: "ኦንላይን እና ኦፍላይን ድጋፍ", 
+    desc: "የኢንተርኔት ችግር ቢኖርም ስርዓቱ በቀጥታ እንዲሰራ የሚያስችል የቴክኖሎጂ ድጋፍ።", 
+    icon: <WifiOff className="text-gray-600" size={28} />, 
+    bg: "bg-gray-50" 
+  }
+];
 
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-blue-100">
@@ -89,28 +147,45 @@ const LandingPage = () => {
       </nav>
 
       {/* 2. HERO SECTION */}
-      <section className="pt-44 pb-24 px-6 relative overflow-hidden bg-gradient-to-b from-blue-50/50 to-white">
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.95] mb-8 text-slate-900">
-            Education <br/> 
-            <span className="text-blue-600">Simplified.</span>
-          </h1>
-          <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto mb-12 leading-relaxed italic">
-            "ለትምህርት ቤቶች ውጤታማነት እና ለተማሪዎች ስኬት የተነደፈ ዘመናዊ መፍትሄ"
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a 
-              href="https://nitsuh-academy.netlify.app/login?mode=demo" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="px-10 py-4.5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group"
-            >
-              <PlayCircle size={20} className="text-blue-600 group-hover:scale-125 transition-transform" /> 
-              Demo ይመልከቱ
-            </a>
-          </div>
-        </div>
-      </section>
+      <section className="bg-gradient-to-br mt-26 from-blue-600 to-indigo-900 text-white py-24">
+  <div className="max-w-6xl mx-auto px-6 text-center">
+
+    <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
+      ዘመናዊ የትምህርት ቤት  
+      <span className="text-yellow-300"> አስተዳደር ሲስተም</span>
+    </h1>
+
+    <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
+      የተማሪ መረጃ፣ ውጤት፣ ሪፖርት ካርድ እና የትምህርት ቤት ስራዎችን በአንድ ዘመናዊ ዲጂታል ሲስተም ያስተዳድሩ።
+    </p>
+
+    <div className="flex justify-center gap-4">
+      <Link to="https://nitsuh-academy.netlify.app/login?mode=demo" target="_blank" rel="noopener noreferrer" className="px-10 py-4.5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group" > <PlayCircle size={20} className="text-blue-600 group-hover:scale-125 transition-transform" /> Demo ይመልከቱ </Link>
+    </div>
+
+  </div>
+</section>
+
+<section className="py-20 bg-white">
+  <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center">
+
+    <div>
+      <h3 className="text-4xl font-bold text-blue-600">10,000+</h3>
+      <p className="text-gray-500">Students Managed</p>
+    </div>
+
+    <div>
+      <h3 className="text-4xl font-bold text-blue-600">50+</h3>
+      <p className="text-gray-500">Schools Using the System</p>
+    </div>
+
+    <div>
+      <h3 className="text-4xl font-bold text-blue-600">99%</h3>
+      <p className="text-gray-500">Accuracy in Results</p>
+    </div>
+
+  </div>
+</section>
 
       {/* 3. ABOUT SECTION (አዲስ የተጨመረ) */}
       <section id="about" className="py-24 px-6 bg-slate-50">
@@ -168,42 +243,40 @@ const LandingPage = () => {
       </section>
 
       {/* 4. FEATURES GRID */}
-      <section id="features" className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight">የሲስተሙ ዋና ዋና አገልግሎቶች</h2>
-          <div className="h-1.5 w-24 bg-blue-600 mx-auto rounded-full"></div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((f) => (
-            <div 
-              key={f.id} 
-              className="p-8 rounded-[2.5rem] border border-slate-100 bg-white hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-50 transition-all duration-300 group"
-            >
-              <div className={`w-14 h-14 ${f.bg} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                {f.icon}
-              </div>
-              <h3 className="text-xl font-black text-slate-800 mb-3 leading-tight tracking-tight">
-                {f.title}
-              </h3>
-              <p className="text-slate-500 text-sm leading-relaxed font-medium">
-                {f.desc}
-              </p>
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16 mx-4">
+        {features.map((feature) => (
+          <div
+            key={feature.id}
+            className="group bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100"
+          >
+            <div className={`w-14 h-14 flex items-center justify-center rounded-xl ${feature.bg} mb-4`}>
+              {feature.icon}
             </div>
-          ))}
-        </div>
-      </section>
+
+            <h3 className="text-lg font-semibold text-gray-800 mb-2 group-hover:text-blue-600 transition">
+              {feature.title}
+            </h3>
+
+            <p className="text-gray-500 text-sm leading-relaxed">
+              {feature.desc}
+            </p>
+          </div>
+        ))}
+      </div>
 
       {/* 5. CALL TO ACTION */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto bg-slate-900 rounded-[3rem] p-12 md:p-20 text-center text-white relative overflow-hidden">
-          <h2 className="text-4xl md:text-5xl font-black mb-8 relative z-10">የትምህርት ቤትዎን ስራ ዛሬውኑ ያቅልሉ</h2>
-          <Link to="https://t.me/nitsuhal" className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 relative z-10">
-            አሁኑኑ ይጀምሩ
-          </Link>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-600 blur-[150px] opacity-20"></div>
-        </div>
-      </section>
+      <section className="bg-indigo-700 mt-4 text-white py-20 text-center">
+  <h2 className="text-3xl font-bold mb-4">
+    የትምህርት ቤትዎን አስተዳደር ዘመናዊ ያድርጉ
+  </h2>
+
+  <Link
+    to="https://t.me/nitsuhal"
+    className="bg-white text-indigo-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100"
+  >
+    አሁን ይጀምሩ
+  </Link>
+</section>
 
       {/* 6. FOOTER */}
       <footer className="py-12 border-t border-slate-100 text-center">
