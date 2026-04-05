@@ -198,9 +198,9 @@ const LandingPage = () => {
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto bg-slate-900 rounded-[3rem] p-12 md:p-20 text-center text-white relative overflow-hidden">
           <h2 className="text-4xl md:text-5xl font-black mb-8 relative z-10">የትምህርት ቤትዎን ስራ ዛሬውኑ ያቅልሉ</h2>
-          <button className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 relative z-10">
+          <Link to="https://t.me/nitsuhal" className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 relative z-10">
             አሁኑኑ ይጀምሩ
-          </button>
+          </Link>
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-600 blur-[150px] opacity-20"></div>
         </div>
       </section>
@@ -208,7 +208,8 @@ const LandingPage = () => {
       {/* 6. FOOTER */}
       <footer className="py-12 border-t border-slate-100 text-center">
         <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">
-          © {new Date().getFullYear()} Nitsuh School Management. Empowering Education.
+          © {new Date().getFullYear()} <Link className="text-gray-700"
+          to={"https://gkidanme.netlify.app"}>Gebrekidan Mequanint.</Link>
         </p>
       </footer>
 
