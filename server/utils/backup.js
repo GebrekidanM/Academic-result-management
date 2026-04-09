@@ -3,6 +3,7 @@ const { Octokit } = require('octokit');
 const axios = require('axios');
 const FormData = require('form-data');
 const cron = require('node-cron');
+require('dotenv').config();
 
 const performBackup = async () => {
     console.log("🕒 Starting Automated Backup...");
@@ -45,8 +46,8 @@ const performBackup = async () => {
     } finally {
         await client.close();
     }
-};
-performBack(up);
+}
 
+performBackup(); 
 // Schedule: 1st, 6th, 12th, 18th, 24th at 03:00
 cron.schedule('0 3 1,6,12,18,24 * *', performBackup);
