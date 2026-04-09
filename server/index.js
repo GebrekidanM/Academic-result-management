@@ -57,47 +57,6 @@ const seedAdminUser = async () => {
   }
 };
 
-const fixSubjectLoads = async (req, res) => {
-    try {
-        // Find all subjects that DO NOT have the 'sessionsPerWeek' field
-        const result = await Subject.updateMany(
-            { sessionsPerWeek: { $exists: false } }, // Criteria
-            { $set: { sessionsPerWeek: 3 } }         // Default Value (e.g., 3)
-        );
-
-        res.json({ 
-            success: true, 
-            message: `Updated ${result.modifiedCount} subjects with default load of 3.` 
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Migration Failed' });
-    }
-};
-
-const BehavioralReport = require('./models/BehavioralReport');
-
-const migrateData = async () => {
-    try {
-        console.log("Starting migration...");
-
-        // Find all reports that have "Attendance" in their evaluations array
-        // And Update them to "Responsibility"
-        const result = await BehavioralReport.updateMany(
-            { "evaluations.area": "Attendance" }, // Filter: Find docs with "Attendance"
-            { 
-                $set: { "evaluations.$.area": "Responsibility" } // Update: Change that specific item's name
-            }
-        );
-
-        console.log(`✅ Success! Updated ${result.modifiedCount} reports.`);
-        process.exit();
-    } catch (error) {
-        console.error("❌ Error:", error);
-        process.exit(1);
-    }
-};
-
 
 // --- STARTUP SEQUENCE ---
 const startServer = async () => {

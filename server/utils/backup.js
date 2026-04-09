@@ -4,17 +4,13 @@ const axios = require('axios');
 const FormData = require('form-data');
 const cron = require('node-cron');
 
-// --- CONFIGURATION (NO CARDS REQUIRED) ---
-const MONGO_URI = "YOUR_MONGO_URI";
-const DB_NAME = "YOUR_DB_NAME";
-
-
-
-async function performBackup() {
-    const client = new MongoClient(MONGO_URI);
+const performBackup = async () => {
+    console.log("🕒 Starting Automated Backup...");
+    const client = new MongoClient(process.env.MONGO_URI); // Ensure this is in your .env
+    
     try {
         await client.connect();
-        const db = client.db(DB_NAME);
+        const db = client.db(); // Connects to the DB defined in your URI
         const collections = await db.listCollections().toArray();
         let backupData = {};
 
@@ -23,32 +19,34 @@ async function performBackup() {
         }
 
         const jsonString = JSON.stringify(backupData, null, 2);
-        const fileName = `backup_${new Date().toISOString().replace(/:/g, '-')}.json`;
+        const fileName = `db_backup_${new Date().toISOString().replace(/:/g, '-')}.json`;
 
-        // 1. UPLOAD TO GITHUB (Forever Storage)
-        const octokit = new Octokit({ auth: GITHUB_TOKEN });
+        // 1. Upload to GitHub
+        const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
         await octokit.rest.repos.createOrUpdateFileContents({
-            owner: GITHUB_OWNER, repo: GITHUB_REPO, path: fileName,
+            owner: process.env.GITHUB_OWNER,
+            repo: process.env.GITHUB_REPO,
+            path: fileName,
             message: `Backup: ${new Date().toLocaleDateString()}`,
             content: Buffer.from(jsonString).toString('base64')
         });
-        console.log("GitHub Storage Successful!");
 
-        // 2. UPLOAD TO TELEGRAM (Backup Alert)
+        // 2. Alert Telegram
         const form = new FormData();
         form.append('document', Buffer.from(jsonString), fileName);
-        form.append('chat_id', TG_CHAT_ID);
-        await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/sendDocument`, form, {
+        form.append('chat_id', process.env.TG_CHAT_ID);
+        await axios.post(`https://api.telegram.org/bot${process.env.TG_TOKEN}/sendDocument`, form, {
             headers: form.getHeaders()
         });
-        console.log("Telegram Backup Alert Successful!");
 
+        console.log("✅ Backup saved to GitHub and sent to Telegram!");
     } catch (err) {
-        console.error("Backup Error:", err);
+        console.error("❌ Backup failed:", err);
     } finally {
         await client.close();
     }
-}
+};
+performBack(up);
 
-// Schedule: 1st, 6th, 12th, 18th, 24th
+// Schedule: 1st, 6th, 12th, 18th, 24th at 03:00
 cron.schedule('0 3 1,6,12,18,24 * *', performBackup);
