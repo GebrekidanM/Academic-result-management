@@ -7,11 +7,11 @@ require('dotenv').config();
 
 const performBackup = async () => {
     console.log("🕒 Starting Automated Backup...");
-    const client = new MongoClient(process.env.MONGO_URI); // Ensure this is in your .env
+    const client = new MongoClient(process.env.MONGO_URI); 
     
     try {
         await client.connect();
-        const db = client.db(); // Connects to the DB defined in your URI
+        const db = client.db();
         const collections = await db.listCollections().toArray();
         let backupData = {};
 
@@ -48,6 +48,5 @@ const performBackup = async () => {
     }
 }
 
-performBackup(); 
 // Schedule: 1st, 6th, 12th, 18th, 24th at 03:00
 cron.schedule('0 3 1,6,12,18,24 * *', performBackup);
