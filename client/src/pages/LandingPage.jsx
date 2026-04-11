@@ -170,12 +170,12 @@ const LandingPage = () => {
   <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center">
 
     <div>
-      <h3 className="text-4xl font-bold text-blue-600">10,000+</h3>
+      <h3 className="text-4xl font-bold text-blue-600">1000+</h3>
       <p className="text-gray-500">Students Managed</p>
     </div>
 
     <div>
-      <h3 className="text-4xl font-bold text-blue-600">50+</h3>
+      <h3 className="text-4xl font-bold text-blue-600">1+</h3>
       <p className="text-gray-500">Schools Using the System</p>
     </div>
 
@@ -187,14 +187,12 @@ const LandingPage = () => {
   </div>
 </section>
 
-      {/* 3. ABOUT SECTION (አዲስ የተጨመረ) */}
       <section id="about" className="py-24 px-6 bg-slate-50">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div className="relative">
               <div className="aspect-square bg-blue-100 rounded-[3rem] relative overflow-hidden border-8 border-white shadow-2xl">
                 <div className="absolute inset-0 flex items-center justify-center p-12">
-                   {/* እዚህ ጋር የቡድናችሁ ምስል ወይም የሲስተሙ Dashboard Screenshot ሊገባ ይችላል */}
                    <div className="text-center">
                       <Target className="text-blue-600 mx-auto mb-4" size={60} />
                       <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Our Mission</p>
