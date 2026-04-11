@@ -510,3 +510,53 @@ exports.resetPassword = async (req,res)=>{
         res.status(500).json({message: error.message})
     }
 }
+
+
+
+// 1. Search for existing student by ID
+exports.getStudentForRegistration = async (req, res) => {
+    try {
+        const student = await Student.findOne({ studentId: req.params.studentId });
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+        // Return only what the user needs to see for verification
+        res.json({
+            _id: student._id,
+            studentId: student.studentId,
+            fullName: student.fullName,
+            currentGrade: student.gradeLevel
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// 2. Process the "New" Registration (Update)
+exports.reRegisterStudent = async (req, res) => {
+    const { studentId, newGradeLevel, academicYear } = req.body;
+
+    try {
+        const student = await Student.findOne({ studentId });
+
+        if (!student) return res.status(404).json({ message: "Student not found" });
+
+        // A. Move the OLD grade into history before changing it
+        const historyEntry = {
+            year: academicYear - 1, // The year they just finished
+            gradeAtThatTime: student.gradeLevel,
+            statusAtEnd: 'Completed'
+        };
+
+        // B. Update the student for the NEW year
+        student.academicHistory.push(historyEntry);
+        student.gradeLevel = newGradeLevel; // e.g., Set to "Grade 3A"
+        student.status = 'Active'; 
+        
+        await student.save();
+
+        res.json({ message: `${student.fullName} successfully registered for ${newGradeLevel}` });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const Counter = require('./Counter'); // <--- IMPORT THE COUNTER MODEL
 
 const studentSchema = new mongoose.Schema({
-    // Remove 'required: true' from studentId because we will generate it automatically
     studentId: { type: String, unique: true }, 
     fullName: { type: String, required: true, trim: true },
     gender: { type: String, required: true, enum: ['Male', 'Female'] },
@@ -18,6 +17,11 @@ const studentSchema = new mongoose.Schema({
     motherContact: { type: String, trim: true, default: '' },
     fatherContact: { type: String, trim: true, default: '' },
     healthStatus: { type: String, trim: true, default: 'No known conditions' },
+    academicHistory: [{
+            year: Number,
+            gradeAtThatTime: String,
+            statusAtEnd: String,
+        }],
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
@@ -28,7 +32,6 @@ const studentSchema = new mongoose.Schema({
 studentSchema.pre('save', async function (next) {
     if (!this.isNew) return next();
 
-    // 1. Calculate Ethiopian Year
     const today = new Date();
     const gregorianYear = today.getFullYear();
     const gregorianMonth = today.getMonth() + 1;
@@ -37,22 +40,17 @@ studentSchema.pre('save', async function (next) {
     const counterId = `studentId_${currentYear}`;
 
     try {
-        // 2. Try to find and increment the counter atomically
         let counter = await Counter.findOneAndUpdate(
             { id: counterId },
             { $inc: { seq: 1 } },
             { new: true }
         );
 
-        // 3. 🚨 SELF-HEALING LOGIC 🚨
-        // If counter doesn't exist (first run after deployment), initialize it!
         if (!counter) {
-            // Find the LAST student created in this year
             const lastStudent = await mongoose.model('Student').findOne({
                 studentId: new RegExp(`^FKS-${currentYear}`)
             }).sort({ studentId: -1 });
 
-            // Extract the sequence number (e.g., FKS-2017-050 -> 50)
             let lastSeq = 0;
             if (lastStudent && lastStudent.studentId) {
                 const parts = lastStudent.studentId.split('-');
@@ -61,20 +59,17 @@ studentSchema.pre('save', async function (next) {
                 }
             }
 
-            // Create the counter starting from the last known sequence + 1
             counter = await Counter.create({
                 id: counterId,
                 seq: lastSeq + 1
             });
         }
 
-        // 4. Generate the ID
         const seqId = counter.seq.toString().padStart(3, '0');
         this.studentId = `FKS-${currentYear}-${seqId}`;
         
         next();
     } catch (error) {
-        // If 2 people try to initialize at the exact same millisecond, retry
         if (error.code === 11000) {
             return next(new Error("Race condition detected during initialization. Please try again."));
         }

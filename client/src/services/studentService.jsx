@@ -16,7 +16,15 @@ const getStudentsByGrade = (gradeLevel) => {
 const getStudentById = (id) => {
     return api.get(`${API_URL}/${id}`);
 };
+// Search for a student by their ID (e.g., FKS-2016-001)
+const getStudentByStudentId = (studentId) => {
+    return api.get(`${API_URL}/id/${studentId}`);
+};
 
+// Update an existing student for the new year
+const reRegisterStudent = (data) => {
+    return api.post(`${API_URL}/re-register`, data);
+}
 const createStudent = (studentData) => {
     return api.post(API_URL, studentData);
 };
@@ -70,5 +78,7 @@ export default {
     deleteStudent,
     uploadStudents,
     uploadPhoto,
-    getStudentsByGrade
+    getStudentsByGrade,
+    getStudentByStudentId,
+    reRegisterStudent
 };
