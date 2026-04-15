@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // useLocation ተጨምሯል
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService';
@@ -11,7 +11,7 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const navigate = useNavigate();
-    const location = useLocation(); // URL ለመስማት
+    const location = useLocation(); 
 
     // --- Monitor Online Status ---
     useEffect(() => {
@@ -24,13 +24,12 @@ const LoginPage = () => {
         };
     }, []);
 
-    // --- AUTO LOGIN LOGIC (አዲስ የተጨመረ) ---
+    // --- AUTO LOGIN LOGIC ---
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
         const mode = urlParams.get('mode');
 
         if (mode === 'demo' && isOnline) {
-            // እዚህ ጋር ያንተን እውነተኛ የዴሞ መረጃዎች ተካ
             const demoUser = {
                 username: "admin", 
                 password: "admin@123", 
@@ -71,7 +70,7 @@ const LoginPage = () => {
     };
 
     const handleSubmit = async (e) => {
-        if (e) e.preventDefault(); // Event ካለ ብቻ prevent ያደርጋል
+        if (e) e.preventDefault();
         
         if (!isOnline) {
             setError(t('offline_mode') || "You are currently offline. Cannot login.");
@@ -119,7 +118,7 @@ const LoginPage = () => {
         }
     };
 
-    // --- Tailwind CSS class strings (ያለህበት ይቀጥላል) ---
+    // --- Tailwind CSS class strings---
     const cardContainer = "min-h-[calc(100vh-5rem)] flex items-center justify-center bg-gray-100 p-4 font-sans";
     const formCard = "bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100";
     const formTitle = "text-3xl font-black text-center text-slate-800 mb-2";
@@ -137,11 +136,7 @@ const LoginPage = () => {
                 <h2 className={formTitle}>{t('welcome')}!</h2>
                 <p className="text-center text-slate-400 text-sm mb-8 font-medium italic">Please enter your credentials to continue</p>
                 
-                {!isOnline && (
-                    <div className="bg-red-50 text-red-700 p-3 rounded-xl mb-6 text-sm text-center font-bold border border-red-100 flex items-center justify-center gap-2">
-                        <WifiOff size={16} /> {t('offline_mode')}
-                    </div>
-                )}
+                
 
                 <form onSubmit={handleSubmit}>
                     <div className="mb-5">
@@ -191,7 +186,7 @@ const LoginPage = () => {
                         </div>
                     )}
 
-                    <button type="submit" className={submitButton} disabled={loading || !isOnline}>
+                    <button type="submit" className={submitButton} disabled={loading}>
                         {loading ? (
                             <div className="flex items-center justify-center gap-2">
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

@@ -244,99 +244,98 @@ exports.getGradeSheet = async (req, res) => {
 // @desc    Save or update multiple grades for one assessment
 // @route   POST /api/grades/sheet
 exports.saveGradeSheet = async (req, res) => {
-
-  const {
-    studentId,
-    subjectId,
-    semester,
-    academicYear,
-    assessments
-  } = req.body;
-
-  console.log(req.body);
-
   try {
+    const { subjectId, semester, academicYear } = req.body;
 
-    if (!studentId || !subjectId || !semester || !academicYear) {
-      return res.status(400).json({ message: "Missing required fields" });
+    // 1️⃣ Validate common fields that BOTH cases share
+    if (!subjectId || !semester || !academicYear) {
+      return res.status(400).json({ message: "Missing subject, semester, or academic year" });
     }
 
-    // 1️⃣ Find existing grade document
-    let gradeDoc = await Grade.findOne({
-      student: studentId,
-      subject: subjectId,
-      semester,
-      academicYear
-    });
+    // =========================================================================
+    // CASE A: By Assessment (1 Assessment, Multiple Students)
+    // Payload has: assessmentTypeId and scores: [{studentId, score}]
+    // =========================================================================
+    if (req.body.assessmentTypeId && req.body.scores) {
+      const { assessmentTypeId, scores } = req.body;
 
-    // 2️⃣ Create if not exists
-    if (!gradeDoc) {
-      gradeDoc = new Grade({
-        student: studentId,
-        subject: subjectId,
-        semester,
-        academicYear,
-        assessments: [],
-        finalScore: 0
+      // Loop through each student in the scores array
+      for (const item of scores) {
+        if (item.score === null || item.score === undefined || item.score === '') continue;
+
+        // Find or create grade doc for this specific student
+        let gradeDoc = await Grade.findOne({ student: item.studentId, subject: subjectId, semester, academicYear });
+        
+        if (!gradeDoc) {
+          gradeDoc = new Grade({ student: item.studentId, subject: subjectId, semester, academicYear, assessments:[], finalScore: 0 });
+        }
+
+        // Check if this assessment already exists for the student
+        const existingIndex = gradeDoc.assessments.findIndex(a => a.assessmentType.toString() === assessmentTypeId.toString());
+
+        if (existingIndex > -1) {
+          gradeDoc.assessments[existingIndex].score = Number(item.score); // Update
+        } else {
+          gradeDoc.assessments.push({ assessmentType: assessmentTypeId, score: Number(item.score) }); // Add new
+        }
+
+        // Clean up and calculate final score
+        gradeDoc.assessments = gradeDoc.assessments.filter(a => a.assessmentType);
+        gradeDoc.finalScore = gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+
+        await gradeDoc.save(); // Save this student's document
+      }
+
+      return res.status(200).json({ success: true, message: "Grades saved successfully for multiple students" });
+    }
+
+    // =========================================================================
+    // CASE B: By Student (1 Student, Multiple Assessments)
+    // Payload has: studentId and assessments: [{assessmentType, score}]
+    // =========================================================================
+    else if (req.body.studentId && req.body.assessments) {
+      const { studentId, assessments } = req.body;
+
+      // Find or create grade doc for this one student
+      let gradeDoc = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear });
+      
+      if (!gradeDoc) {
+        gradeDoc = new Grade({ student: studentId, subject: subjectId, semester, academicYear, assessments:[], finalScore: 0 });
+      }
+
+      // Loop through the submitted assessments
+      assessments.forEach(update => {
+        if (update.score === null || update.score === undefined || update.score === '') return;
+
+        const existingIndex = gradeDoc.assessments.findIndex(a => a.assessmentType.toString() === update.assessmentType.toString());
+
+        if (existingIndex > -1) {
+          gradeDoc.assessments[existingIndex].score = Number(update.score); // Update
+        } else {
+          gradeDoc.assessments.push({ assessmentType: update.assessmentType, score: Number(update.score) }); // Add new
+        }
       });
+
+      // Clean up and calculate final score
+      gradeDoc.assessments = gradeDoc.assessments.filter(a => a.assessmentType);
+      gradeDoc.finalScore = gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+
+      await gradeDoc.save();
+
+      return res.status(200).json({ success: true, message: "Assessments saved successfully for student" });
     }
 
-    // 3️⃣ Merge assessments
-    assessments.forEach(update => {
-
-  if (update.score === null || update.score === undefined || update.score === '') return;
-
-  const existingIndex = gradeDoc.assessments.findIndex(
-    a => a.assessmentType.toString() === update.assessmentType.toString()
-  );
-
-  if (existingIndex > -1) {
-
-    // update existing score
-    gradeDoc.assessments[existingIndex].score = Number(update.score);
-
-  } else {
-
-    // add new assessment
-    gradeDoc.assessments.push({
-      assessmentType: update.assessmentType,
-      score: Number(update.score)
-    });
-
-  }
-
-});
-
-    // 4️⃣ Remove broken assessments
-    gradeDoc.assessments = gradeDoc.assessments.filter(
-      a => a.assessmentType
-    );
-
-    // 5️⃣ Calculate final score
-    gradeDoc.finalScore = gradeDoc.assessments.reduce(
-      (sum, a) => sum + (a.score || 0),
-      0
-    );
-
-    // 6️⃣ Save
-    await gradeDoc.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Grades saved successfully"
-    });
+    // =========================================================================
+    // CASE C: Invalid Payload format sent
+    // =========================================================================
+    else {
+      return res.status(400).json({ message: "Invalid payload. Must provide either (assessmentTypeId + scores) OR (studentId + assessments)." });
+    }
 
   } catch (error) {
-
-    console.error("Grade save error:", error);
-
-    res.status(500).json({
-      message: "Server error saving grades",
-      error: error.message
-    });
-
+    console.error(error);
+    res.status(500).json({ message: "Server error saving grades", error: error.message });
   }
-
 };
 
 // @route GET /api/grades/clean
