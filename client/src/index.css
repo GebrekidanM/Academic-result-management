@@ -1,11 +1,18 @@
 @import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Abyssinica+SIL&family=Menbere:wght@100..700&display=swap');
 
 body {
-  font-family: 'Lato', 'Noto Sans Ethiopic', sans-serif;
+  font-family: 'Lato', 'Noto Sans Ethiopic', 'Menbere',sans-serif;
 }
 
 html {
   scroll-behavior: smooth;
 
 }
+
+.amharic-font {
+    font-family: "Menbere", sans-serif !important;
+    font-optical-sizing: auto;
+}
+
 

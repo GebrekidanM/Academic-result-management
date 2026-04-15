@@ -8,7 +8,6 @@ export default {
     extend: {},
   },
 
-  // IMPORTANT FIX FOR OLD BROWSERS (Chrome 49–80)
   future: {
     disableColorOpacityUtilitiesByDefault: true,
   },

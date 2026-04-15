@@ -15,8 +15,8 @@ const LandingPage = () => {
     id: 1, 
     title: "የተማሪዎች ዲጂታል አስተዳደር", 
     desc: "የተማሪዎችን መረጃ በአንድ ማዕከላዊ ቦታ በማደራጀት በቀላሉ ለማግኘት እና ለማስተዳደር ይረዳል።", 
-    icon: <Users className="text-blue-600" size={28} />, 
-    bg: "bg-blue-50" 
+    icon: <Users className="text-slate-600" size={28} />, 
+    bg: "bg-slate-50" 
   },
   { 
     id: 2, 
@@ -84,25 +84,25 @@ const LandingPage = () => {
 ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 selection:bg-blue-100">
+    <div className="min-h-screen bg-white text-slate-900 selection:bg-slate-100">
       
       {/* 1. NAVIGATION WITH MOBILE MENU */}
-      <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+      <nav className="fixed top-0 left-0 w-full z-50 bg-slate-900 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
           
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+            <div className="w-10 h-10 bg-slate-600 rounded-xl flex items-center justify-center ">
               <span className="text-white font-black text-xl">N</span>
             </div>
-            <span className="font-black text-xl tracking-tight text-slate-800 uppercase italic">Nitsuh</span>
+            <span className="font-black text-xl tracking-tight text-slate-100 uppercase italic">Nitsuh</span>
           </div>
 
           {/* Desktop Links (Hidden on Mobile) */}
           <div className="hidden md:flex items-center gap-10">
-            <a href="#about" className="text-sm font-bold text-slate-500 hover:text-blue-600 transition">ስለ እኛ</a>
-            <a href="#features" className="text-sm font-bold text-slate-500 hover:text-blue-600 transition">አገልግሎቶች</a>
-            <Link to="/login" className="bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-blue-600 transition-all shadow-lg shadow-slate-200">
+            <a href="#about" className="text-sm amharic-font font-bold text-slate-200 hover:text-slate-600 transition">ስለ እኛ</a>
+            <a href="#features" className="text-sm amharic-font font-bold text-slate-200 hover:text-slate-600 transition">አገልግሎቶች</a>
+            <Link to="/login" className="bg-slate-500 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-slate-200 transition-all">
               Login
             </Link>
           </div>
@@ -120,25 +120,25 @@ const LandingPage = () => {
 
         {/* Mobile Menu Overlay (Visible only when isMenuOpen is true) */}
         {isMenuOpen && (
-          <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-slate-100 p-6 flex flex-col gap-6 shadow-xl animate-in slide-in-from-top duration-300">
+          <div className="md:hidden absolute top-20 left-0 w-full bg-slate-900 border-b border-slate-100 p-6 flex flex-col gap-6 shadow-xl animate-in slide-in-from-top duration-300">
             <a 
               href="#about" 
               onClick={() => setIsMenuOpen(false)}
-              className="text-lg font-bold text-slate-700 hover:text-blue-600"
+              className="text-lg font-bold text-slate-200 hover:text-slate-100"
             >
               ስለ እኛ
             </a>
             <a 
               href="#features" 
               onClick={() => setIsMenuOpen(false)}
-              className="text-lg font-bold text-slate-700 hover:text-blue-600"
+              className="text-lg font-bold text-slate-200 hover:text-slate-100"
             >
               አገልግሎቶች
             </a>
             <Link 
               to="/login" 
               onClick={() => setIsMenuOpen(false)}
-              className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black text-center"
+              className="bg-slate-600 text-white px-6 py-4 rounded-2xl font-black text-center"
             >
               Login
             </Link>
@@ -147,64 +147,64 @@ const LandingPage = () => {
       </nav>
 
       {/* 2. HERO SECTION */}
-      <section className="bg-gradient-to-br mt-26 from-blue-600 to-indigo-900 text-white py-24">
+      <section className="bg-gradient-to-br mt-26 from-slate-600 to-slate-900 text-white py-24">
         <div className="max-w-6xl mx-auto px-6 text-center">
 
-          <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
+          <h1 className="!amharic-font text-4xl md:text-5xl font-bold leading-tight mb-6">
             ዘመናዊ የትምህርት ቤት  
-            <span className="text-yellow-300"> አስተዳደር ሲስተም</span>
+            <span className="text-yellow-300 !amharic-font"> አስተዳደር ሲስተም</span>
           </h1>
 
-          <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
+          <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8 !amharic-font">
             የተማሪ መረጃ፣ ውጤት፣ ሪፖርት ካርድ እና የትምህርት ቤት ስራዎችን በአንድ ዘመናዊ ዲጂታል ሲስተም ያስተዳድሩ።
           </p>
 
           <div className="flex justify-center gap-4">
-            <Link to="/login" className="bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-blue-600 transition-all shadow-lg shadow-slate-200 flex items-center justify-center">
+            <Link to="/login" className="bg-slate-900 text-white px-10 py-4.5 rounded-xl font-bold text-sm hover:bg-slate-600 transition-all flex items-center justify-center">
               የልጅዎን ውጤት ይዩ
             </Link>
-            <Link to="https://nitsuh-academy.netlify.app/login?mode=demo" target="_blank" rel="noopener noreferrer" className="px-10 py-4.5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group" > <PlayCircle size={20} className="text-blue-600 group-hover:scale-125 transition-transform" /> Demo ይመልከቱ </Link>
+            <Link to="https://nitsuh-academy.netlify.app/login?mode=demo" target="_blank" rel="noopener noreferrer" className="px-10 py-4.5 bg-white border-2 border-slate-100 text-slate-600 rounded-xl font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group" > <PlayCircle size={20} className="text-slate-600 group-hover:scale-125 transition-transform" /> Demo ይመልከቱ </Link>
           </div>
 
         </div>
       </section>
 
-<section className="py-20 bg-white">
-  <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center">
+      <section className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center">
 
-    <div>
-      <h3 className="text-4xl font-bold text-blue-600">1000+</h3>
-      <p className="text-gray-500">Students Managed</p>
-    </div>
+          <div>
+            <h3 className="text-4xl font-bold text-slate-600">1000+</h3>
+            <p className="text-gray-500">Students Managed</p>
+          </div>
 
-    <div>
-      <h3 className="text-4xl font-bold text-blue-600">1+</h3>
-      <p className="text-gray-500">Schools Using the System</p>
-    </div>
+          <div>
+            <h3 className="text-4xl font-bold text-slate-600">1+</h3>
+            <p className="text-gray-500">Schools Using the System</p>
+          </div>
 
-    <div>
-      <h3 className="text-4xl font-bold text-blue-600">99%</h3>
-      <p className="text-gray-500">Accuracy in Results</p>
-    </div>
+          <div>
+            <h3 className="text-4xl font-bold text-slate-600">99%</h3>
+            <p className="text-gray-500">Accuracy in Results</p>
+          </div>
 
-  </div>
-</section>
+        </div>
+      </section>
 
       <section id="about" className="py-24 px-6 bg-slate-50">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div className="relative">
-              <div className="aspect-square bg-blue-100 rounded-[3rem] relative overflow-hidden border-8 border-white shadow-2xl">
+              <div className="aspect-square bg-slate-100 rounded-[3rem] relative overflow-hidden border-8 border-white shadow-2xl">
                 <div className="absolute inset-0 flex items-center justify-center p-12">
                    <div className="text-center">
-                      <Target className="text-blue-600 mx-auto mb-4" size={60} />
+                      <Target className="text-slate-600 mx-auto mb-4" size={60} />
                       <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Our Mission</p>
                    </div>
                 </div>
               </div>
               {/* Floating Stat Card */}
               <div className="absolute -bottom-8 -right-8 bg-white p-8 rounded-3xl shadow-xl border border-slate-100 hidden md:block">
-                <p className="text-4xl font-black text-blue-600 italic">100%</p>
+                <p className="text-4xl font-black text-slate-600 italic">100%</p>
                 <p className="text-slate-500 font-bold text-sm uppercase">Digital Efficiency</p>
               </div>
             </div>
@@ -212,7 +212,7 @@ const LandingPage = () => {
             <div>
               <h2 className="text-4xl font-black text-slate-900 mb-6 leading-tight">
                 ስለ Nitsuh School Management <br/> 
-                <span className="text-blue-600 text-2xl tracking-normal font-bold">ቴክኖሎጂ ለትምህርት ጥራት</span>
+                <span className="text-slate-600 text-2xl tracking-normal font-bold">ቴክኖሎጂ ለትምህርት ጥራት</span>
               </h2>
               <p className="text-slate-600 text-lg mb-8 leading-relaxed">
                 Nitsuh SMS የተመሰረተው በትምህርት ቤቶች ውስጥ ያለውን የአስተዳደር ስራ በማቀለል፣ መምህራን በወረቀት ስራ ከመጠመድ ይልቅ ለተማሪዎቻቸው ትኩረት እንዲሰጡ ለማስቻል ነው። 
@@ -244,7 +244,7 @@ const LandingPage = () => {
       </section>
 
       {/* 4. FEATURES GRID */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16 mx-4">
+      <div id="features" className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16 mx-4">
         {features.map((feature) => (
           <div
             key={feature.id}
@@ -254,7 +254,7 @@ const LandingPage = () => {
               {feature.icon}
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-800 mb-2 group-hover:text-blue-600 transition">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2 group-hover:text-slate-600 transition">
               {feature.title}
             </h3>
 
@@ -266,18 +266,18 @@ const LandingPage = () => {
       </div>
 
       {/* 5. CALL TO ACTION */}
-      <section className="bg-indigo-700 mt-4 text-white py-20 text-center">
-  <h2 className="text-3xl font-bold mb-4">
-    የትምህርት ቤትዎን አስተዳደር ዘመናዊ ያድርጉ
-  </h2>
+      <section className="bg-slate-700 mt-4 text-white py-20 text-center">
+        <h2 className="text-3xl font-bold mb-4">
+          የትምህርት ቤትዎን አስተዳደር ዘመናዊ ያድርጉ
+        </h2>
 
-  <Link
-    to="https://t.me/nitsuhal"
-    className="bg-white text-indigo-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100"
-  >
-    አሁን ይጀምሩ
-  </Link>
-</section>
+        <Link
+          to="https://t.me/nitsuhal"
+          className="bg-white text-slate-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100"
+        >
+          አሁን ይጀምሩ
+        </Link>
+      </section>
 
       {/* 6. FOOTER */}
       <footer className="py-12 border-t border-slate-100 text-center">

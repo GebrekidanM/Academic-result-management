@@ -24,7 +24,7 @@ const FeaturesSection = () => {
       id: 3,
       title: "ፈጣን ሪፖርት ማመንጨት",
       desc: "በአንድ ክሊክ ፕሮፌሽናል የሪፖርት ካርድ እና አጠቃላይ የክፍል ሰነዶችን (Rosters) ያዘጋጃል።",
-      icon: <FileText className="text-purple-600" size={28} />,
+      icon: <FileText className="text-slate-800" size={28} />,
       bg: "bg-purple-50"
     },
     {
@@ -38,7 +38,7 @@ const FeaturesSection = () => {
       id: 5,
       title: "የወላጆች ፖርታል",
       desc: "ወላጆች የልጆቻቸውን ውጤት፣ ባህሪ እና የክፍያ ሁኔታ በማንኛውም ሰዓት በስልካቸው ያያሉ።",
-      icon: <LayoutDashboard className="text-rose-600" size={28} />,
+      icon: <LayoutDashboard className="text-slate-800" size={28} />,
       bg: "bg-rose-50"
     },
     {
