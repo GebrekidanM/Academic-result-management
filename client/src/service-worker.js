@@ -14,7 +14,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 registerRoute(
   ({ url }) => url.href.includes('/api/'),
   new NetworkFirst({
-    cacheName: 'freedom-api-cache-v6',
+    cacheName: 'freedom-api-cache-v6.1',
     plugins: [
       new ExpirationPlugin({
         maxEntries: 100,
