@@ -212,6 +212,7 @@ const SubjectRosterPage = () => {
                         color: black !important;
                     }
                     
+                    
                     /* IMPORTANT: Forces background colors to show on paper */
                     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
@@ -275,9 +276,23 @@ const SubjectRosterPage = () => {
             {/* ROSTER CONTENT */}
             {rosterData && (
                 <div id="printable-area" className={`print-wrapper p-6 print:p-0 w-full"`}>
-                    <div className="hidden print:flex flex-col gap-2 mt-10 px-6 mb-2">
-                        <h1 className='text-center text-2xl text-fuchsia-900'>Freedom primary and kindergarden School</h1>
-                        <p className='text-center '> {currentSubjectDetails.name} Marklist of {currentSubjectDetails.gradeLevel} in {getCurrentAcademicYear()}</p>
+                    {/* Official Document Header */}
+                    <div className="hidden print:block mb-8 pb-4">
+                        <h1 className="text-center text-3xl font-black text-slate-900 uppercase tracking-tight">
+                            Freedom Primary & Kindergarten School
+                        </h1>
+                        <div className="flex justify-center items-center gap-4 mt-2">
+                            <div className="h-px w-12 bg-slate-400"></div>
+                            <p className="text-center text-sm font-bold text-slate-600 uppercase tracking-widest">
+                                {currentSubjectDetails.name} • {currentSubjectDetails.gradeLevel} • {getCurrentAcademicYear()}
+                            </p>
+                            <div className="h-px w-12 bg-slate-400"></div>
+                        </div>
+                        <div className="text-center mt-2">
+                            <span className="bg-slate-800 text-white px-4 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full">
+                                {semester}
+                            </span>
+                        </div>
                     </div>
                     {/* Toolbar */}
                     <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 no-print">
@@ -303,7 +318,7 @@ const SubjectRosterPage = () => {
                     </div>
 
                     <div className="overflow-x-auto print:overflow-visible px-2">
-                            <table className="min-w-full divide-y divide-gray-200 border-collapse border border-gray-400">
+                        <table className="min-w-full divide-y divide-gray-200 border-collapse border border-gray-400">
                             <thead className="bg-gray-100 print:bg-gray-200">
                                     <tr>
                                         <th rowSpan="2" className={`${thBase} bg-gray-200 w-10`}>#</th>
