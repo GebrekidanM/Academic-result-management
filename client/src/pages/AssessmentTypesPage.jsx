@@ -5,7 +5,7 @@ import offlineAssessmentService from '../services/offlineAssessmentService';
 import authService from '../services/authService';
 import userService from '../services/userService';
 import { Link, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // Import translation hook
+import { useTranslation } from 'react-i18next'; 
 
 const MONTHS = [
   "September", "October", "November", "December",
@@ -20,7 +20,7 @@ function getEthiopianYear() {
 }
 
 const AssessmentTypesPage = () => {
-  const { t } = useTranslation(); // Use translation hook
+  const { t } = useTranslation();
   const location = useLocation();
   const subjectFromLink = location.state?.subject || null;
 
@@ -32,7 +32,6 @@ const AssessmentTypesPage = () => {
   const [assessmentsLoading, setAssessmentsLoading] = useState(false);
   const [error, setError] = useState('');
   const currentEthiopianYear = getEthiopianYear();
-
   const [formData, setFormData] = useState({
     name: '',
     totalMarks: 10,

@@ -148,23 +148,26 @@ const LandingPage = () => {
 
       {/* 2. HERO SECTION */}
       <section className="bg-gradient-to-br mt-26 from-blue-600 to-indigo-900 text-white py-24">
-  <div className="max-w-6xl mx-auto px-6 text-center">
+        <div className="max-w-6xl mx-auto px-6 text-center">
 
-    <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
-      ዘመናዊ የትምህርት ቤት  
-      <span className="text-yellow-300"> አስተዳደር ሲስተም</span>
-    </h1>
+          <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
+            ዘመናዊ የትምህርት ቤት  
+            <span className="text-yellow-300"> አስተዳደር ሲስተም</span>
+          </h1>
 
-    <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-      የተማሪ መረጃ፣ ውጤት፣ ሪፖርት ካርድ እና የትምህርት ቤት ስራዎችን በአንድ ዘመናዊ ዲጂታል ሲስተም ያስተዳድሩ።
-    </p>
+          <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
+            የተማሪ መረጃ፣ ውጤት፣ ሪፖርት ካርድ እና የትምህርት ቤት ስራዎችን በአንድ ዘመናዊ ዲጂታል ሲስተም ያስተዳድሩ።
+          </p>
 
-    <div className="flex justify-center gap-4">
-      <Link to="https://nitsuh-academy.netlify.app/login?mode=demo" target="_blank" rel="noopener noreferrer" className="px-10 py-4.5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group" > <PlayCircle size={20} className="text-blue-600 group-hover:scale-125 transition-transform" /> Demo ይመልከቱ </Link>
-    </div>
+          <div className="flex justify-center gap-4">
+            <Link to="/login" className="bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-blue-600 transition-all shadow-lg shadow-slate-200 flex items-center justify-center">
+              የልጅዎን ውጤት ይዩ
+            </Link>
+            <Link to="https://nitsuh-academy.netlify.app/login?mode=demo" target="_blank" rel="noopener noreferrer" className="px-10 py-4.5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group" > <PlayCircle size={20} className="text-blue-600 group-hover:scale-125 transition-transform" /> Demo ይመልከቱ </Link>
+          </div>
 
-  </div>
-</section>
+        </div>
+      </section>
 
 <section className="py-20 bg-white">
   <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center">
