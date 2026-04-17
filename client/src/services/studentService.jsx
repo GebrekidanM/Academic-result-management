@@ -39,7 +39,6 @@ const deleteStudent = (id) => {
     return api.delete(`${API_URL}/${id}`);
 };
 
-// --- Functions for File Uploads ---
 
 // For bulk import of students from an Excel file
 const uploadStudents = (file) => {

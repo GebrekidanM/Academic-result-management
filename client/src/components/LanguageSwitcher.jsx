@@ -13,12 +13,12 @@ const LanguageSwitcher = ({ closeMenu }) => {
 
   // Define languages to avoid code duplication
   const languages = [
-    { code: 'en', flag: '🇺🇸', full: 'English', short: 'Eng' },
-    { code: 'am', flag: '🇪🇹', full: 'አማርኛ', short: 'አማ' },
-    { code: 'om', flag: '🌳', full: 'Afaan Oromoo', short: 'Oro' },
-    { code: 'ti', flag: '⛰️', full: 'ትግርኛ', short: 'ትግ' },
-    { code: 'so', flag: '🇸🇴', full: 'Soomaali', short: 'Som' },
-    { code: 'af', flag: '🇩🇯', full: 'Qafaraf', short: 'Qaf' },
+    { code: 'en', flag: 'Eng', short: 'Eng' },
+    { code: 'am', flag: 'አማ', short: 'አማ' },
+    { code: 'om', flag: 'ኦሮ',  short: 'Oro' },
+    { code: 'ti', flag: 'ትግ', short: 'ትግ' },
+    { code: 'so', flag: 'ሶማ', short: 'Som' },
+    { code: 'af', flag: 'አፋ', short: 'Qaf' },
   ];
 
   return (

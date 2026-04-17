@@ -4,7 +4,7 @@ const Student = require('../models/Student');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
 const calculateAge = require('../utils/calculateAge');
-
+const getCurrentEthDate = require('../utils/thatYear') 
 // --- HELPER FUNCTIONS ---
 const capitalizeName = (name) => {
     if (!name || typeof name !== 'string') return '';
@@ -443,14 +443,12 @@ exports.bulkCreateStudents = async (req, res) => {
                     healthStatus: row['Health Status'] || 'No known conditions'
                 });
 
-                // ⚠️ IMPORTANT: Saving inside the loop ensures the Atomic Counter hook
-                // runs for each student one by one, preventing duplicates.
                 await newStudent.save();
 
                 createdStudents.push({
                     status: "created",
                     row: rowNumber,
-                    studentId: newStudent.studentId, // Access the auto-generated ID
+                    studentId: newStudent.studentId,
                     fullName,
                     initialPassword
                 });
@@ -525,32 +523,35 @@ exports.getStudentForRegistration = async (req, res) => {
             _id: student._id,
             studentId: student.studentId,
             fullName: student.fullName,
-            currentGrade: student.gradeLevel
+            currentGrade: student.gradeLevel,
+            thatYear: student.createdAt
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// 2. Process the "New" Registration (Update)
+// 2. Process the "New" Registration
 exports.reRegisterStudent = async (req, res) => {
-    const { studentId, newGradeLevel, academicYear } = req.body;
+    const { studentId, newGradeLevel, thatYear} = req.body;
+
+    const acadamicYear = getCurrentEthDate(thatYear)
+
 
     try {
         const student = await Student.findOne({ studentId });
 
         if (!student) return res.status(404).json({ message: "Student not found" });
 
-        // A. Move the OLD grade into history before changing it
         const historyEntry = {
-            year: academicYear - 1, // The year they just finished
+            year: acadamicYear,
             gradeAtThatTime: student.gradeLevel,
             statusAtEnd: 'Completed'
         };
 
         // B. Update the student for the NEW year
         student.academicHistory.push(historyEntry);
-        student.gradeLevel = newGradeLevel; // e.g., Set to "Grade 3A"
+        student.gradeLevel = newGradeLevel;
         student.status = 'Active'; 
         
         await student.save();

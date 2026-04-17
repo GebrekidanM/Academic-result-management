@@ -192,10 +192,9 @@ const Navbar = ({ isOpen, setIsOpen }) => {
             
             {(currentUser || currentStudent) && (
                 <>
-                    <NavLink to="/library" className={navLinkClass} onClick={closeMenu}>
-                        📚 {t('school_library')}
+                    <NavLink to="/library"  className={navLinkClass} onClick={closeMenu}>
+                        📚
                     </NavLink>
-                    {/* Notification Bell */}
                     <NotificationBell />
                 </>
             )}

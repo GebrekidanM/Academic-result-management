@@ -47,18 +47,18 @@ const AddStudentPage = () => {
 
     // --- Logic: Search for Existing Student ---
     const handleSearchStudent = async () => {
-        if (!searchId) return;
+        const trimmedId = searchId.trim().toUpperCase(); // Trim extra spaces
+        if (!trimmedId) return;
         setLoading(true);
         setError(null);
         setFoundStudent(null);
 
         try {
-            // This calls GET /api/students/id/:studentId
-            const response = await studentService.getStudentByStudentId(searchId);
-            setFoundStudent(response.data.data);
-            setLoading(false);
+            const response = await studentService.getStudentByStudentId(trimmedId);
+            setFoundStudent(response.data);
         } catch (err) {
-            setError("Student ID not found. Please check and try again.");
+            setError("Student ID not found.");
+        } finally {
             setLoading(false);
         }
     };
@@ -66,6 +66,7 @@ const AddStudentPage = () => {
     // --- Logic: Final Submission ---
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if(loading) return;
         if (!isOnline) {
             setError(t('offline_warning') || "Internet required.");
             return;
@@ -76,7 +77,6 @@ const AddStudentPage = () => {
 
         try {
             if (regMode === 'new') {
-                // HANDLE NEW STUDENT
                 const formattedData = {
                     ...studentData,
                     gradeLevel: studentData.gradeLevel.replace(/\b\w/g, c => c.toUpperCase())
@@ -84,28 +84,34 @@ const AddStudentPage = () => {
                 const response = await studentService.createStudent(formattedData);
                 setSuccess(response.data.data);
             } else {
-                // HANDLE RETURNING STUDENT (RE-REGISTER)
                 if (!newGradeLevel) {
                     setError("Please enter the new grade level.");
                     setLoading(false);
                     return;
                 }
-
                 const response = await studentService.reRegisterStudent({
                     studentId: foundStudent.studentId,
-                    newGradeLevel: newGradeLevel.replace(/\b\w/g, c => c.toUpperCase())
+                    newGradeLevel: newGradeLevel.replace(/\b\w/g, c => c.toUpperCase()),
+                    thatYear: foundStudent.thatYear
                 });
 
-                // Set success state to show confirmation
-                setSuccess({
-                    ...foundStudent,
-                    gradeLevel: newGradeLevel,
-                    isReRegistration: true
-                });
+                if(response.ok){
+                    setSuccess({
+                        ...foundStudent,
+                        gradeLevel: newGradeLevel,
+                        isReRegistration: true
+                    });
+                    
+                    setSearchId('');
+                    setFoundStudent(null);
+                    setNewGradeLevel('');
+                    
+                }
             }
         } catch (err) {
             setError(err.response?.data?.message || t('error'));
-            setLoading(false);
+        }finally{
+             setLoading(false);
         }
     };
 
@@ -140,6 +146,7 @@ const AddStudentPage = () => {
                         Returning Student
                     </button>
                 </div>
+                
 
                 <Link to="/students" className="text-pink-600 hover:underline font-bold text-sm">
                     &larr; {t('back')}
@@ -216,7 +223,7 @@ const AddStudentPage = () => {
                                         <div>
                                             <p className="text-xs font-bold text-green-600 uppercase">Student Found</p>
                                             <h3 className="text-2xl font-black text-gray-800">{foundStudent.fullName}</h3>
-                                            <p className="text-gray-600 italic">Currently in: {foundStudent.gradeLevel}</p>
+                                            <p className="text-gray-600 italic">Currently in: {foundStudent.currentGrade}</p>
                                         </div>
                                         <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
                                             Verified
@@ -234,7 +241,6 @@ const AddStudentPage = () => {
                                             required
                                         />
                                         <p className="text-xs text-gray-400 mt-2">Example: If they were in 2A, put 3A.</p>
-
                                         <button 
                                             onClick={handleSubmit}
                                             disabled={loading || !newGradeLevel}
