@@ -6,7 +6,6 @@ const cron = require('node-cron');
 require('dotenv').config();
 
 const performBackup = async () => {
-    console.log("🕒 Starting Automated Backup...");
     const client = new MongoClient(process.env.MONGO_URI); 
     
     try {
@@ -48,5 +47,6 @@ const performBackup = async () => {
     }
 }
 
-// Schedule: 1st, 6th, 12th, 18th, 24th at 03:00
-cron.schedule('0 3 1,6,12,18,24 * *', performBackup);
+cron.schedule('0 3 1,4,6,12,9,13,15,18,21,24,27 * *', performBackup);
+
+exports.module = performBackup;
