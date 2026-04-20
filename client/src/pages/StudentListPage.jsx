@@ -204,29 +204,46 @@ const StudentListPage = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
                                 <tr>
-                                    <th className="px-6 py-3 text-left">{t('id_no')}</th>
-                                    <th className="px-6 py-3 text-left">{t('full_name')}</th>
-                                    <th className="px-6 py-3 text-left">{t('gender')}</th>
-                                    <th className="px-6 py-3 text-center">{t('actions')}</th>
+                                    <th className="px-4 py-3 text-left">{t('id_no')}</th>
+                                    <th className="px-4 py-3 text-left">{t('full_name')}</th>
+                                    <th className="px-4 py-3 text-left">{t('gender')}</th>
+                                    <th className="px-4 py-3 text-left">DOB</th>
+                                    <th className="px-4 py-3 text-left">Mother</th>
+                                    <th className="px-4 py-3 text-left">Mother Contacts</th>
+                                    <th className="px-4 py-3 text-left">Father Contacts</th>
+                                    <th className="px-4 py-3 text-left">Health</th>
+                                    <th className="px-4 py-3 text-center">{t('actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 bg-white">
                                 {tableStudents.length > 0 ? (
                                     tableStudents.map(student => (
-                                        <tr key={student._id} className="hover:bg-pink-50 transition-colors">
-                                            <td className="px-6 py-4 font-mono text-sm text-gray-500">{student.studentId}</td>
-                                            <td className="px-6 py-4 font-bold text-gray-800">
+                                        <tr key={student._id} className="hover:bg-pink-50 transition-colors text-sm">
+                                            <td className="px-4 py-4 font-mono text-gray-500">{student.studentId}</td>
+                                            <td className="px-4 py-4 font-bold text-gray-800 whitespace-nowrap">
                                                 <Link to={`/students/${student._id}`} className="hover:text-pink-600 hover:underline">{student.fullName}</Link>
                                             </td>
-                                            {/* Translate Gender from DB (Male/Female) */}
-                                            <td className="px-6 py-4 text-sm text-gray-600">{t(student.gender)}</td>
-                                            <td className="px-6 py-4 text-center">
-                                                <Link to={`/students/${student._id}`} className="text-indigo-600 hover:text-indigo-900 font-bold text-sm">{t('view')}</Link>
+                                            <td className="px-4 py-4 text-gray-600">{t(student.gender)}</td>
+                                            <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{student.dateOfBirth}</td>
+                                            <td className="px-4 py-4 text-gray-600">
+                                                <div className="text-xs font-bold">{student.motherName}</div>
+                                            </td>
+                                            <td className="px-4 py-4 text-gray-600 text-xs">
+                                                {student.motherContact}
+                                            </td>
+                                            <td className="px-4 py-4 text-gray-600 text-xs">
+                                                {student.fatherContact}
+                                            </td>
+                                            <td className="px-4 py-4 text-gray-600 max-w-[150px] truncate" title={student.healthStatus}>
+                                                {student.healthStatus}
+                                            </td>
+                                            <td className="px-4 py-4 text-center">
+                                                <Link to={`/students/${student._id}`} className="text-indigo-600 hover:text-indigo-900 font-bold">{t('view')}</Link>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">{t('no_students_match')}</td></tr>
+                                    <tr><td colSpan="8" className="px-6 py-8 text-center text-gray-500">{t('no_students_match')}</td></tr>
                                 )}
                             </tbody>
                         </table>
