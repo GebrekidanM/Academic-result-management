@@ -4,10 +4,8 @@ const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
 const User = require('./models/User');
+const cron = require('node-cron');
 
-// --- Connect to MongoDB ---
-// We will connect inside the start function now
-// connectDB(); 
 
 const app = express();
 
@@ -64,19 +62,23 @@ const startServer = async () => {
         // 1. Connect to DB
         await connectDB();
         // 3. Seed Admin
+        
         await seedAdminUser();
-        //await fixSubjectLoads();
-        // 4. Start Server
-       // await migrateData()
-        const PORT = process.env.PORT || 5001;
-        app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`);
-        });
 
-    } catch (error) {
-        console.error("Failed to start server:", error);
-        process.exit(1); // Only exit if DB connection fails completely
-    }
+        const PORT = process.env.PORT || 5000;
+        app.listen(PORT, () => {
+                    console.log(`🚀 Server running on port ${PORT}`);
+                    
+                    cron.schedule('0 22 */3 * *', () => {
+                        performBackup();
+                    });
+                    console.log("📅 Automated backup job scheduled for 01:00 AM EAT");
+                });
+
+      } catch (error) {
+          console.error("Failed to start server:", error);
+            process.exit(1); // Only exit if DB connection fails completely
+      }
 };
 
 // Execute the startup
