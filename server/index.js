@@ -77,7 +77,7 @@ const startServer = async () => {
 
       } catch (error) {
           console.error("Failed to start server:", error);
-            process.exit(1); // Only exit if DB connection fails completely
+            process.exit(1);
       }
 };
 

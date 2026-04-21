@@ -207,15 +207,20 @@ const SyncStatus = () => {
                                         {pendingGrades.map((g) => (
                                             <li key={g.id} className="p-3 bg-white border border-green-200 rounded-lg shadow-sm flex justify-between items-center">
                                                 <div>
-                                                    <div className="font-bold text-gray-800 text-sm">
-                                                        {g.payload.academicYear} ({g.payload.semester})
+                                                    {/* --- NEW: Assessment Name Display --- */}
+                                                    <div className="font-bold text-blue-800 text-sm mb-0.5">
+                                                        {getAssessmentName(g.payload.assessmentTypeId)}
                                                     </div>
+                                                    
+                                                    <div className="font-medium text-gray-700 text-xs">
+                                                        {g.payload.academicYear} | {g.payload.semester}
+                                                    </div>
+                                                    
                                                     <div className="text-xs text-gray-500">
                                                         {g.payload.scores.length} {t('students_graded')}
-                                                        {g.payload.assessmentTypeId.startsWith('TEMP_') && <span className="text-orange-500 ml-1">({t('linked_to_new')})</span>}
-                                                    </div>
-                                                    <div className="text-[10px] text-gray-400 mt-1">
-                                                        {t('saved_at')}: {new Date(g.timestamp).toLocaleTimeString()}
+                                                        {g.payload.assessmentTypeId.startsWith('TEMP_') && 
+                                                            <span className="text-orange-500 ml-1 italic text-[10px]">({t('linked_to_new')})</span>
+                                                        }
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2">
