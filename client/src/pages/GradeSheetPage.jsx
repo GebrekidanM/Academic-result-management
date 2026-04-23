@@ -161,6 +161,7 @@ const GradeSheetPage = () => {
             } else {
                 await gradeService.saveGradeSheet(payload);
                 alert(`🚀 ${t('saved_online_msg')}`);
+                setScores({})
             }
         } catch (err) {
             offlineGradeService.addToQueue(payload);
