@@ -64,11 +64,9 @@ const SyncStatus = () => {
     };
 
     const getAssessmentName = (assessmentTypeId) => {
-        // 1. Check local pending assessments
         const local = pendingAssessments.find(a => a._id === assessmentTypeId);
         if (local) return local.name;
 
-        // 2. If it's not local, it's an existing one. 
         return t('unknown_assessment');
     };
 

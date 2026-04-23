@@ -11,7 +11,7 @@ const scheduleSchema = new mongoose.Schema({
     },
     
     // Period Number (1 = 1st period, 2 = 2nd period...)
-    period: { type: Number, required: true, min: 1, max: 8 }, 
+    period: { type: Number, required: true, min: 1, max: 7 }, 
     
     subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
     teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }

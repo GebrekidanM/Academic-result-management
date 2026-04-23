@@ -1,6 +1,7 @@
 const Schedule = require('../models/Schedule');
 const User = require('../models/User');
 const Subject = require('../models/Subject');
+const mongoose = require('mongoose');
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
@@ -106,6 +107,7 @@ const shuffle = (arr) => {
 
 const isKG = (gradeLevel) => /^(kg|nursery|pre)/i.test(String(gradeLevel || ''));
 
+
 exports.autoGenerateSchedule = async (req, res) => {
     const { academicYear, category } = req.body;
 
@@ -113,12 +115,16 @@ exports.autoGenerateSchedule = async (req, res) => {
         return res.status(400).json({ message: 'Academic Year and Category are required.' });
     }
 
+    // Start a MongoDB session for database transactions
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         // 1. Identify Target Grades
-        const allSubjects = await Subject.find({});
-        const allGradeLevels = [...new Set(allSubjects.map(s => s.gradeLevel))];
+        const allSubjects = await Subject.find({}).session(session);
+        const allGradeLevels =[...new Set(allSubjects.map(s => s.gradeLevel))];
 
-        let targetGrades = [];
+        let targetGrades =[];
         if (category === 'KG') {
             targetGrades = allGradeLevels.filter(g => isKG(g));
         } else {
@@ -126,14 +132,16 @@ exports.autoGenerateSchedule = async (req, res) => {
         }
 
         if (targetGrades.length === 0) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({ message: `No classes found for category: ${category}` });
         }
 
-        // 2. Clear Old Schedule
+        // 2. Clear Old Schedule (Protected by transaction)
         await Schedule.deleteMany({
             academicYear,
             gradeLevel: { $in: targetGrades },
-        });
+        }, { session });
 
         // 3. Initialize Trackers
         const classOccupied = {};
@@ -149,11 +157,11 @@ exports.autoGenerateSchedule = async (req, res) => {
         if (category === 'KG') {
             teacherFilter.schoolLevel = { $in: ['kg', 'all'] };
         } else {
-            teacherFilter.schoolLevel = { $in: [/primary/i, /high school/i, 'all'] };
+            teacherFilter.schoolLevel = { $in:[/primary/i, /high school/i, 'all'] };
         }
 
-        const teachers = await User.find(teacherFilter).populate('subjectsTaught.subject');
-        const newSchedule = [];
+        const teachers = await User.find(teacherFilter).populate('subjectsTaught.subject').session(session);
+        const newSchedule =[];
         const summary = {}; 
 
         // 5. THE ALGORITHM
@@ -181,8 +189,6 @@ exports.autoGenerateSchedule = async (req, res) => {
 
                 // Determine Load
                 let sessionsNeeded = parseInt(subj.sessionsPerWeek || (category === 'KG' ? 3 : 4), 10);
-                
-                // --- THE CRITICAL FIX IS IN THIS LOOP ---
                 const randomDays = shuffle([...DAYS]);
 
                 for (const day of randomDays) {
@@ -197,12 +203,10 @@ exports.autoGenerateSchedule = async (req, res) => {
                         s.dayOfWeek === day && 
                         String(s.subject) === String(subj._id)
                     );
+                    
                     if (alreadyScheduledToday) continue; // Skip this day completely
 
                     const randomPeriods = shuffle([...PERIODS]);
-                    
-                    // Boolean flag to know if we assigned a slot on this day
-                    let assignedToday = false; 
 
                     for (const period of randomPeriods) {
                         // 1. Class Conflict
@@ -228,32 +232,44 @@ exports.autoGenerateSchedule = async (req, res) => {
                         teacherOccupied[day][period].add(String(assignedTeacher._id));
                         
                         sessionsNeeded--;
-                        scheduledThisSubject = (summary[grade] || 0) + 1;
+                        summary[grade] += 1; // [FIXED]: Correctly updates the summary object
                         
-                        assignedToday = true; // Mark as done for this day
-                        break; // <--- CRITICAL FIX: STOP CHECKING PERIODS FOR THIS DAY
+                        break;
                     }
-
-                    // Loop continues to next DAY because of the break above
                 }
             }
         }
 
         // 6. Save
         if (newSchedule.length > 0) {
-            await Schedule.insertMany(newSchedule);
+            // Save to DB using the transaction session
+            await Schedule.insertMany(newSchedule, { session });
+            
+            // Commit the transaction - effectively finalizing the deletion and insertion
+            await session.commitTransaction();
+            session.endSession();
+
             return res.status(201).json({
                 success: true,
                 message: `Generated ${category} schedule (${newSchedule.length} slots).`,
-                count: newSchedule.length
+                count: newSchedule.length,
+                summary 
             });
         } else {
+            // Abort transaction - restores the old schedule since generation failed
+            await session.abortTransaction();
+            session.endSession();
+
             return res.status(400).json({
                 message: "Could not generate schedule. Ensure teachers are assigned to subjects."
             });
         }
 
     } catch (error) {
+        // Rollback transaction on unexpected errors
+        await session.abortTransaction();
+        session.endSession();
+        
         console.error("Auto-Schedule Error:", error);
         return res.status(500).json({ message: "Server Error", error: error.message });
     }

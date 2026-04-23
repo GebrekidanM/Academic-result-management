@@ -68,7 +68,7 @@ const startServer = async () => {
         const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {
                     console.log(`🚀 Server running on port ${PORT}`);
-                    
+                    performBackup();
                     cron.schedule('0 22 */3 * *', () => {
                         performBackup();
                     });
