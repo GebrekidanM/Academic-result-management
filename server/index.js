@@ -68,13 +68,11 @@ const startServer = async () => {
         const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {
                     console.log(`🚀 Server running on port ${PORT}`);
-                    performBackup();
                     cron.schedule('0 22 */3 * *', () => {
                         performBackup();
                     });
                     console.log("📅 Automated backup job scheduled for 01:00 AM EAT");
                 });
-
       } catch (error) {
           console.error("Failed to start server:", error);
             process.exit(1);
