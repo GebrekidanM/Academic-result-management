@@ -103,6 +103,7 @@ exports.generateRoster = async (req, res) => {
             
             // Sum of sums
             const overallTotalSum = firstSemester.total + secondSemester.total;
+            const overallTotalSumAvg = divisor > 0 ? overallTotalSum / divisor : overallTotalSum
 
             return {
                 _id: student._id,
@@ -127,7 +128,7 @@ exports.generateRoster = async (req, res) => {
 
                 subjectAverages: subjectAverages,
 
-                overallTotal: parseFloat(overallTotalSum.toFixed(2)), 
+                overallTotal: parseFloat(overallTotalSumAvg.toFixed(2)), 
                 overallAverage: parseFloat(overallAverage.toFixed(2)),
                 rank1st: '-', rank2nd: '-', overallRank: '-',
             };
