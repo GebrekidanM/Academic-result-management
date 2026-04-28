@@ -251,7 +251,7 @@ const RosterPage = () => {
                                             </td>
                                         ))}
                                         
-                                        <td className={`${tdStyle} bg-gray-300 font-black`}>{(student.overallTotal || 0)}</td>
+                                        <td className={`${tdStyle} bg-gray-300 font-black`}>{(student.overallTotal/2 || 0)}</td>
                                         <td className={`${tdStyle} bg-gray-300 font-black`}>{(student.overallAverage || 0)}</td>
                                         <td className={`${tdStyle} bg-yellow-200 font-black border-2 border-yellow-400`}>{student.overallRank}</td>
                                     </tr>
