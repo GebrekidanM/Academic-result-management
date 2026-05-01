@@ -36,6 +36,10 @@ const ParentDashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [ranks, setRanks] = useState({ sem1: '-', sem2: '-', overall: '-' });
+    
+    // NEW: Nested Tab State Strategy
+    const [activeMainTab, setActiveMainTab] = useState('analytics'); // 'analytics', 'First Semester', 'Second Semester'
+    const[activeAnalyticsTab, setActiveAnalyticsTab] = useState('overall'); // 'overall', 'First Semester', 'Second Semester'
 
     useEffect(() => {
         const loadDashboard = async () => {
@@ -54,9 +58,9 @@ const ParentDashboardPage = () => {
                 const studentData = studentRes.value.data.data;
                 setStudent(studentData);
 
-                const fetchedGrades = gradesRes.status === 'fulfilled' ? gradesRes.value.data.data : [];
+                const fetchedGrades = gradesRes.status === 'fulfilled' ? gradesRes.value.data.data :[];
                 setGrades(fetchedGrades);
-                const fetchedReports = reportsRes.status === 'fulfilled' ? reportsRes.value.data.data : [];
+                const fetchedReports = reportsRes.status === 'fulfilled' ? reportsRes.value.data.data :[];
                 setReports(fetchedReports);
 
                 const academicYear = fetchedGrades.length > 0 ? fetchedGrades[0].academicYear : '2018';
@@ -75,100 +79,108 @@ const ParentDashboardPage = () => {
             }
         };
         loadDashboard();
-    }, []);
+    },[]);
 
-    // --- RESTORED ANALYTICS ENGINE ---
-    const { studentStats, insights, processedSemesters } = useMemo(() => {
-        if (!grades.length) return { studentStats: null, insights: null, processedSemesters: {} };
+    // --- ANALYTICS ENGINE ---
+    const analyticsData = useMemo(() => {
+        if (!grades.length) return { overall: null, semesters: {} };
 
-        const subjectPerformance = {};
-        const categories = { critical: [], average: [], good: [], excellent: [] };
-        let grandTotalScore = 0;
-        let grandTotalMax = 0;
+        const processGrades = (gradeList) => {
+            if (!gradeList || gradeList.length === 0) return null;
 
-        // Group by Semester for the UI
-        const semGroup = grades.reduce((acc, g) => {
-            acc[g.semester] = acc[g.semester] || [];
-            acc[g.semester].push(g);
-            return acc;
-        }, {});
+            let grandTotalScore = 0;
+            let grandTotalMax = 0;
+            const categories = { critical: [], average: [], good: [], excellent:[] };
+            const monthlyTotals = {};
+            const subjectList =[];
 
-        const processedSem = {};
-        Object.entries(semGroup).forEach(([semName, rawGrades]) => {
-            processedSem[semName] = rawGrades.map(grade => {
+            const processedGrades = gradeList.map(grade => {
                 const totalScore = grade.assessments.reduce((acc, curr) => acc + curr.score, 0);
                 const totalMax = grade.assessments.reduce((acc, curr) => acc + (curr.assessmentType?.totalMarks || 0), 0);
                 const percentage = totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
-                
+
                 grandTotalScore += totalScore;
                 grandTotalMax += totalMax;
 
-                // For Insights
                 const item = { name: grade.subject?.name, pct: percentage.toFixed(1) };
                 if (percentage < 60) categories.critical.push(item);
                 else if (percentage < 75) categories.average.push(item);
                 else if (percentage < 90) categories.good.push(item);
                 else categories.excellent.push(item);
 
-                // For Subject Mapping
-                const flatAssessments = grade.assessments.map(a => ({
-                    id: a._id || Math.random(),
-                    monthName: a.assessmentType?.month || 'Other',
-                    testName: a.assessmentType?.name,
-                    score: a.score,
-                    totalMarks: a.assessmentType?.totalMarks
-                })).sort((a, b) => (MONTH_ORDER[a.monthName] || 99) - (MONTH_ORDER[b.monthName] || 99));
+                subjectList.push({ name: grade.subject?.name, pct: percentage });
 
+                const flatAssessments =[];
+                grade.assessments.forEach(a => {
+                    const monthName = a.assessmentType?.month || 'Other';
+                    const score = a.score || 0;
+                    const max = a.assessmentType?.totalMarks || 0;
+
+                    flatAssessments.push({
+                        id: a._id || Math.random(),
+                        monthName,
+                        testName: a.assessmentType?.name,
+                        score,
+                        totalMarks: max
+                    });
+
+                    if (monthName && max > 0) {
+                        if (!monthlyTotals[monthName]) monthlyTotals[monthName] = { obtained: 0, max: 0 };
+                        monthlyTotals[monthName].obtained += score;
+                        monthlyTotals[monthName].max += max;
+                    }
+                });
+
+                flatAssessments.sort((a, b) => (MONTH_ORDER[a.monthName] || 99) - (MONTH_ORDER[b.monthName] || 99));
                 const groupedByMonth = flatAssessments.reduce((acc, curr) => {
                     if (!acc[curr.monthName]) acc[curr.monthName] = [];
                     acc[curr.monthName].push(curr);
                     return acc;
                 }, {});
 
-                return { ...grade, groupedByMonth, subjectTotalMax: totalMax, percentage };
+                return { ...grade, groupedByMonth, subjectTotalMax: totalMax, finalScore: totalScore, percentage };
             });
+
+            subjectList.sort((a, b) => b.pct - a.pct);
+
+            const labels = Object.keys(MONTH_ORDER).filter(m => monthlyTotals[m]);
+            const chartData = {
+                labels: labels.map(l => t(l) || l),
+                datasets:[{
+                    label: 'Performance %',
+                    data: labels.map(m => ((monthlyTotals[m].obtained / monthlyTotals[m].max) * 100).toFixed(1)),
+                    borderColor: 'rgb(79, 70, 229)',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            };
+
+            return {
+                processedGrades,
+                stats: {
+                    best: subjectList[0] || null,
+                    worst: subjectList[subjectList.length - 1] || null,
+                    avg: grandTotalMax > 0 ? (grandTotalScore / grandTotalMax) * 100 : 0
+                },
+                insights: categories,
+                chartData
+            };
+        };
+
+        const overall = processGrades(grades);
+        const semGroup = grades.reduce((acc, g) => {
+            acc[g.semester] = acc[g.semester] || [];
+            acc[g.semester].push(g);
+            return acc;
+        }, {});
+
+        const semesters = {};
+        Object.keys(semGroup).forEach(sem => {
+            semesters[sem] = processGrades(semGroup[sem]);
         });
 
-        // Best/Worst Calculation
-        const perfArray = Object.values(processedSem).flat().map(g => ({ name: g.subject.name, pct: g.percentage }));
-        perfArray.sort((a, b) => b.pct - a.pct);
-
-        return {
-            studentStats: {
-                best: perfArray[0],
-                worst: perfArray[perfArray.length - 1],
-                avg: (grandTotalScore / grandTotalMax) * 100
-            },
-            insights: categories,
-            processedSemesters: processedSem
-        };
-    }, [grades]);
-
-    const chartData = useMemo(() => {
-        if (!grades.length) return null;
-        const monthlyTotals = {};
-        grades.forEach(grade => {
-            grade.assessments.forEach(assess => {
-                const month = assess.assessmentType?.month;
-                if (month && assess.assessmentType?.totalMarks > 0) {
-                    if (!monthlyTotals[month]) monthlyTotals[month] = { obtained: 0, max: 0 };
-                    monthlyTotals[month].obtained += assess.score;
-                    monthlyTotals[month].max += assess.assessmentType.totalMarks;
-                }
-            });
-        });
-        const labels = Object.keys(MONTH_ORDER).filter(m => monthlyTotals[m]);
-        return {
-            labels: labels.map(l => t(l)),
-            datasets: [{
-                label: 'Performance %',
-                data: labels.map(m => ((monthlyTotals[m].obtained / monthlyTotals[m].max) * 100).toFixed(1)),
-                borderColor: 'rgb(79, 70, 229)',
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                fill: true,
-                tension: 0.4
-            }]
-        };
+        return { overall, semesters };
     }, [grades, t]);
 
     const calculateAge = (dob) => {
@@ -180,24 +192,59 @@ const ParentDashboardPage = () => {
         return isNaN(birthYear) ? '-' : ethYear - birthYear;
     };
 
+    // Render Blocks Logic
+    const renderAnalyticsBlock = (data) => {
+        if (!data) return null;
+        return (
+            <div className="animate-fade-in mt-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-72">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-4">{t('monthly_progress')}</h3>
+                        {data.chartData && <Line data={data.chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />}
+                    </div>
+                    <div className="space-y-4">
+                        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm h-full">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase mb-4">{t('key_performance')}</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                    <div><p className="text-[10px] text-green-600 font-bold uppercase">{t('best_subject')}</p><p className="font-bold text-slate-800">{data.stats.best?.name || '-'}</p></div>
+                                    <p className="text-xl font-black text-green-700">{data.stats.best?.pct ? `${data.stats.best.pct.toFixed(0)}%` : '-'}</p>
+                                </div>
+                                <div className="flex justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                                    <div><p className="text-[10px] text-red-600 font-bold uppercase">{t('needs_focus')}</p><p className="font-bold text-slate-800">{data.stats.worst?.name || '-'}</p></div>
+                                    <p className="text-xl font-black text-red-700">{data.stats.worst?.pct ? `${data.stats.worst.pct.toFixed(0)}%` : '-'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+                    <h3 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">🎯 {t('academic_insights')}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {['critical', 'average', 'good', 'excellent'].map((cat) => (
+                            <div key={cat} className={`rounded-xl p-4 border ${cat === 'critical' ? 'bg-red-50 border-red-100' : cat === 'average' ? 'bg-yellow-50 border-yellow-100' : cat === 'good' ? 'bg-blue-50 border-blue-100' : 'bg-green-50 border-green-100'}`}>
+                                <h4 className="text-[10px] font-bold uppercase mb-2 opacity-70">{t(`${cat}_range`) || cat}</h4>
+                                {data.insights && data.insights[cat].length > 0 ? (
+                                    <ul className="space-y-1">{data.insights[cat].map((s, i) => <li key={i} className="text-xs flex justify-between font-medium"><span>{s.name}</span> <span>{s.pct}%</span></li>)}</ul>
+                                ) : <p className="text-[10px] italic text-slate-400">{t('no_subjects')}</p>}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     if (loading) return <div className="flex justify-center items-center h-screen font-bold text-slate-400">{t('loading')}...</div>;
     if (error) return <div className="p-10 text-center text-red-500 bg-red-50 h-screen flex flex-col items-center justify-center">{error}</div>;
 
+    const { overall, semesters } = analyticsData;
+
     return (
         <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-sans print:bg-white print:p-0">
-            <style>{`
-                @media print {
-                    @page { size: A4 portrait; margin: 12mm; }
-                    .no-print { display: none !important; }
-                    .subject-card { break-inside: avoid; border: 1px solid #cbd5e1 !important; margin-bottom: 1.5rem !important; }
-                    .print-bg-dark { background-color: #1e293b !important; color: white !important; -webkit-print-color-adjust: exact; }
-                    .print-bg-blue { background-color: #3b82f6 !important; -webkit-print-color-adjust: exact; }
-                    .print-border-blue { border-left: 4px solid #3b82f6 !important; }
-                }
-            `}</style>
-
-            {/* RESTORED HEADER WITH FULL CONTACT INFO */}
-            <div className="max-w-6xl mx-auto mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8 justify-between">
+            {/* HEADER - Student Info */}
+            <div className="max-w-6xl mx-auto mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8 justify-between">
                 <div className="flex flex-col md:flex-row items-center gap-6">
                     <img src={student.imageUrl} alt="Profile" className="w-32 h-32 rounded-full border-4 border-slate-100 shadow-sm object-cover" />
                     <div>
@@ -208,101 +255,156 @@ const ParentDashboardPage = () => {
                             <p><strong>{t('age')}:</strong> {calculateAge(student.dateOfBirth)}</p>
                             <p><strong>{t('parent_name')}:</strong> {student.motherName}</p>
                             <p><strong>{t('contact')}:</strong> {student.motherContact}</p>
-                            <p><strong>{t('Father_contact')}:</strong> {student.fatherContact}</p>
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-col items-center gap-4">
-                    <div className="bg-indigo-600 text-white p-4 rounded-2xl text-center shadow-lg w-32">
-                        <p className="text-[10px] uppercase font-bold opacity-70">{t('rank')}</p>
+                <div className="flex flex-row items-center gap-4">
+                    <div className="bg-indigo-600 text-white p-4 rounded-2xl text-center shadow-md w-28 md:w-32">
+                        <p className="text-[10px] uppercase font-bold opacity-80">{t('overall_rank') || 'Rank'}</p>
                         <p className="text-3xl font-black">{ranks.overall}</p>
                     </div>
-                    <button onClick={() => window.print()} className="no-print bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold">🖨️ {t('print')}</button>
-                </div>
-            </div>
-
-            {/* CHARTS & STATS CARDS */}
-            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 no-print">
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-64">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase mb-4">{t('monthly_progress')}</h3>
-                    {chartData && <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />}
-                </div>
-                <div className="space-y-4">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-4">{t('key_performance')}</h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                <div><p className="text-[10px] text-green-600 font-bold uppercase">{t('best_subject')}</p><p className="font-bold text-slate-800">{studentStats?.best?.name}</p></div>
-                                <p className="text-xl font-black text-green-700">{studentStats?.best?.pct.toFixed(0)}%</p>
-                            </div>
-                            <div className="flex justify-between p-3 bg-red-50 rounded-lg border border-red-100">
-                                <div><p className="text-[10px] text-red-600 font-bold uppercase">{t('needs_focus')}</p><p className="font-bold text-slate-800">{studentStats?.worst?.name}</p></div>
-                                <p className="text-xl font-black text-red-700">{studentStats?.worst?.pct.toFixed(0)}%</p>
-                            </div>
-                        </div>
+                    <div className="bg-emerald-600 text-white p-4 rounded-2xl text-center shadow-md w-28 md:w-32">
+                        <p className="text-[10px] uppercase font-bold opacity-80">{t('overall_average') || 'Average'}</p>
+                        <p className="text-3xl font-black">{overall?.stats.avg?.toFixed(1) || 0}%</p>
                     </div>
                 </div>
             </div>
 
-            {/* RESTORED INSIGHTS GRID */}
-            <div className="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8 no-print">
-                <h3 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">📊 {t('academic_insights')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {['critical', 'average', 'good', 'excellent'].map((cat) => (
-                        <div key={cat} className={`rounded-xl p-4 border ${cat === 'critical' ? 'bg-red-50 border-red-100' : cat === 'average' ? 'bg-yellow-50 border-yellow-100' : cat === 'good' ? 'bg-blue-50 border-blue-100' : 'bg-green-50 border-green-100'}`}>
-                            <h4 className="text-[10px] font-bold uppercase mb-2 opacity-70">{t(`${cat}_range`)}</h4>
-                            {insights[cat].length > 0 ? (
-                                <ul className="space-y-1">{insights[cat].map((s, i) => <li key={i} className="text-xs flex justify-between font-medium"><span>{s.name}</span> <span>{s.pct}%</span></li>)}</ul>
-                            ) : <p className="text-[10px] italic text-slate-400">{t('no_subjects')}</p>}
-                        </div>
-                    ))}
-                </div>
+            {/* LEVEL 1: MAIN NAVIGATION TABS */}
+            <div className="max-w-6xl mx-auto flex flex-wrap gap-6 mb-8 border-b-2 border-slate-200 print:hidden">
+                <button
+                    onClick={() => setActiveMainTab('analytics')}
+                    className={`pb-3 text-base font-black transition-all duration-200 border-b-4 ${
+                        activeMainTab === 'analytics' 
+                        ? 'border-indigo-600 text-indigo-700' 
+                        : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300'
+                    }`}
+                >
+                    📊 {t('overview_analytics') || 'Overview Analytics'}
+                </button>
+                
+                {Object.keys(semesters).map(sem => (
+                    <button
+                        key={sem}
+                        onClick={() => setActiveMainTab(sem)}
+                        className={`pb-3 text-base font-black transition-all duration-200 border-b-4 ${
+                            activeMainTab === sem 
+                            ? 'border-indigo-600 text-indigo-700' 
+                            : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300'
+                        }`}
+                    >
+                        📝 {sem === 'First Semester' ? t('sem_1') : t('sem_2')} Details
+                    </button>
+                ))}
             </div>
 
-            {/* CARDS FEED */}
             <div className="max-w-6xl mx-auto pb-20">
-                {Object.entries(processedSemesters).map(([semesterName, subjectGrades]) => (
-                    <div key={semesterName} className="mb-12">
-                        <div className="flex justify-between items-end mb-6 border-b-2 border-slate-800 pb-2">
-                            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">{semesterName === 'First Semester' ? t('sem_1') : t('sem_2')}</h2>
-                            <span className="text-sm font-bold text-slate-500">{t('rank')}: {semesterName === 'First Semester' ? ranks.sem1 : ranks.sem2}</span>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-6">
-                            {subjectGrades.map((grade) => (
-                                <div key={grade._id} className="subject-card bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                                    <div className="print-bg-dark bg-slate-800 px-6 py-4 flex justify-between items-center text-white">
-                                        <h3 className="text-lg font-bold uppercase tracking-wide">{grade.subject.name}</h3>
-                                        <p className="text-2xl font-black">{grade.finalScore} <span className="text-sm opacity-40">/ {grade.subjectTotalMax}</span></p>
-                                    </div>
-                                    <div className="p-6 space-y-6">
-                                        {Object.entries(grade.groupedByMonth).map(([month, tests]) => (
-                                            <div key={month} className="print-border-blue border-l-4 border-indigo-500 pl-4">
-                                                <h4 className="text-xs font-black text-indigo-900 uppercase mb-3">{t(month)}</h4>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                    {tests.map(test => (
-                                                        <div key={test.id} className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex justify-between items-center">
-                                                            <span className="text-xs text-slate-500 font-medium">{test.testName}</span>
-                                                            <span className="text-sm font-bold text-slate-700">{test.score} <span className="text-[10px] opacity-40">/ {test.totalMarks}</span></span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="h-2 w-full bg-slate-100">
-                                        <div className="print-bg-blue h-full bg-indigo-600" style={{ width: `${(grade.finalScore / grade.subjectTotalMax) * 100}%` }} />
-                                    </div>
-                                </div>
+                
+                {/* 1. OVERVIEW ANALYTICS TAB CONTENT (Contains Nested Sub-Tabs) */}
+                {activeMainTab === 'analytics' && overall && (
+                    <div className="animate-fade-in bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
+                        
+                        {/* LEVEL 2: SUB-TABS (Segmented Control style) */}
+                        <div className="flex flex-wrap gap-2 mb-2 bg-slate-100 p-1.5 rounded-xl inline-flex print:hidden">
+                            <button
+                                onClick={() => setActiveAnalyticsTab('overall')}
+                                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                                    activeAnalyticsTab === 'overall' 
+                                    ? 'bg-white text-indigo-700 shadow-sm' 
+                                    : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                🌐 {t('overall_year') || 'Overall Year'}
+                            </button>
+                            {Object.keys(semesters).map(sem => (
+                                <button
+                                    key={sem}
+                                    onClick={() => setActiveAnalyticsTab(sem)}
+                                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                                        activeAnalyticsTab === sem 
+                                        ? 'bg-white text-indigo-700 shadow-sm' 
+                                        : 'text-slate-500 hover:text-slate-700'
+                                    }`}
+                                >
+                                    📅 {sem === 'First Semester' ? t('sem_1') : t('sem_2')}
+                                </button>
                             ))}
                         </div>
 
-                        <div className="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-xl">
-                            <p className="text-[10px] uppercase font-bold text-amber-700 mb-1">{t('teacher_comment')}</p>
-                            <p className="text-sm text-amber-900 italic font-medium">"{reports.find(r => r.semester === semesterName)?.teacherComment || "No comment available."}"</p>
-                        </div>
+                        {/* RENDER THE SELECTED ANALYTICS DATA */}
+                        {activeAnalyticsTab === 'overall' && renderAnalyticsBlock(overall)}
+                        {Object.entries(semesters).map(([semName, semData]) => (
+                            activeAnalyticsTab === semName ? <div key={semName}>{renderAnalyticsBlock(semData)}</div> : null
+                        ))}
+
                     </div>
-                ))}
+                )}
+
+
+                {/* 2. SPECIFIC SEMESTER DETAILS (Just the Subject Breakdown Grades) */}
+                {Object.entries(semesters).map(([semesterName, semData]) => {
+                    if (activeMainTab !== semesterName) return null;
+
+                    return (
+                        <div key={semesterName} className="animate-fade-in mb-12">
+                            {/* Semester Header Info */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-slate-800 text-white p-4 rounded-xl shadow-md gap-3">
+                                <h2 className="text-xl font-black uppercase tracking-tight">
+                                    {semesterName === 'First Semester' ? t('sem_1') : t('sem_2')} Grades
+                                </h2>
+                                <div className="flex flex-col md:flex-row gap-3">
+                                    <div className="bg-emerald-500 text-white px-4 py-1.5 rounded-lg shadow-sm">
+                                        <span className="text-xs uppercase font-bold mr-2">{t('sem_average') || 'Sem Average'}:</span>
+                                        <span className="text-lg font-black">{semData.stats.avg.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="bg-indigo-500 text-white px-4 py-1.5 rounded-lg shadow-sm">
+                                        <span className="text-xs uppercase font-bold mr-2">{t('sem_rank') || 'Sem Rank'}:</span>
+                                        <span className="text-lg font-black">{semesterName === 'First Semester' ? ranks.sem1 : ranks.sem2}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Detailed Subject List */}
+                            <div className="grid grid-cols-1 gap-6 mt-4">
+                                {semData.processedGrades.map((grade) => (
+                                    <div key={grade._id} className="subject-card bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                                        <div className="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center">
+                                            <h3 className="text-lg font-bold uppercase tracking-wide text-slate-800">{grade.subject.name}</h3>
+                                            <div className="text-right">
+                                                <p className="text-2xl font-black text-slate-800">{grade.finalScore} <span className="text-sm opacity-50">/ {grade.subjectTotalMax}</span></p>
+                                                <p className="text-xs font-bold text-indigo-600">{grade.percentage.toFixed(1)}%</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-6 space-y-6">
+                                            {Object.entries(grade.groupedByMonth).map(([month, tests]) => (
+                                                <div key={month} className="border-l-4 border-indigo-500 pl-4">
+                                                    <h4 className="text-xs font-black text-indigo-900 uppercase mb-3">{t(month) || month}</h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        {tests.map(test => (
+                                                            <div key={test.id} className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex justify-between items-center">
+                                                                <span className="text-xs text-slate-500 font-medium">{test.testName}</span>
+                                                                <span className="text-sm font-bold text-slate-700">{test.score} <span className="text-[10px] opacity-40">/ {test.totalMarks}</span></span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="h-1.5 w-full bg-slate-100">
+                                            <div className="h-full bg-indigo-600" style={{ width: `${grade.percentage}%` }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Teacher Comment */}
+                            <div className="mt-8 p-6 bg-amber-50 border-l-4 border-amber-400 rounded-r-xl shadow-sm">
+                                <p className="text-xs uppercase font-bold text-amber-700 mb-2">{t('teacher_comment')}</p>
+                                <p className="text-base text-amber-900 italic font-medium">"{reports.find(r => r.semester === semesterName)?.teacherComment || t('no_comment_available') || "No comment available."}"</p>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
