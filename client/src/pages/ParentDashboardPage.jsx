@@ -270,7 +270,7 @@ const ParentDashboardPage = () => {
         <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-sans print:bg-white print:p-0">
             <div className="max-w-6xl mx-auto mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8 justify-between">
                 <div className="flex flex-col md:flex-row items-center gap-6">
-                    <img src={student.imageUrl} alt="Profile" className="w-32 h-32 rounded-full border-4 border-slate-100 shadow-sm object-cover" />
+                    <img src={student.imageUrl} alt="Profile" className="w-32 h-32 rounded-sm border-4 border-slate-100 shadow-sm object-cover" />
                     <div>
                         <h2 className="text-3xl font-black text-slate-800 text-center md:text-left">{student.fullName}</h2>
                         <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-3 text-sm text-slate-600">
@@ -296,7 +296,7 @@ const ParentDashboardPage = () => {
 
             {/* QUIZ CENTER SECTION */}
             <div className="max-w-6xl mx-auto mt-12 mb-20 bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                <h2 className="text-2xl font-black text-slate-800 mb-6">📝 {t('quiz_center')}</h2>
+                <h2 className="text-2xl font-black text-slate-800 mb-6">📝 {t('Quiz')}</h2>
 
                 {/* 1. Pending Quizzes (Cards) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
