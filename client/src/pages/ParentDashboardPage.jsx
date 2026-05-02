@@ -270,7 +270,7 @@ const ParentDashboardPage = () => {
         <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-sans print:bg-white print:p-0">
             <div className="max-w-6xl mx-auto mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8 justify-between">
                 <div className="flex flex-col md:flex-row items-center gap-6">
-                    <img src={student.imageUrl} alt="Profile" className="w-32 h-32 rounded-sm border-4 border-slate-100 shadow-sm object-cover" />
+                    <img src={student.imageUrl} alt="Profile" className="w-32 h-32 rounded-sm shadow-sm object-cover" />
                     <div>
                         <h2 className="text-3xl font-black text-slate-800 text-center md:text-left">{student.fullName}</h2>
                         <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-3 text-sm text-slate-600">
