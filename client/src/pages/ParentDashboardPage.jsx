@@ -284,11 +284,11 @@ const ParentDashboardPage = () => {
                 </div>
                 <div className="flex flex-row items-center gap-4">
                     <div className="bg-indigo-600 text-white p-4 rounded-2xl text-center shadow-md w-28 md:w-32">
-                        <p className="text-[10px] uppercase font-bold opacity-80">{t('overall_rank') || 'Rank'}</p>
+                        <p className="text-[10px] uppercase font-bold opacity-80">{'Rank'}</p>
                         <p className="text-xl font-black">{ranks.overall}</p>
                     </div>
                     <div className="bg-emerald-600 text-white p-4 rounded-2xl text-center shadow-md w-28 md:w-32">
-                        <p className="text-[10px] uppercase font-bold opacity-80">{t('overall_average') || 'Average'}</p>
+                        <p className="text-[10px] uppercase font-bold opacity-80">{'Average'}</p>
                         <p className="text-xl font-black">{overall?.stats.avg?.toFixed(1) || 0}%</p>
                     </div>
                 </div>

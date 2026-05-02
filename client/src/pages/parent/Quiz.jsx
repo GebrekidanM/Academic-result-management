@@ -1,13 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from "react";
 
 const Quiz = ({ quiz, status }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [now, setNow] = useState(new Date());
+
+    // This makes the timer tick every second
+    useEffect(() => {
+        const interval = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     if (!status) return <div className="text-xs p-2 text-slate-400 italic">{t('loading')}...</div>;
 
-    const now = new Date();
     const start = new Date(quiz.startDate);
     const end = new Date(quiz.endDate);
 
@@ -15,11 +22,14 @@ const Quiz = ({ quiz, status }) => {
     const isExpired = now > end;
     const isActive = !isNotStarted && !isExpired;
 
-    // Determine status text/label
-    let statusText = "";
-    if (isNotStarted) statusText = t('not_started');
-    else if (isExpired) statusText = t('expired');
-    else statusText = `${Math.floor((end - now) / (1000 * 60 * 60))} ${t('hours_left')}`;
+    // Use the logic provided above
+    const diff = end - now;
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+    let statusText = isNotStarted ? t('not_started') : isExpired ? t('expired') : `${d > 0 ? d + 'd ' : ''}${h}h ${m}m ${s}s`;
 
     return (
         <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-sm">
