@@ -34,7 +34,7 @@ function IsStaff({ profileData }) {
           <ActionCard 
               to="/teacher/quizzes" 
               title={'My Quizzes'} 
-              description={t('quiz_mgmt_desc') || 'Create, edit and view quiz results'} 
+              description={'Create, edit and view quiz results'} 
           />
           
         {/* Subject Cards */}
