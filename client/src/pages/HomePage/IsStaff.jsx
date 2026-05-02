@@ -31,6 +31,12 @@ function IsStaff({ profileData }) {
           />
         )}
 
+          <ActionCard 
+              to="/teacher/quizzes" 
+              title={t('my_quizzes') || 'My Quizzes'} 
+              description={t('quiz_mgmt_desc') || 'Create, edit and view quiz results'} 
+          />
+          
         {/* Subject Cards */}
         {profileData.subjectsTaught?.map(assignment => (
           assignment.subject && (

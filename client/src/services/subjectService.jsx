@@ -38,11 +38,22 @@ const uploadSubjects = (file) => {
     });
 };
 
+// Add this helper to your existing service
+const getSubjectsByGrade = async (gradeLevel) => {
+    // 1. Fetch all subjects (assuming you have this function)
+    const res = await getAllSubjects(); 
+    const allSubjects = res.data.data || res.data;
+    
+    // 2. Filter them locally
+    return allSubjects.filter(s => s.gradeLevel === gradeLevel);
+};
+
 export default {
     getAllSubjects,
     createSubject,
     getSubjectById,
     updateSubject,
     deleteSubject,
-    uploadSubjects
+    uploadSubjects,
+    getSubjectsByGrade
 };

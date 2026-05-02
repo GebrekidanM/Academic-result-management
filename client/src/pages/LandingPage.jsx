@@ -159,7 +159,7 @@ const LandingPage = () => {
             የተማሪ መረጃ፣ ውጤት፣ ሪፖርት ካርድ እና የትምህርት ቤት ስራዎችን በአንድ ዘመናዊ ዲጂታል ሲስተም ያስተዳድሩ።
           </p>
 
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col md:flex-row justify-center gap-4">
             <Link to="/login" className="bg-slate-900 text-white px-10 py-4.5 rounded-xl font-bold text-sm hover:bg-slate-600 transition-all flex items-center justify-center">
               የልጅዎን ውጤት ይዩ
             </Link>

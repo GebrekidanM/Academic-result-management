@@ -5,6 +5,7 @@ import studentService from '../services/studentService';
 import gradeService from '../services/gradeService';
 import behavioralReportService from '../services/behavioralReportService';
 import rankService from '../services/rankService';
+import quizService from '../services/quizService';
 
 import {
   Chart as ChartJS,
@@ -18,6 +19,8 @@ import {
   Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { useNavigate } from 'react-router-dom';
+import Quiz from './parent/Quiz';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -29,14 +32,16 @@ const MONTH_ORDER = {
 
 const ParentDashboardPage = () => {
     const { t } = useTranslation();
-
+    const [availableQuizzes, setAvailableQuizzes] = useState([]);
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [ranks, setRanks] = useState({ sem1: '-', sem2: '-', overall: '-' });
-    
+    const [quizStatuses, setQuizStatuses] = useState({}); 
+    const [showCompleted, setShowCompleted] = useState(false);
+    const navigate = useNavigate()
     // NEW: Nested Tab State Strategy
     const [activeMainTab, setActiveMainTab] = useState('analytics'); // 'analytics', 'First Semester', 'Second Semester'
     const[activeAnalyticsTab, setActiveAnalyticsTab] = useState('overall'); // 'overall', 'First Semester', 'Second Semester'
@@ -51,7 +56,7 @@ const ParentDashboardPage = () => {
                 const [studentRes, gradesRes, reportsRes] = await Promise.allSettled([
                     studentService.getStudentById(currentStudent._id),
                     gradeService.getGradesByStudent(currentStudent._id),
-                    behavioralReportService.getReportsByStudent(currentStudent._id)
+                    behavioralReportService.getReportsByStudent(currentStudent._id),
                 ]);
 
                 if (studentRes.status === 'rejected') throw new Error("Could not load student profile.");
@@ -64,6 +69,13 @@ const ParentDashboardPage = () => {
                 setReports(fetchedReports);
 
                 const academicYear = fetchedGrades.length > 0 ? fetchedGrades[0].academicYear : '2018';
+
+                 try {
+                    const quizRes = await quizService.getAvailableQuizzes(studentData.gradeLevel, academicYear);
+                    setAvailableQuizzes(quizRes.data.data);
+                } catch (qErr) {
+                    console.warn("Could not load quizzes", qErr);
+                }
 
                 try {
                     const rankData = await rankService.getRankByStudent(studentData._id, studentData.gradeLevel, academicYear);
@@ -81,6 +93,18 @@ const ParentDashboardPage = () => {
         loadDashboard();
     },[]);
 
+    useEffect(() => {
+        if (availableQuizzes.length > 0) {
+            availableQuizzes.forEach(q => {
+                quizService.getQuizStatus(q._id).then(res => {
+                    setQuizStatuses(prev => ({ ...prev, [q._id]: res.data }));
+                });
+            });
+        }
+    }, [availableQuizzes]);
+
+    const pendingQuizzes = availableQuizzes.filter(q => quizStatuses[q._id] && !quizStatuses[q._id].hasTaken);
+    const completedQuizzes = availableQuizzes.filter(q => quizStatuses[q._id] && quizStatuses[q._id].hasTaken);
     // --- ANALYTICS ENGINE ---
     const analyticsData = useMemo(() => {
         if (!grades.length) return { overall: null, semesters: {} };
@@ -182,6 +206,7 @@ const ParentDashboardPage = () => {
 
         return { overall, semesters };
     }, [grades, t]);
+    
 
     const calculateAge = (dob) => {
         if (!dob) return '-';
@@ -243,7 +268,6 @@ const ParentDashboardPage = () => {
 
     return (
         <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-sans print:bg-white print:p-0">
-            {/* HEADER - Student Info */}
             <div className="max-w-6xl mx-auto mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8 justify-between">
                 <div className="flex flex-col md:flex-row items-center gap-6">
                     <img src={student.imageUrl} alt="Profile" className="w-32 h-32 rounded-full border-4 border-slate-100 shadow-sm object-cover" />
@@ -261,13 +285,52 @@ const ParentDashboardPage = () => {
                 <div className="flex flex-row items-center gap-4">
                     <div className="bg-indigo-600 text-white p-4 rounded-2xl text-center shadow-md w-28 md:w-32">
                         <p className="text-[10px] uppercase font-bold opacity-80">{t('overall_rank') || 'Rank'}</p>
-                        <p className="text-3xl font-black">{ranks.overall}</p>
+                        <p className="text-xl font-black">{ranks.overall}</p>
                     </div>
                     <div className="bg-emerald-600 text-white p-4 rounded-2xl text-center shadow-md w-28 md:w-32">
                         <p className="text-[10px] uppercase font-bold opacity-80">{t('overall_average') || 'Average'}</p>
-                        <p className="text-3xl font-black">{overall?.stats.avg?.toFixed(1) || 0}%</p>
+                        <p className="text-xl font-black">{overall?.stats.avg?.toFixed(1) || 0}%</p>
                     </div>
                 </div>
+            </div>
+
+            {/* QUIZ CENTER SECTION */}
+            <div className="max-w-6xl mx-auto mt-12 mb-20 bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                <h2 className="text-2xl font-black text-slate-800 mb-6">📝 {t('quiz_center')}</h2>
+
+                {/* 1. Pending Quizzes (Cards) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {pendingQuizzes.map(q => <Quiz key={q._id} quiz={q} status={quizStatuses[q._id]} />)}
+                </div>
+
+                {/* 2. Completed Quizzes (Collapsible List) */}
+                {completedQuizzes.length > 0 && (
+                    <div className="border-t pt-6">
+                        <button 
+                            onClick={() => setShowCompleted(!showCompleted)}
+                            className="flex items-center justify-between w-full text-slate-700 font-bold text-xs uppercase tracking-widest hover:text-slate-800"
+                        >
+                            {t('Completed')} ({completedQuizzes.length})
+                            <span>{showCompleted ? '▲' : '▼'}</span>
+                        </button>
+                        
+                        {showCompleted && (
+                            <div className="mt-4 space-y-2 animate-fade-in">
+                                {completedQuizzes.map(q => (
+                                    <div key={q._id} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                        <span className="font-bold text-slate-700 text-sm">{q.title}</span>
+                                        <button 
+                                            onClick={() => navigate(`/quiz/result/${q._id}`)}
+                                            className="text-indigo-800 font-bold text-xs"
+                                        >
+                                            {t('View')}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* LEVEL 1: MAIN NAVIGATION TABS */}

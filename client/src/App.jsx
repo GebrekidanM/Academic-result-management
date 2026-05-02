@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route} from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import NotificationPermission from './components/NotificationPermission';
+
 // --- Component Imports ---
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute'; 
@@ -14,7 +14,6 @@ import EventCardGenerator from './pages/EventCardGenerator';
 
 // --- OFFLINE COMPONENTS
 import SyncStatus from './components/SyncStatus';     
-import OfflineBanner from './components/OfflineBanner';
 
 // --- Page Imports ---
 
@@ -73,6 +72,12 @@ import SupportiveSubjectPage from './pages/SupportiveSubjectPage';
 import ScheduleManager from './pages/ScheduleManager';
 import MasterSchedulePage from './pages/MasterSchedulePage';
 import TopStudentsPage from './pages/TopStudentsPage';
+import QuizTakingPage from './pages/QuizTakingPage';
+import TeacherCreateQuiz from './pages/TeacherCreateQuiz';
+import TeacherQuizzesPage from './pages/TeacherQuizzesPage';
+import QuizResultPage from './pages/QuizResultPage';
+import TeacherQuizResults from './pages/TeacherQuizResults';
+import TeacherEditQuiz from './pages/TeacherEditQuiz';
 
 
 function App() {
@@ -84,8 +89,6 @@ function App() {
   
           const studentUser = studentAuthService.getCurrentStudent();
           if (studentUser) {
-              // Ensure the object has the role property set to 'parent'
-              // (Student objects might not have 'role' in the database)
               return { ...studentUser, role: 'parent' };
           }
   
@@ -116,8 +119,6 @@ function App() {
       
       {/* --- 3. ADD OFFLINE UI HERE --- */}
       <SyncStatus /> 
-      {/* ----------------------------- */}
-      <NotificationPermission />
 
       {(currentUser ) && (
           <Navbar isOpen={isOpen} setIsOpen={setIsOpen} /> 
@@ -153,7 +154,10 @@ function App() {
             <Route path='/supportivesub' element={<SupportiveGradingPage/>}/>
             <Route path='/supportivelist' element={<SupportiveSubjectPage/>}/>
             <Route path="/high-scorers" element={<TopStudentsPage />} />
-            
+            <Route path="/teacher/quizzes" element={<TeacherQuizzesPage />} />
+            <Route path="/teacher/quizzes/create" element={<TeacherCreateQuiz />} />
+            <Route path='/teacher/quizzes/:id/results' element={<TeacherQuizResults />} />
+            <Route path="/teacher/quizzes/edit/:id" element={<TeacherEditQuiz />} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
               <Route path="/reports/batch" element={<ClassReportGenerator />} />
@@ -178,8 +182,10 @@ function App() {
           
           {/* ====== 3. PARENT ROUTES ========= */}
           <Route element={<ParentRoute />}>
+            <Route path="/quiz/take/:id" element={<QuizTakingPage />}/>
             <Route path="/parent/dashboard" element={<ParentDashboardPage />} />
             <Route path="/parent/change-password" element={<ForceChangePasswordPage />} />
+            <Route path="/quiz/result/:id" element={<QuizResultPage />} />
           </Route>
 
           {/* === 4. UNIVERSAL LOGGED-IN ROUTES === */}
@@ -190,7 +196,6 @@ function App() {
           </Route>
         </Routes>
       </main>
-      <OfflineBanner /> 
       <ToastContainer position="top-right" autoClose={5000} />
     </div>
   );
