@@ -31,7 +31,7 @@ const TeacherQuizzesPage = () => {
                     onClick={() => navigate('/teacher/quizzes/create')}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-indigo-200 transition-all"
                 >
-                    + {t('create_new_quiz')}
+                    + {t('Create')}
                 </button>
             </div>
             
