@@ -9,10 +9,10 @@ const TeacherQuizAnalytics = ({id}) => {
 
     return (
         <div className="max-w-4xl mx-auto p-8">
-            <h2 className="text-xl font-black mb-6">Class Performance Breakdown</h2>
+            <h2 className="text-sm text-teal-800">Class Performance Breakdown</h2>
             <div className="space-y-6">
                 {analytics.map((item, i) => (
-                    <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <div key={i} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
                         <div className="flex justify-between mb-2">
                             <p className="font-bold text-slate-800">{i + 1}. {item.questionText}</p>
                             <span className="font-black text-indigo-600">{item.successRate.toFixed(0)}% Correct</span>

@@ -85,7 +85,7 @@ const TeacherCreateQuiz = () => {
     return (
         <div className="max-w-4xl mx-auto p-4 md:p-8 bg-slate-50 min-h-screen">
             <header className="mb-8">
-                <h1 className="text-3xl font-black text-slate-800">{t('create_quiz')}</h1>
+                <h1 className="text-3xl font-black text-cyan-800 capitalize ">{t('create quiz')}</h1>
                 <p className="text-slate-500">Define your quiz details and questions below.</p>
             </header>
 

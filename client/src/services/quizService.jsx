@@ -49,6 +49,10 @@ const updateQuiz = (quizId, quizData) => {
     return api.put(`${API_URL}${quizId}`, quizData);
 };
 
+const remove = (id)=>{
+    return api.delete(`${API_URL}${id}/delete`)
+}
+
 const quizService = {
     getQuizForEdit,
     updateQuiz,
@@ -60,7 +64,8 @@ const quizService = {
     createQuiz,
     getQuizAnalytics,
     getQuizStatus,
-    getQuizAttempts
+    getQuizAttempts,
+    remove
 };
 
 export default quizService;

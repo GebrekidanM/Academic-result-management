@@ -15,6 +15,8 @@ const Quiz = ({ quiz, status }) => {
 
     if (!status) return <div className="text-xs p-2 text-slate-400 italic">{t('loading')}...</div>;
 
+    // ... inside Quiz component
+
     const start = new Date(quiz.startDate);
     const end = new Date(quiz.endDate);
 
@@ -22,14 +24,30 @@ const Quiz = ({ quiz, status }) => {
     const isExpired = now > end;
     const isActive = !isNotStarted && !isExpired;
 
-    // Use the logic provided above
-    const diff = end - now;
-    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const s = Math.floor((diff % (1000 * 60)) / 1000);
+    // Helper to format the future date nicely
+    const formatStartDate = (date) => {
+        return date.toLocaleDateString(undefined, { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    };
 
-    let statusText = isNotStarted ? t('not_started') : isExpired ? t('expired') : `${d > 0 ? d + 'd ' : ''}${h}h ${m}m ${s}s`;
+    // Determine status text/label
+    let statusText = "";
+    if (isNotStarted) {
+        statusText = `${t('starts')}: ${formatStartDate(start)}`;
+    } else if (isExpired) {
+        statusText = t('expired');
+    } else {
+        const diff = end - now;
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        statusText = `${d > 0 ? d + 'd ' : ''}${h}h ${m}m ${s}s`;
+    }
 
     return (
         <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-sm">
@@ -43,6 +61,7 @@ const Quiz = ({ quiz, status }) => {
                     }`}>
                         {statusText}
                     </span>
+                    
                 </div>
                 <p className="text-slate-500 text-xs mb-4">{quiz.description}</p>
             </div>

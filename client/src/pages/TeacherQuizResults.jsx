@@ -20,7 +20,7 @@ const { attempts, notTaken, quiz } = data;
 
 return (
     <div className="max-w-5xl mx-auto p-8">
-        <h1 className="text-2xl font-black mb-6">{quiz.title}</h1>
+        <h1 className="text-xl font-bold text-cyan-600 mb-6 capitalize">{quiz.title}</h1>
 
         <TeacherQuizAnalytics id={id}/>
         {/* COMPLETED TABLE */}
