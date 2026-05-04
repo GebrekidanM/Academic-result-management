@@ -43,11 +43,13 @@ const ScheduleForTeacher = () => {
                             <td className="p-4 font-black text-slate-600">{period}</td>
                             {DAYS.map(day => {
                                 const item = getSubject(day, period);
+                                console.log(item)
                                 return (
                                     <td key={day} className="p-2 border-l border-slate-100">
                                         {item ? (
-                                            <div className="bg-indigo-600 text-white text-[10px] font-bold p-2 rounded-lg shadow-sm">
-                                                {item.subject.name}
+                                            <div className="flex flex-col items-center text-[10px]">
+                                                <span className='text-cyan-800 font-bold'>{item.subject.name}</span>
+                                                <span className='text-cyan-500'>{item.gradeLevel}</span>
                                             </div>
                                         ) : (
                                             <span className="text-slate-200 text-xs">-</span>
