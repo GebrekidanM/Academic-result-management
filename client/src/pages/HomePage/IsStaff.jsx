@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import ActionCard from './ActionCard';
+import ScheduleForTeacher from '../ScheduleForTeacher';
 
 function IsStaff({ profileData }) {
   const { t } = useTranslation(); // <--- Initialize
@@ -17,6 +18,11 @@ function IsStaff({ profileData }) {
         <Link to="/profile" state={{ profileData }} className="text-gray-400 italic font-bold hover:text-gray-600 transition-colors">
           {t('change_credentials')}
         </Link>
+      </div>
+
+      {/** Schedule */}
+      <div className='max-w-5xl'>
+        <ScheduleForTeacher/>
       </div>
 
       {/* Action Cards Grid */}

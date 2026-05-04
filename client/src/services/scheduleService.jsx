@@ -13,6 +13,10 @@ const scheduleService = {
         return api.post(`${API_URL}/assign`, data);
     },
 
+    getForAteacher: () =>{
+        return api.get(`${API_URL}/teacher`)
+    },
+
     // Clear a slot
     deleteSlot: (data) => {
         return api.delete(`${API_URL}/slot`, { data });

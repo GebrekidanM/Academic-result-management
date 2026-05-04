@@ -274,3 +274,16 @@ exports.autoGenerateSchedule = async (req, res) => {
         return res.status(500).json({ message: "Server Error", error: error.message });
     }
 };
+
+exports.getScheduleForTeacher = async(req,res)=>{
+    const user =  req.user
+    try {
+        const response = await Schedule.find({teacher:user._id})
+                        .populate('subject','name')
+                        .select('gradeLevel dayOfWeek period subject-_id')
+                        .lean();
+        res.status(200).json(response)
+    } catch (error) {
+        console.log(error)
+    }
+}
