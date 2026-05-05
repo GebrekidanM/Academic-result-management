@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const scheduleSchema = new mongoose.Schema({
     academicYear: { type: String, required: true },
-    gradeLevel: { type: String, required: true }, // e.g., "Grade 4A"
+    gradeLevel: { type: String, required: true },
     
     dayOfWeek: { 
         type: String, 

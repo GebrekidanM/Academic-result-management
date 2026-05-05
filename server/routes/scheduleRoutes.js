@@ -6,7 +6,8 @@ const {
     assignSlot, 
     autoGenerateSchedule,
     getMasterSchedule,
-    getScheduleForTeacher
+    getScheduleForTeacher,
+    getScheduleForClass
 } = require('../controllers/scheduleController');
 
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -19,5 +20,7 @@ router.delete('/slot', protect, authorize('admin'), deleteSlot);
 router.post('/generate',protect,authorize('admin'),autoGenerateSchedule)
 router.get('/master',protect,getMasterSchedule)
 router.get('/teacher',protect,authorize('teacher'),getScheduleForTeacher)
+router.get('/class/:gradeLevel', protect,getScheduleForClass)
+
 
 module.exports = router;

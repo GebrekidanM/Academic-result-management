@@ -5,14 +5,14 @@ import scheduleService from '../services/scheduleService';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 
-const ScheduleForTeacher = () => {
+const ScheduleForClass = ({gradeLevel}) => {
     const { t } = useTranslation();
     const [scheduleData,setscheduleData] = useState()
-
+console.log( gradeLevel)
     useEffect(()=>{
         const getSchedule = async ()=>{
             try {
-                const res = await scheduleService.getForAteacher()
+                const res = await scheduleService.getForAClass(gradeLevel)
                 setscheduleData(res.data)
             } catch (error) {
                 console.log(error)  
@@ -46,9 +46,14 @@ const ScheduleForTeacher = () => {
                                 return (
                                     <td key={day} className="p-2 border-l border-slate-100">
                                         {item ? (
-                                            <div className="flex flex-col items-center text-[10px]">
-                                                <span className='text-cyan-800 font-bold'>{item.subject.name}</span>
-                                                <span className='text-cyan-500'>{item.gradeLevel}</span>
+                                            <div className="bg-indigo-50 border border-indigo-100 p-2 rounded-lg flex flex-col items-center shadow-sm">
+                                                <span className='text-indigo-800 font-black text-[10px] uppercase'>
+                                                    {item.subject?.name || 'N/A'}
+                                                </span>
+                                                <span className='text-indigo-500 font-bold text-[9px]'>
+                                                    {/* Use fullName or whatever field name matches your User model */}
+                                                    {item.teacher?.fullName || item.teacher?.name || 'TBA'}
+                                                </span>
                                             </div>
                                         ) : (
                                             <span className="text-slate-200 text-xs">-</span>
@@ -64,4 +69,4 @@ const ScheduleForTeacher = () => {
     );
 };
 
-export default ScheduleForTeacher;
+export default ScheduleForClass;

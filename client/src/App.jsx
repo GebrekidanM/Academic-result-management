@@ -78,7 +78,6 @@ import TeacherQuizzesPage from './pages/TeacherQuizzesPage';
 import QuizResultPage from './pages/QuizResultPage';
 import TeacherQuizResults from './pages/TeacherQuizResults';
 import TeacherEditQuiz from './pages/TeacherEditQuiz';
-import ScheduleForTeacher from './pages/ScheduleForTeacher';
 
 
 function App() {
@@ -159,7 +158,6 @@ function App() {
             <Route path="/teacher/quizzes/create" element={<TeacherCreateQuiz />} />
             <Route path='/teacher/quizzes/:id/results' element={<TeacherQuizResults />} />
             <Route path="/teacher/quizzes/edit/:id" element={<TeacherEditQuiz />} />
-            <Route path='/sche' element={<ScheduleForTeacher/>} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
               <Route path="/reports/batch" element={<ClassReportGenerator />} />

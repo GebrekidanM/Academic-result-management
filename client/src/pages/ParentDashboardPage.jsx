@@ -21,6 +21,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { useNavigate } from 'react-router-dom';
 import Quiz from './parent/Quiz';
+import ScheduleForClass from './ScheduleForClass';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -293,7 +294,9 @@ const ParentDashboardPage = () => {
                     </div>
                 </div>
             </div>
-
+            <div className='max-w-5xl'>
+                <ScheduleForClass gradeLevel={student.gradeLevel}/>
+            </div>
             {/* QUIZ CENTER SECTION */}
             <div className="max-w-6xl mx-auto mt-12 mb-20 bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
                 <h2 className="text-2xl font-black text-slate-800 mb-6">📝 {t('Quiz')}</h2>

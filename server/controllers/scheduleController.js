@@ -280,10 +280,24 @@ exports.getScheduleForTeacher = async(req,res)=>{
     try {
         const response = await Schedule.find({teacher:user._id})
                         .populate('subject','name')
-                        .select('gradeLevel dayOfWeek period subject-_id')
+                        .select('gradeLevel dayOfWeek period subject')
                         .lean();
         res.status(200).json(response)
     } catch (error) {
-        console.log(error)
+        res.status(500).json({message:"Server is not working"})
+    }
+}
+
+exports.getScheduleForClass = async(req,res)=>{
+    const gradeLevel =  req.params.gradeLevel
+    try {
+        const response = await Schedule.find({gradeLevel:gradeLevel})
+                        .populate('subject','name')
+                        .populate('teacher','fullName')
+                        .select('dayOfWeek period subject teacher') 
+                        .lean();
+        res.status(200).json(response)
+    } catch (error) {
+        res.status(500).json({message:"Server is not working"})
     }
 }

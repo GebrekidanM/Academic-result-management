@@ -17,6 +17,10 @@ const scheduleService = {
         return api.get(`${API_URL}/teacher`)
     },
 
+    getForAClass: (gradeLevel) =>{
+        return api.get(`${API_URL}/class/${gradeLevel}`)
+    },
+
     // Clear a slot
     deleteSlot: (data) => {
         return api.delete(`${API_URL}/slot`, { data });
