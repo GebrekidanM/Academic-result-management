@@ -8,7 +8,7 @@ const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 const ScheduleForClass = ({gradeLevel}) => {
     const { t } = useTranslation();
     const [scheduleData,setscheduleData] = useState()
-console.log( gradeLevel)
+
     useEffect(()=>{
         const getSchedule = async ()=>{
             try {
