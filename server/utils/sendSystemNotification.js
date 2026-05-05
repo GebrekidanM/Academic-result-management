@@ -3,12 +3,17 @@ const User = require('../models/User');
 const Student = require('../models/Student');
 const webpush = require('web-push');
 
-// Configure Web Push (Reuse your env vars)
-webpush.setVapidDetails(
-    process.env.MAILTO || 'mailto:admin@example.com',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-);
+// Configure Web Push only when VAPID keys exist.
+const hasVapidKeys = !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+if (hasVapidKeys) {
+    webpush.setVapidDetails(
+        process.env.MAILTO || 'mailto:admin@example.com',
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+    );
+} else {
+    console.warn('Web-push disabled: VAPID keys are missing.');
+}
 
 /**
  * Sends a notification internally from other controllers
@@ -63,19 +68,21 @@ const sendSystemNotification = async (title, message, targetRoles, targetGrade, 
             usersToNotify = [...usersToNotify, ...parents];
         }
 
-        // 5. Send Pushes
-        usersToNotify.forEach(user => {
-            if (user.pushSubscription) {
-                webpush.sendNotification(user.pushSubscription, payload)
-                    .catch(err => {
-                        if (err.statusCode === 410 || err.statusCode === 404) {
-                            // Clean up dead subscriptions
-                            if (user.role) User.updateOne({ _id: user._id }, { $unset: { pushSubscription: 1 } }).exec();
-                            else Student.updateOne({ _id: user._id }, { $unset: { pushSubscription: 1 } }).exec();
-                        }
-                    });
-            }
-        });
+        // 5. Send Pushes (skip when VAPID keys are not configured)
+        if (hasVapidKeys) {
+            usersToNotify.forEach(user => {
+                if (user.pushSubscription) {
+                    webpush.sendNotification(user.pushSubscription, payload)
+                        .catch(err => {
+                            if (err.statusCode === 410 || err.statusCode === 404) {
+                                // Clean up dead subscriptions
+                                if (user.role) User.updateOne({ _id: user._id }, { $unset: { pushSubscription: 1 } }).exec();
+                                else Student.updateOne({ _id: user._id }, { $unset: { pushSubscription: 1 } }).exec();
+                            }
+                        });
+                }
+            });
+        }
 
         console.log(`🔔 System Notification Sent: "${title}" to ${usersToNotify.length} devices.`);
 

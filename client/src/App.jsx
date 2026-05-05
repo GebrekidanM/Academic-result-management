@@ -98,7 +98,7 @@ function App() {
 
   // Register service worker (for offline/PWA)
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       // 1. Register
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')

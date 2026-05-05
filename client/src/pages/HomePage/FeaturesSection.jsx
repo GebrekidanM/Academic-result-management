@@ -8,85 +8,85 @@ const FeaturesSection = () => {
   const features = [
     {
       id: 1,
-      title: "የተማሪዎች ዲጂታል አስተዳደር",
-      desc: "የተማሪዎችን መረጃ በአንድ ማዕከላዊ ቦታ በማደራጀት በቀላሉ ለማግኘት እና ለማስተዳደር ይረዳል።",
+      title: "Digital Student Management",
+      desc: "Organize all student records in one central place for easy access and administration.",
       icon: <Users className="text-blue-600" size={28} />,
       bg: "bg-blue-50"
     },
     {
       id: 2,
-      title: "አውቶማቲክ የውጤት አስተዳደር",
-      desc: "ሲስተሙ አማካይ፣ ድምር እና ደረጃን (Rank) በራሱ ያሰላል፤ የሰው ስህተትን ያስቀራል።",
+      title: "Automated Grade Management",
+      desc: "The system calculates averages, totals, and ranks automatically to minimize errors.",
       icon: <BarChart3 className="text-emerald-600" size={28} />,
       bg: "bg-emerald-50"
     },
     {
       id: 3,
-      title: "ፈጣን ሪፖርት ማመንጨት",
-      desc: "በአንድ ክሊክ ፕሮፌሽናል የሪፖርት ካርድ እና አጠቃላይ የክፍል ሰነዶችን (Rosters) ያዘጋጃል።",
+      title: "Fast Report Generation",
+      desc: "Generate professional report cards and class rosters with one click.",
       icon: <FileText className="text-slate-800" size={28} />,
       bg: "bg-purple-50"
     },
     {
       id: 4,
-      title: "የተጠቃሚ ሚና እና ቁጥጥር",
-      desc: "ለመምህራን፣ ለወላጆች እና ለአስተዳዳሪዎች የተለያየ የፈቃድ ደረጃ በመስጠት ደህንነትን ይጠብቃል።",
+      title: "Role-Based Access Control",
+      desc: "Protect data with role-specific permissions for teachers, parents, and administrators.",
       icon: <Lock className="text-amber-600" size={28} />,
       bg: "bg-amber-50"
     },
     {
       id: 5,
-      title: "የወላጆች ፖርታል",
-      desc: "ወላጆች የልጆቻቸውን ውጤት፣ ባህሪ እና የክፍያ ሁኔታ በማንኛውም ሰዓት በስልካቸው ያያሉ።",
+      title: "Parent Portal",
+      desc: "Parents can check grades, behavior, and payment status anytime from their phones.",
       icon: <LayoutDashboard className="text-slate-800" size={28} />,
       bg: "bg-rose-50"
     },
     {
       id: 6,
-      title: "የቡድን ምዝገባ (Bulk Import)",
-      desc: "በሺዎች የሚቆጠሩ ተማሪዎችን መረጃ ከExcel ፋይል በቀጥታ ወደ ሲስተሙ በፍጥነት ያስገባል።",
+      title: "Bulk Import",
+      desc: "Import thousands of student records directly from Excel files quickly.",
       icon: <UploadCloud className="text-cyan-600" size={28} />,
       bg: "bg-cyan-50"
     },
     {
       id: 7,
-      title: "የውጤት ትንተና (Risk Analytics)",
-      desc: "ደካማ ውጤት ያላቸውን ተማሪዎች (ከ60% በታች) በመለየት ፈጣን ድጋፍ እንዲያገኙ ይረዳል።",
+      title: "Risk Analytics",
+      desc: "Identify students below 60% quickly so intervention can happen early.",
       icon: <AlertCircle className="text-red-600" size={28} />,
       bg: "bg-red-50"
     },
     {
       id: 8,
-      title: "ዲጂታል መታወቂያ እና ምስክር ወረቀት",
-      desc: "መታወቂያዎችን እና ሰርተፊኬቶችን ያለ ተጨማሪ የህትመት ወጪ በራስ-ሰር ያዘጋጃል።",
+      title: "Digital IDs and Certificates",
+      desc: "Generate ID cards and certificates automatically with minimal overhead.",
       icon: <IdCard className="text-indigo-600" size={28} />,
       bg: "bg-indigo-50"
     },
     {
       id: 9,
-      title: "ዘመናዊ ግንኙነት እና ላይብረሪ",
-      desc: "ማሳሰቢያዎችን ለወላጆች መላክ እና መጻሕፍትን በዲጂታል መንገድ ማጋራት ያስችላል።",
+      title: "Communication and Library",
+      desc: "Send parent notifications and share educational resources digitally.",
       icon: <Bell className="text-orange-600" size={28} />,
       bg: "bg-orange-50"
     },
     {
       id: 10,
-      title: "የብዙ ቋንቋ አማራጭ",
-      desc: "በእንግሊዝኛ፣ በአማርኛ፣ በኦሮሚኛ፣ በትግርኛ፣ በሶማሊኛ እና በአፋርኛ ቋንቋዎች ይሰራል።",
+      title: "Multi-language Support",
+      desc: "Works with English, Amharic, Oromo, Tigrinya, Somali, and Afar language options.",
       icon: <Globe2 className="text-teal-600" size={28} />,
       bg: "bg-teal-50"
     },
     {
       id: 11,
-      title: "ከኢንተርኔት ነጻ መረጃ መሙላት",
-      desc: "ኢንተርኔት በሌለበት ውጤት ሞልተው በኋላ ላይ ወደ ሲስተሙ መጫን (Upload) ያስችላል።",
+      title: "Offline Data Entry",
+      desc: "Enter grades without internet and upload them later when connectivity is available.",
       icon: <WifiOff className="text-slate-600" size={28} />,
       bg: "bg-slate-50"
     },
     {
-      id: 12, // ተጨማሪ ለዲዛይኑ ማሟያ
-      title: "ተጨማሪ ጥቅሞች",
-      desc: "የኢትዮጵያን የትምህርት ፖሊሲ (70/30) መሰረት ያደረገ እና ለአጠቃቀም ቀላል።",
+      id: 12,
+      title: "Additional Benefits",
+      desc: "Built for practical school workflows and easy day-to-day use.",
       icon: <CheckCircle2 className="text-green-600" size={28} />,
       bg: "bg-green-50"
     }
@@ -97,10 +97,10 @@ const FeaturesSection = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-4">
-            የሲስተሙ ዋና ዋና አገልግሎቶች
+            Core System Features
           </h2>
           <p className="text-slate-500 text-lg max-w-2xl mx-auto font-medium">
-            ትምህርት ቤትዎን በዘመናዊ ቴክኖሎጂ ለማገዝ የሚያስፈልጉ 11+ የተሟሉ አገልግሎቶች።
+            11+ complete features designed to help schools run smoothly with modern technology.
           </p>
         </div>
 

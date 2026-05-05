@@ -13,71 +13,71 @@ const LandingPage = () => {
   const features = [
   { 
     id: 1, 
-    title: "የተማሪዎች ዲጂታል አስተዳደር", 
-    desc: "የተማሪዎችን መረጃ በአንድ ማዕከላዊ ቦታ በማደራጀት በቀላሉ ለማግኘት እና ለማስተዳደር ይረዳል።", 
+    title: "Digital Student Management", 
+    desc: "Organize all student information in one central place for easy access and administration.", 
     icon: <Users className="text-slate-600" size={28} />, 
     bg: "bg-slate-50" 
   },
   { 
     id: 2, 
-    title: "አውቶማቲክ የውጤት አስተዳደር", 
-    desc: "ሲስተሙ አማካይ፣ ድምር እና ደረጃን (Rank) በራሱ ያሰላል፤ የሰው ስህተትን ያስቀራል።", 
+    title: "Automated Grade Processing", 
+    desc: "The system calculates totals, averages, and ranks automatically to reduce human error.", 
     icon: <BarChart3 className="text-emerald-600" size={28} />, 
     bg: "bg-emerald-50" 
   },
   { 
     id: 3, 
-    title: "ፈጣን ሪፖርት ማመንጨት", 
-    desc: "በአንድ ክሊክ ፕሮፌሽናል የሪፖርት ካርድ እና አጠቃላይ የክፍል ሰነዶችን (Rosters) ያዘጋጃል።", 
+    title: "Fast Report Generation", 
+    desc: "Generate professional report cards and class rosters with a single click.", 
     icon: <FileText className="text-purple-600" size={28} />, 
     bg: "bg-purple-50" 
   },
   { 
     id: 4, 
-    title: "የተጠቃሚ ሚና እና ቁጥጥር", 
-    desc: "ለመምህራን፣ ለወላጆች እና ለአስተዳዳሪዎች የተለያየ የፈቃድ ደረጃ በመስጠት ደህንነትን ይጠብቃል።", 
+    title: "Role-Based Access Control", 
+    desc: "Secure the platform with permission levels for teachers, parents, and administrators.", 
     icon: <Lock className="text-amber-600" size={28} />, 
     bg: "bg-amber-50" 
   },
   { 
     id: 5, 
-    title: "የወላጆች ፖርታል", 
-    desc: "ወላጆች የልጆቻቸውን ውጤት፣ ባህሪ እና የክፍያ ሁኔታ በማንኛውም ሰዓት በስልካቸው ያያሉ።", 
+    title: "Parent Portal", 
+    desc: "Parents can view their child's grades, behavior, and payment status anytime on their phone.", 
     icon: <LayoutDashboard className="text-rose-600" size={28} />, 
     bg: "bg-rose-50" 
   },
   { 
     id: 6, 
-    title: "የቡድን ምዝገባ (Bulk Import)", 
-    desc: "በሺዎች የሚቆጠሩ ተማሪዎችን መረጃ ከExcel ፋይል በቀጥታ ወደ ሲስተሙ በፍጥነት ያስገባል።", 
+    title: "Bulk Import", 
+    desc: "Import large batches of student records directly from Excel files in seconds.", 
     icon: <UploadCloud className="text-cyan-600" size={28} />, 
     bg: "bg-cyan-50" 
   },
   { 
     id: 7, 
-    title: "የውጤት ትንተና (Risk Analytics)", 
-    desc: "ደካማ ውጤት ያላቸውን ተማሪዎች (ከ60% በታች) በመለየት ፈጣን ድጋፍ እንዲያገኙ ይረዳል።", 
+    title: "Risk Analytics", 
+    desc: "Identify low-performing students (below 60%) early and provide timely support.", 
     icon: <AlertCircle className="text-red-600" size={28} />, 
     bg: "bg-red-50" 
   },
   { 
     id: 8, 
-    title: "ዲጂታል መታወቂያ እና ምስክር ወረቀት", 
-    desc: "መታወቂያዎችን እና ሰርተፊኬቶችን ያለ ተጨማሪ የህትመት ወጪ በራስ-ሰር ያዘጋጃል።", 
+    title: "Digital IDs and Certificates", 
+    desc: "Generate student ID cards and certificates automatically with minimal printing effort.", 
     icon: <IdCard className="text-indigo-600" size={28} />, 
     bg: "bg-indigo-50" 
   },
   { 
     id: 9, 
-    title: "የማስታወቂያ ስርዓት", 
-    desc: "ለተማሪዎች፣ ለመምህራን እና ለወላጆች አስፈላጊ ማስታወቂያዎችን በፍጥነት ማስረከብ።", 
+    title: "Notification System", 
+    desc: "Send important announcements quickly to students, teachers, and parents.", 
     icon: <Bell className="text-orange-600" size={28} />, 
     bg: "bg-orange-50" 
   },
   { 
     id: 10, 
-    title: "ኦንላይን እና ኦፍላይን ድጋፍ", 
-    desc: "የኢንተርኔት ችግር ቢኖርም ስርዓቱ በቀጥታ እንዲሰራ የሚያስችል የቴክኖሎጂ ድጋፍ።", 
+    title: "Online and Offline Support", 
+    desc: "Continue working even with unstable internet, then sync data when back online.", 
     icon: <WifiOff className="text-gray-600" size={28} />, 
     bg: "bg-gray-50" 
   }
@@ -100,8 +100,8 @@ const LandingPage = () => {
 
           {/* Desktop Links (Hidden on Mobile) */}
           <div className="hidden md:flex items-center gap-10">
-            <a href="#about" className="text-sm amharic-font font-bold text-slate-200 hover:text-slate-600 transition">ስለ እኛ</a>
-            <a href="#features" className="text-sm amharic-font font-bold text-slate-200 hover:text-slate-600 transition">አገልግሎቶች</a>
+            <a href="#about" className="text-sm font-bold text-slate-200 hover:text-slate-600 transition">About</a>
+            <a href="#features" className="text-sm font-bold text-slate-200 hover:text-slate-600 transition">Features</a>
             <Link to="/login" className="bg-slate-500 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-slate-200 transition-all">
               Login
             </Link>
@@ -126,14 +126,14 @@ const LandingPage = () => {
               onClick={() => setIsMenuOpen(false)}
               className="text-lg font-bold text-slate-200 hover:text-slate-100"
             >
-              ስለ እኛ
+              About
             </a>
             <a 
               href="#features" 
               onClick={() => setIsMenuOpen(false)}
               className="text-lg font-bold text-slate-200 hover:text-slate-100"
             >
-              አገልግሎቶች
+              Features
             </a>
             <Link 
               to="/login" 
@@ -150,20 +150,20 @@ const LandingPage = () => {
       <section className="bg-gradient-to-br mt-26 from-slate-600 to-slate-900 text-white py-24">
         <div className="max-w-6xl mx-auto px-6 text-center">
 
-          <h1 className="!amharic-font text-4xl md:text-5xl font-bold leading-tight mb-6">
-            ዘመናዊ የትምህርት ቤት  
-            <span className="text-yellow-300 !amharic-font"> አስተዳደር ሲስተም</span>
+          <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
+            Modern School  
+            <span className="text-yellow-300"> Management System</span>
           </h1>
 
-          <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8 !amharic-font">
-            የተማሪ መረጃ፣ ውጤት፣ ሪፖርት ካርድ እና የትምህርት ቤት ስራዎችን በአንድ ዘመናዊ ዲጂታል ሲስተም ያስተዳድሩ።
+          <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
+            Manage student records, grades, report cards, and daily school operations in one modern digital platform.
           </p>
 
           <div className="flex flex-col md:flex-row justify-center gap-4">
             <Link to="/login" className="bg-slate-900 text-white px-10 py-4.5 rounded-xl font-bold text-sm hover:bg-slate-600 transition-all flex items-center justify-center">
-              የልጅዎን ውጤት ይዩ
+              View Your Child's Results
             </Link>
-            <Link to="https://nitsuh-academy.netlify.app/login?mode=demo" target="_blank" rel="noopener noreferrer" className="px-10 py-4.5 bg-white border-2 border-slate-100 text-slate-600 rounded-xl font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group" > <PlayCircle size={20} className="text-slate-600 group-hover:scale-125 transition-transform" /> Demo ይመልከቱ </Link>
+            <Link to="https://nitsuh-academy.netlify.app/login?mode=demo" target="_blank" rel="noopener noreferrer" className="px-10 py-4.5 bg-white border-2 border-slate-100 text-slate-600 rounded-xl font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group" > <PlayCircle size={20} className="text-slate-600 group-hover:scale-125 transition-transform" /> Watch Demo </Link>
           </div>
 
         </div>
@@ -211,11 +211,11 @@ const LandingPage = () => {
             
             <div>
               <h2 className="text-4xl font-black text-slate-900 mb-6 leading-tight">
-                ስለ Nitsuh School Management <br/> 
-                <span className="text-slate-600 text-2xl tracking-normal font-bold">ቴክኖሎጂ ለትምህርት ጥራት</span>
+                About Nitsuh School Management <br/> 
+                <span className="text-slate-600 text-2xl tracking-normal font-bold">Technology for Better Education</span>
               </h2>
               <p className="text-slate-600 text-lg mb-8 leading-relaxed">
-                Nitsuh SMS የተመሰረተው በትምህርት ቤቶች ውስጥ ያለውን የአስተዳደር ስራ በማቀለል፣ መምህራን በወረቀት ስራ ከመጠመድ ይልቅ ለተማሪዎቻቸው ትኩረት እንዲሰጡ ለማስቻል ነው። 
+                Nitsuh SMS was built to simplify school administration so teachers can spend less time on paperwork and more time supporting students.
               </p>
               
               <div className="space-y-6">
@@ -224,8 +224,8 @@ const LandingPage = () => {
                     <Heart className="text-rose-500" size={24} fill="currentColor" />
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-800">ለሁሉም ተደራሽ</h4>
-                    <p className="text-slate-500 text-sm">ከከተማ እስከ ገጠር፣ ኢንተርኔት ባለበትም በሌለበትም ቦታ እንዲሰራ ሆኖ ተገንብቷል።</p>
+                    <h4 className="font-black text-slate-800">Accessible for Everyone</h4>
+                    <p className="text-slate-500 text-sm">Built for schools in both urban and rural areas, with support for low-connectivity environments.</p>
                   </div>
                 </div>
                 <div className="flex gap-4">
@@ -233,8 +233,8 @@ const LandingPage = () => {
                     <Award className="text-amber-500" size={24} fill="currentColor" />
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-800">ጥራት እና ደህንነት</h4>
-                    <p className="text-slate-500 text-sm">የተማሪዎች መረጃ በአስተማማኝ ሁኔታ የተጠበቀ እና በማንኛውም ሰዓት ዝግጁ ነው።</p>
+                    <h4 className="font-black text-slate-800">Quality and Security</h4>
+                    <p className="text-slate-500 text-sm">Student information is protected securely and available whenever staff need it.</p>
                   </div>
                 </div>
               </div>
@@ -268,14 +268,14 @@ const LandingPage = () => {
       {/* 5. CALL TO ACTION */}
       <section className="bg-slate-700 mt-4 text-white py-20 text-center">
         <h2 className="text-3xl font-bold mb-4">
-          የትምህርት ቤትዎን አስተዳደር ዘመናዊ ያድርጉ
+          Modernize Your School Management
         </h2>
 
         <Link
           to="https://t.me/nitsuhal"
           className="bg-white text-slate-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100"
         >
-          አሁን ይጀምሩ
+          Get Started
         </Link>
       </section>
 
