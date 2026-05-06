@@ -4,16 +4,18 @@ import { useTranslation } from 'react-i18next';
 import studentService from '../services/studentService';
 import authService from '../services/authService';
 import userService from '../services/userService';
+import classService from '../services/classService';
 import StudentStats from '../components/StudentStats';
 
 const StudentListPage = () => {
     const { t } = useTranslation(); 
     const [currentUser] = useState(authService.getCurrentUser());
     const [allStudents, setAllStudents] = useState([]);
-    const [allAllowedGrades, setAllAllowedGrades] = useState([]);
-    
+    const [allAllowedClasses, setAllAllowedClasses] = useState([]);
     const [selectedSection, setSelectedSection] = useState(null); 
-    const [selectedGrade, setSelectedGrade] = useState(null);
+    const [selectedClass, setSelectedClass] = useState(null);
+    const [selectedStream, setSelectedStream] = useState('all');
+    const [streams, setStreams] = useState([]);
     const [searchTerm, setSearchTerm] = useState(''); 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -32,32 +34,19 @@ const StudentListPage = () => {
                 const fetchedStudents = studentRes.data.data;
                 setAllStudents(fetchedStudents);
 
+                const classRes = await classService.getClasses();
+                const allClasses = classRes.data.data || [];
+
                 let allowed = [];
-                if (currentUser.role === 'staff' || currentUser.role === 'admin') {
-                    const uniqueGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
-                    const level = currentUser.schoolLevel ? currentUser.schoolLevel.toLowerCase() : 'all';
-                    
-                    if (currentUser.role === 'admin' || level === 'all') allowed = uniqueGrades;
-                    else if (level === 'kg') allowed = uniqueGrades.filter(g => /^(kg|nursery)/i.test(g));
-                    else if (level === 'primary') allowed = uniqueGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
-                    else if (level === 'high school') allowed = uniqueGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
-                } 
-                else if (currentUser.role === 'teacher') {
-                    try {
-                        const profileRes = await userService.getProfile();
-                        if (profileRes.data) {
-                            const gradeSet = new Set();
-                            if (profileRes.data.homeroomGrade) gradeSet.add(profileRes.data.homeroomGrade);
-                            profileRes.data.subjectsTaught?.forEach(assign => {
-                                if (assign.subject?.gradeLevel) gradeSet.add(assign.subject.gradeLevel);
-                            });
-                            allowed = Array.from(gradeSet).sort();
-                        }
-                    } catch (e) {
-                        allowed = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
-                    }
+                const level = currentUser.schoolLevel ? currentUser.schoolLevel.toLowerCase() : 'all';
+                
+                if (currentUser.role === 'admin' || level === 'all') {
+                    allowed = allClasses;
+                } else {
+                    allowed = allClasses.filter(c => c.schoolLevel === level);
                 }
-                setAllAllowedGrades(allowed);
+                
+                setAllAllowedClasses(allowed);
 
             } catch (err) {
                 setError(err.message || t('error'));
@@ -69,46 +58,51 @@ const StudentListPage = () => {
     }, [currentUser, t]);
 
     // --- 2. Filters ---
-    const visibleGradeButtons = useMemo(() => {
+    const visibleClassButtons = useMemo(() => {
         if (!selectedSection) return [];
-        return allAllowedGrades.filter(g => {
-            if (selectedSection === 'kg') return /^(kg|nursery)/i.test(g);
-            if (selectedSection === 'primary') return /^Grade\s*[1-8](\D|$)/i.test(g);
-            if (selectedSection === 'highSchool') return /^Grade\s*(9|1[0-2])(\D|$)/i.test(g);
-            return false;
-        });
-    }, [selectedSection, allAllowedGrades]);
+        return allAllowedClasses.filter(c => c.schoolLevel === selectedSection);
+    }, [selectedSection, allAllowedClasses]);
+
+    useEffect(() => {
+        if (selectedClass) {
+            classService.getStreamsByClass(selectedClass._id).then(res => {
+                setStreams(res.data.data || []);
+            });
+        } else {
+            setStreams([]);
+        }
+    }, [selectedClass]);
 
     const tableStudents = useMemo(() => {
-        if (!selectedGrade) return [];
+        if (!selectedClass) return [];
         return allStudents
-            .filter(s => s.gradeLevel === selectedGrade)
+            .filter(s => s.class?._id === selectedClass._id || s.class === selectedClass._id)
+            .filter(s => selectedStream === 'all' || s.stream === selectedStream || s.stream?._id === selectedStream)
             .filter(s => searchTerm === '' || s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.studentId.toLowerCase().includes(searchTerm.toLowerCase()))
             .sort((a, b) => a.fullName.localeCompare(b.fullName));
-    }, [selectedGrade, allStudents, searchTerm]);
+    }, [selectedClass, selectedStream, allStudents, searchTerm]);
 
     const graphStudents = useMemo(() => {
-        let relevantStudents = allStudents.filter(s => allAllowedGrades.includes(s.gradeLevel));
-        if (selectedSection === 'kg') return relevantStudents.filter(s => /^(kg|nursery)/i.test(s.gradeLevel));
-        if (selectedSection === 'primary') return relevantStudents.filter(s => /^Grade\s*[1-8](\D|$)/i.test(s.gradeLevel));
-        if (selectedSection === 'highSchool') return relevantStudents.filter(s => /^Grade\s*(9|1[0-2])(\D|$)/i.test(s.gradeLevel));
+        const allowedIds = allAllowedClasses.map(c => c._id);
+        let relevantStudents = allStudents.filter(s => allowedIds.includes(s.class?._id || s.class));
+        if (selectedSection) return relevantStudents.filter(s => (s.class?.schoolLevel || '') === selectedSection);
         return relevantStudents; 
-    }, [allStudents, allAllowedGrades, selectedSection]);
+    }, [allStudents, allAllowedClasses, selectedSection]);
 
 
     // --- 3. Section Card Component ---
     const SectionCard = ({ id, label, color }) => {
-        const count = allStudents.filter(s => allAllowedGrades.includes(s.gradeLevel) && (
-            id === 'kg' ? /^(kg|nursery)/i.test(s.gradeLevel) :
-            id === 'primary' ? /^Grade\s*[1-8](\D|$)/i.test(s.gradeLevel) :
-            /^Grade\s*(9|1[0-2])(\D|$)/i.test(s.gradeLevel)
-        )).length;
+        const count = allStudents.filter(s => {
+            const studentClassId = s.class?._id || s.class;
+            const cls = allAllowedClasses.find(c => c._id === studentClassId);
+            return cls && cls.schoolLevel === id;
+        }).length;
 
-        if (count === 0) return null;
+        if (count === 0 && currentUser.role !== 'admin') return null;
 
         return (
             <div 
-                onClick={() => { setSelectedSection(id); setSelectedGrade(null); }}
+                onClick={() => { setSelectedSection(id); setSelectedClass(null); }}
                 className={`flex-1 min-w-[200px] p-6 rounded-xl border-2 cursor-pointer transition-all transform hover:-translate-y-1 hover:shadow-lg bg-white ${selectedSection === id ? 'ring-4 ring-offset-2 ring-pink-400 border-transparent shadow-xl' : color}`}
             >
                 <h3 className="text-xl font-bold uppercase tracking-wide opacity-80">{label}</h3>
@@ -161,23 +155,47 @@ const StudentListPage = () => {
                 </div>
             )}
 
-            {/* --- GRADE SELECTOR --- */}
+            {/* --- CLASS SELECTOR --- */}
             {selectedSection && (
                 <div className="mb-8 bg-white p-5 rounded-xl shadow-sm border border-gray-200 animate-fade-in">
                     <div className="flex justify-between items-center mb-4">
-                        <h4 className="text-sm font-bold text-gray-700 uppercase">{t('select_class')}:</h4>
-                        <button onClick={() => { setSelectedSection(null); setSelectedGrade(null); }} className="text-sm text-blue-600 hover:underline">
+                        <h4 className="text-sm font-bold text-gray-700 uppercase">Select Class:</h4>
+                        <button onClick={() => { setSelectedSection(null); setSelectedClass(null); }} className="text-sm text-blue-600 hover:underline">
                             {t('clear_section')}
                         </button>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                        {visibleGradeButtons.map(grade => (
+                        {visibleClassButtons.map(cls => (
                             <button 
-                                key={grade} 
-                                onClick={() => setSelectedGrade(grade)}
-                                className={`px-4 py-2 border rounded-md font-bold text-sm transition-all ${selectedGrade === grade ? 'bg-pink-600 text-white border-pink-600 shadow-md' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}
+                                key={cls._id} 
+                                onClick={() => setSelectedClass(cls)}
+                                className={`px-4 py-2 border rounded-md font-bold text-sm transition-all ${selectedClass?._id === cls._id ? 'bg-pink-600 text-white border-pink-600 shadow-md' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}
                             >
-                                {grade}
+                                {cls.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* --- STREAM SELECTOR --- */}
+            {selectedClass && (
+                <div className="mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-200 animate-fade-in">
+                    <div className="flex flex-wrap gap-2 items-center">
+                        <h4 className="text-xs font-bold text-gray-500 uppercase mr-2">Stream:</h4>
+                        <button 
+                            onClick={() => setSelectedStream('all')}
+                            className={`px-3 py-1 rounded-full text-xs font-bold ${selectedStream === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+                        >
+                            All Streams
+                        </button>
+                        {streams.map(str => (
+                            <button 
+                                key={str._id} 
+                                onClick={() => setSelectedStream(str._id)}
+                                className={`px-3 py-1 rounded-full text-xs font-bold ${selectedStream === str._id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+                            >
+                                {str.name}
                             </button>
                         ))}
                     </div>
@@ -185,11 +203,11 @@ const StudentListPage = () => {
             )}
 
             {/* --- STUDENT TABLE --- */}
-            {selectedGrade && (
+            {selectedClass && (
                 <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden animate-slide-up">
                     <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50">
                         <h3 className="text-xl font-bold text-gray-800">
-                            {selectedGrade} <span className="text-sm font-normal text-gray-500">({tableStudents.length} {t('students')})</span>
+                            {selectedClass.name} {selectedStream !== 'all' && streams.find(s=>s._id===selectedStream)?.name} <span className="text-sm font-normal text-gray-500">({tableStudents.length} {t('students')})</span>
                         </h3>
                         <input 
                             type="text" 

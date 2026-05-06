@@ -23,7 +23,3 @@ A modern, full-stack MERN application designed to digitize and streamline the ac
 *   **Database:** MongoDB with Mongoose
 *   **Authentication:** JWT (JSON Web Tokens)
 
-## 👤 Author
-
-**Gebrekidan Mequanint**
-+251973150187

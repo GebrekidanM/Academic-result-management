@@ -1,4 +1,5 @@
 const Subject = require('../models/Subject');
+const Class = require('../models/Class');
 const xlsx = require('xlsx');
 const fs = require('fs'); 
 const Grade = require('../models/Grade');
@@ -7,8 +8,8 @@ const AssessmentType = require('../models/AssessmentType')
 // @route   POST /api/subjects
 exports.createSubject = async (req, res) => {
     try {
-        const { name, code, gradeLevel,load } = req.body;
-        const subject = await Subject.create({ name, code, gradeLevel,sessionsPerWeek:load });
+        const { name, code, classId, load } = req.body;
+        const subject = await Subject.create({ name, code, class: classId, sessionsPerWeek: load });
         res.status(201).json({ success: true, data: subject });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
@@ -19,8 +20,8 @@ exports.createSubject = async (req, res) => {
 // @route   GET /api/subjects
 exports.getSubjects = async (req, res) => {
     try {
-        const filter = req.query.gradeLevel ? { gradeLevel: req.query.gradeLevel } : {};
-        const subjects = await Subject.find(filter).sort({ name: 1 });
+        const filter = req.query.classId ? { class: req.query.classId } : {};
+        const subjects = await Subject.find(filter).populate('class', 'className').sort({ name: 1 });
         res.status(200).json({ success: true, count: subjects.length, data: subjects });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -31,7 +32,7 @@ exports.getSubjects = async (req, res) => {
 // @route   GET /api/subjects/:id
 exports.getSubjectById = async (req, res) => {
     try {
-        const subject = await Subject.findById(req.params.id);
+        const subject = await Subject.findById(req.params.id).populate('class', 'className');
         if (!subject) {
             return res.status(404).json({ success: false, message: 'Subject not found' });
         }
@@ -112,13 +113,19 @@ exports.bulkCreateSubjects = async (req, res) => {
         }
 
         // Prepare the data for insertion, matching Excel columns to our schema
-        const subjectsToCreate = subjectsJson.map(subject => ({
-            name: subject['Name'] || subject['name'],
-            gradeLevel: subject['Grade Level'] || subject['gradeLevel'],
-            code: subject['Code'] || subject['code'] || '',
-            sessionsPerWeek: subject['Credit']
-
-        }));
+        const subjectsToCreate = [];
+        for (const row of subjectsJson) {
+            const className = row['Class']; // Changed from Grade Level
+            const cls = await Class.findOne({ className });
+            if (!cls) continue; // Or handle error
+            
+            subjectsToCreate.push({
+                name: row['Name'] || row['name'],
+                class: cls._id,
+                code: row['Code'] || row['code'] || '',
+                sessionsPerWeek: row['Credit']
+            });
+        }
 
         // Insert all new subjects into the database
         const createdSubjects = await Subject.insertMany(subjectsToCreate, { ordered: false });
@@ -133,7 +140,7 @@ exports.bulkCreateSubjects = async (req, res) => {
     } catch (error) {
         fs.unlinkSync(filePath);
         if (error.code === 11000 || error.name === 'MongoBulkWriteError') {
-            return res.status(400).json({ message: 'Import failed. Some subjects in the file may already exist for the same grade level.' });
+            return res.status(400).json({ message: 'Import failed. Some subjects in the file may already exist for the same class.' });
         }
         console.error('Error importing subjects:', error);
         res.status(500).json({ message: 'An error occurred during the import process.' });

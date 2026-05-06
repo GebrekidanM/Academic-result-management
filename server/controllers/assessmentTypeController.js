@@ -31,7 +31,7 @@ exports.getAssessmentTypesBySubject = async (req, res) => {
 // @route   POST /api/assessment-types
 exports.createAssessmentType = async (req, res) => {
     // 1. Add 'semester' to the destructured body
-    const { name, totalMarks, subjectId, gradeLevel, month, semester, year } = req.body;
+    const { name, totalMarks, subjectId, classId, month, semester, year } = req.body;
     try {
         
         const ethiopianYear = parseInt(new Intl.DateTimeFormat('en-US', { calendar: 'ethiopic', year: 'numeric' }).format(new Date()).replace(/\D/g, ''));
@@ -45,7 +45,7 @@ exports.createAssessmentType = async (req, res) => {
         const assessmentType = await AssessmentType.create({
             name, totalMarks, month, semester,
             subject: subjectId,
-            gradeLevel,
+            class: classId,
             year
         });
         res.status(201).json({ success: true, data: assessmentType });

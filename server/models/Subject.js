@@ -11,9 +11,10 @@ const subjectSchema = new mongoose.Schema({
         trim: true,
         sparse: true
     },
-    gradeLevel: {
-        type: String,
-        required: [true, 'Grade level is required']
+    class: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Class',
+        required: [true, 'Class is required']
     },
     sessionsPerWeek: {
         type: Number,
@@ -26,5 +27,5 @@ const subjectSchema = new mongoose.Schema({
     timestamps: true
 });
 
-subjectSchema.index({ name: 1, gradeLevel: 1 }, { unique: true });
+subjectSchema.index({ name: 1, class: 1 }, { unique: true });
 module.exports = mongoose.model('Subject', subjectSchema);

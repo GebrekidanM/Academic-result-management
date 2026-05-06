@@ -22,8 +22,9 @@ const assessmentTypeSchema = new mongoose.Schema({
         ref: 'Subject',
         required: true
     },
-    gradeLevel: {
-        type: String,
+    class: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Class',
         required: true
     },
     month: {
@@ -33,8 +34,7 @@ const assessmentTypeSchema = new mongoose.Schema({
     },
     semester: {
         type: String,
-        required: [true, 'Please specify the semester for this assessment'],
-        enum: ['First Semester', 'Second Semester']
+        required: [true, 'Please specify the semester for this assessment']
     },
     year: {
         type: Number,
@@ -45,7 +45,7 @@ const assessmentTypeSchema = new mongoose.Schema({
 });
 
 assessmentTypeSchema.index(
-    { name: 1, subject: 1, gradeLevel: 1, semester: 1, month: 1 },
+    { name: 1, subject: 1, class: 1, semester: 1, month: 1 },
     { unique: true }
 );
 

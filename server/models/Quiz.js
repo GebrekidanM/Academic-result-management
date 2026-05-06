@@ -18,7 +18,7 @@ const quizSchema = new mongoose.Schema({
     // Links to your existing models
     subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
     teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    gradeLevel: { type: String, required: true },
+    class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
     academicYear: { type: String, required: true },
     
     // Quiz Settings

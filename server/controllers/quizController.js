@@ -62,11 +62,11 @@ exports.getQuizStatus = async (req, res) => {
 // @route   GET /api/quizzes/available
 exports.getAvailableQuizzes = async (req, res) => {
     try {
-        const { gradeLevel, academicYear } = req.query;
+        const { classId, academicYear } = req.query;
 
-        // Find active quizzes for this grade
+        // Find active quizzes for this class
         const quizzes = await Quiz.find({ 
-            gradeLevel, 
+            class: classId, 
             academicYear, 
             isActive: true 
         }).populate('subject', 'name').select('-questions'); // Don't send questions in the list view
@@ -203,8 +203,8 @@ exports.getQuizAttemptsForTeacher = async (req, res) => {
         const attempts = await QuizAttempt.find({ quiz: quizId })
             .populate('student', 'fullName studentId');
 
-        // 2. Get ALL students in that grade
-        const allStudents = await Student.find({ gradeLevel: quiz.gradeLevel })
+        // 2. Get ALL students in that class
+        const allStudents = await Student.find({ class: quiz.class })
             .select('fullName studentId');
 
         // 3. Find who hasn't taken it

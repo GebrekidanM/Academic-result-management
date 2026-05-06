@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // <--- Import Hook
 import behavioralReportService from '../services/behavioralReportService';
+import authService from '../services/authService';
 
 const EditReportPage = () => {
     const { t } = useTranslation(); // <--- Initialize
     const { reportId } = useParams();
     const navigate = useNavigate();
     const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [currentUser] = useState(authService.getCurrentUser());
 
     // --- State Management ---
     const [reportData, setReportData] = useState(null);
@@ -92,9 +94,32 @@ const EditReportPage = () => {
             <div className="flex justify-between items-center mb-6 border-b pb-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-800">{t('edit')} {t('behavioral_traits')}</h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                        {reportData.semester} | {reportData.academicYear}
-                    </p>
+                    <div className="flex gap-4 mt-2">
+                        {currentUser?.role === 'admin' ? (
+                            <>
+                                <select 
+                                    name="semester"
+                                    value={reportData.semester} 
+                                    onChange={handleChange}
+                                    className="border p-1 rounded font-bold text-blue-900 text-sm"
+                                >
+                                    <option value="First Semester">{t('sem_1')}</option>
+                                    <option value="Second Semester">{t('sem_2')}</option>
+                                </select>
+                                <input 
+                                    type="text" 
+                                    name="academicYear"
+                                    value={reportData.academicYear} 
+                                    onChange={handleChange}
+                                    className="border p-1 rounded font-bold text-blue-900 text-sm w-20"
+                                />
+                            </>
+                        ) : (
+                            <p className="text-sm text-gray-500">
+                                {reportData.semester} | {reportData.academicYear}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <Link to={`/students/${reportData.student}`} className="text-blue-600 hover:underline font-bold text-sm">
                     &larr; {t('back')}

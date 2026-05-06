@@ -30,7 +30,8 @@ const userSchema = new mongoose.Schema({
         default: 'teacher' 
     },
 
-    homeroomGrade: { type: String, default: null },
+    homeroomClass: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', default: null },
+    homeroomStream: { type: mongoose.Schema.Types.ObjectId, ref: 'Stream', default: null },
 
     subjectsTaught: [{
         subject: {

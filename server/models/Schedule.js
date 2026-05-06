@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const scheduleSchema = new mongoose.Schema({
     academicYear: { type: String, required: true },
-    gradeLevel: { type: String, required: true }, // e.g., "Grade 4A"
+    class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
+    stream: { type: mongoose.Schema.Types.ObjectId, ref: 'Stream', required: true },
     
     dayOfWeek: { 
         type: String, 
@@ -22,6 +23,6 @@ const scheduleSchema = new mongoose.Schema({
 // 1. Teacher cannot be in two places at once
 scheduleSchema.index({ teacher: 1, dayOfWeek: 1, period: 1, academicYear: 1 }, { unique: true });
 // 2. Class cannot have two lessons at once
-scheduleSchema.index({ gradeLevel: 1, dayOfWeek: 1, period: 1, academicYear: 1 }, { unique: true });
+scheduleSchema.index({ class: 1, stream: 1, dayOfWeek: 1, period: 1, academicYear: 1 }, { unique: true });
 
 module.exports = mongoose.model('Schedule', scheduleSchema);

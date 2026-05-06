@@ -5,7 +5,7 @@ const { generateStudentReport, generateClassReports, getCertificateData,getHighS
 const {protect} = require('../middleware/authMiddleware')
 
 router.get('/student/:id', generateStudentReport);
-router.get('/class/:gradeLevel', generateClassReports);
+router.get('/class/:classId/:streamId', generateClassReports);
 router.get('/certificate-data', protect, getCertificateData);
 router.get('/high-scorers', getHighScorers);
 

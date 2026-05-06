@@ -15,23 +15,28 @@ const SUBJECT_ORDER = [
 ];
 
 exports.generateRoster = async (req, res) => {
-    const { gradeLevel, academicYear } = req.query;
+    const { classId, streamId, academicYear } = req.query;
 
-    if (!gradeLevel || !academicYear) {
-        return res.status(400).json({ message: 'Grade Level and Academic Year are required.' });
+    if (!classId || !academicYear) {
+        return res.status(400).json({ message: 'Class and Academic Year are required.' });
     }
 
     try {
-        const homeroomTeacher = await User.findOne({ homeroomGrade: gradeLevel }).select('fullName');
+        const homeroomQuery = { homeroomClass: classId };
+        if (streamId && streamId !== 'all') homeroomQuery.homeroomStream = streamId;
+        const homeroomTeacher = await User.findOne(homeroomQuery).select('fullName');
         
-        const academicSubjects = await Subject.find({ gradeLevel }).sort({ name: 1 }).lean();
-        const supportiveSubjects = await SupportiveSubject.find({ gradeLevel }).sort({ name: 1 }).lean();
+        const academicSubjects = await Subject.find({ class: classId }).sort({ name: 1 }).lean();
+        const supportiveSubjects = await SupportiveSubject.find({ class: classId }).sort({ name: 1 }).lean();
 
         if (academicSubjects.length === 0 && supportiveSubjects.length === 0) {
             return res.status(404).json({ message: 'No subjects found.' });
         }
 
-        const students = await Student.find({ gradeLevel, status: 'Active' })
+        const studentQuery = { class: classId, status: 'Active' };
+        if (streamId && streamId !== 'all') studentQuery.stream = streamId;
+        
+        const students = await Student.find(studentQuery)
             .select('studentId fullName gender dateOfBirth _id')
             .sort({ fullName: 1 });
         
@@ -190,11 +195,11 @@ exports.generateRoster = async (req, res) => {
 // in backend/controllers/rosterController.js
 
 exports.generateSubjectRoster = async (req, res) => {
-    const { gradeLevel, subjectId, semester, academicYear } = req.query;
+    const { classId, streamId, subjectId, semester, academicYear } = req.query;
 
     // 1. Validation
-    if (!gradeLevel || !subjectId || !semester || !academicYear) {
-        return res.status(400).json({ message: 'Grade Level, Subject, Semester, and Year are required.' });
+    if (!classId || !subjectId || !semester || !academicYear) {
+        return res.status(400).json({ message: 'Class, Subject, Semester, and Year are required.' });
     }
 
     // 2. Define Semester Logic
@@ -210,12 +215,12 @@ exports.generateSubjectRoster = async (req, res) => {
     }
 
     try {
-        // 3. Fetch Assessment Types (Filtered by Semester months if stored that way, or sorted later)
+        // 3. Fetch Assessment Types
         const allAssessmentsForSubject = await AssessmentType.find({ 
             subject: subjectId, 
-            gradeLevel, 
+            class: classId, 
             year: academicYear,
-            month: { $in: validMonths } // Database-level filtering for efficiency
+            month: { $in: validMonths }
         });
 
         if (allAssessmentsForSubject.length === 0) {
@@ -232,7 +237,10 @@ exports.generateSubjectRoster = async (req, res) => {
         const sortedMonths = validMonths.filter(m => assessmentTypesByMonth[m]);
 
         // 5. Fetch Students and Grades
-        const students = await Student.find({ gradeLevel, status: 'Active' })
+        const studentQuery = { class: classId, status: 'Active' };
+        if (streamId && streamId !== 'all') studentQuery.stream = streamId;
+        
+        const students = await Student.find(studentQuery)
             .select('_id studentId fullName gender dateOfBirth')
             .sort({ fullName: 1 });
 

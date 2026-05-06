@@ -178,8 +178,17 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     <NavLink to={'/supportivelist'} className={dropdownLinkClass} onClick={closeMenu}>
                         Supportive Subjects
                     </NavLink>
+                    <NavLink to="/classes" className={dropdownLinkClass} onClick={closeMenu}>
+                        🏫 Manage Classes
+                    </NavLink>
                     <NavLink to="/send_notification" className={dropdownLinkClass} onClick={closeMenu}>
                         📢 Send Notification
+                    </NavLink>
+                    <NavLink to="/settings" className={dropdownLinkClass} onClick={closeMenu}>
+                        ⚙️ {t('school_settings') || 'School Settings'}
+                    </NavLink>
+                    <NavLink to="/admin/semesters" className={dropdownLinkClass} onClick={closeMenu}>
+                        🗓️ {t('manage_terms') || 'Manage Terms'}
                     </NavLink>
                   </NavDropdown>
                 )}

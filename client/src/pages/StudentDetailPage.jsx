@@ -303,7 +303,7 @@ const StudentDetailPage = () => {
                                     return (
                                         <tr key={grade._id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 font-medium text-gray-900">{grade.subject?.name}</td>
-                                            <td className="px-6 py-4 text-gray-500">{grade.semester === 'First Semester' ? t('sem_1') : t('sem_2')}</td>
+                                            <td className="px-6 py-4 text-gray-500">{(grade.semester === 'First Semester' || grade.semester === 'Term 1') ? t('sem_1') : (grade.semester === 'Second Semester' || grade.semester === 'Term 2') ? t('sem_2') : grade.semester}</td>
                                             <td className="px-6 py-4 font-bold text-gray-800">{grade.finalScore} / {max}</td>
                                             <td className="px-6 py-4 text-gray-600 font-mono text-xs">{pct}%</td>
                                         </tr>
@@ -327,7 +327,7 @@ const StudentDetailPage = () => {
                             <div key={report._id} className="bg-gray-50 p-4 rounded-lg border border-pink-300">
                                 <div className="flex justify-between items-center">
                                     <h4 className="font-bold text-gray-700">
-                                        {report.semester === 'First Semester' ? t('sem_1') : t('sem_2')} - {report.academicYear}
+                                        {(report.semester === 'First Semester' || report.semester === 'Term 1') ? t('sem_1') : (report.semester === 'Second Semester' || report.semester === 'Term 2') ? t('sem_2') : report.semester} - {report.academicYear}
                                     </h4>
                                     {canViewFullInsights && (
                                         <div className="flex gap-2">

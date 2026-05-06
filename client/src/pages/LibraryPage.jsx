@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import libraryService from '../services/libraryService';
 import authService from '../services/authService';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 const LibraryPage = () => {
     const { t } = useTranslation();
@@ -12,7 +13,7 @@ const LibraryPage = () => {
     const [loading, setLoading] = useState(true);
     
     // --- Filter State ---
-    const [filterGrade, setFilterGrade] = useState('');
+    const [filterClassId, setFilterClassId] = useState('');
     const [filterSubject, setFilterSubject] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -22,7 +23,7 @@ const LibraryPage = () => {
     const [uploadData, setUploadData] = useState({ 
         title: '', 
         type: 'Book', 
-        gradeLevel: '', 
+        classId: '', 
         subject: '', 
         file: null,    
         cover: null    
@@ -49,9 +50,9 @@ const LibraryPage = () => {
     useEffect(() => {
         let result = resources;
 
-        // Filter by Grade
-        if (filterGrade) {
-            result = result.filter(r => r.gradeLevel === filterGrade);
+        // Filter by Class
+        if (filterClassId) {
+            result = result.filter(r => (r.class?._id || r.class) === filterClassId);
         }
         
         // Filter by Subject
@@ -65,7 +66,7 @@ const LibraryPage = () => {
         }
 
         setFilteredResources(result);
-    }, [filterGrade, filterSubject, searchTerm, resources]);
+    }, [filterClassId, filterSubject, searchTerm, resources]);
 
     // --- 3. UPLOAD HANDLER ---
     const handleUpload = async (e) => {
@@ -82,7 +83,7 @@ const LibraryPage = () => {
         // Append Text Fields
         formData.append('title', uploadData.title);
         formData.append('type', uploadData.type);
-        formData.append('gradeLevel', uploadData.gradeLevel);
+        formData.append('classId', uploadData.classId);
         formData.append('subject', uploadData.subject);
         
         // Append Files (Must match backend: .fields([{name: 'file'}, {name: 'cover'}]))
@@ -101,7 +102,7 @@ const LibraryPage = () => {
             
             // Reset Form
             setShowUpload(false);
-            setUploadData({ title: '', type: 'Book', gradeLevel: '', subject: '', file: null, cover: null });
+            setUploadData({ title: '', type: 'Book', classId: '', subject: '', file: null, cover: null });
             alert(t('success_save'));
         } catch (err) {
             console.error(err);
@@ -127,7 +128,7 @@ const LibraryPage = () => {
     const getFileUrl = (path) => {
         if (!path) return '#';
         if (path.startsWith('http')) return path; 
-        const SERVER_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001'; 
+        const SERVER_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'; 
         return `${SERVER_URL}${path}`;
     };
 
@@ -160,18 +161,15 @@ const LibraryPage = () => {
                         className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
                     />
                 </div>
-                <select 
-                    value={filterGrade} 
-                    onChange={e => setFilterGrade(e.target.value)} 
-                    className="border border-gray-300 p-2 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                    <option value="">{t('all_grades')}</option>
-                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(g => (
-                        <option key={g} value={`Grade ${g}`}>Grade {g}</option>
-                    ))}
-                    <option value="KG 1">KG 1</option>
-                    <option value="KG 2">KG 2</option>
-                </select>
+                <div className="min-w-[200px]">
+                    <ClassStreamSelector 
+                        selectedClass={filterClassId}
+                        onClassChange={setFilterClassId}
+                        showStreamSelector={false}
+                        required={false}
+                        className="!border-gray-300"
+                    />
+                </div>
                 <input 
                     type="text" 
                     placeholder={t('filter_subject')} 
@@ -204,8 +202,12 @@ const LibraryPage = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase mb-1">{t('grade')}</label>
-                                    <input type="text" required className="w-full border p-2 rounded-lg" value={uploadData.gradeLevel} onChange={e => setUploadData({...uploadData, gradeLevel: e.target.value})} placeholder="e.g. Grade 4" />
+                                    <ClassStreamSelector 
+                                        selectedClass={uploadData.classId}
+                                        onClassChange={id => setUploadData({...uploadData, classId: id})}
+                                        showStreamSelector={false}
+                                        required={true}
+                                    />
                                 </div>
                             </div>
                             <div>
@@ -288,7 +290,7 @@ const LibraryPage = () => {
                                     {item.title}
                                 </h3>
                                 
-                                <p className="text-xs text-gray-500 font-medium mb-4">{item.gradeLevel}</p>
+                                <p className="text-xs text-gray-500 font-medium mb-4">{item.class?.className || item.gradeLevel}</p>
                                 
                                 <div className="mt-auto border-t border-gray-100 pt-3">
                                     <div className="flex justify-between items-center text-[10px] text-gray-400 mb-3">

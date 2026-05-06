@@ -4,6 +4,7 @@ import analyticsService from '../services/analyticsService';
 import authService from '../services/authService';
 import subjectService from '../services/subjectService';
 import userService from '../services/userService';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 const AllSubjectAnalytics = () => {
   const { t } = useTranslation(); // <--- 2. Initialize Hook
@@ -11,7 +12,8 @@ const AllSubjectAnalytics = () => {
   const [availableGrades, setAvailableGrades] = useState([]);
   
   const [filters, setFilters] = useState({
-    gradeLevel: '',
+    classId: '',
+    streamId: 'all',
     assessmentName: '',
     semester: 'First Semester',
     academicYear: '2018'
@@ -130,9 +132,9 @@ const AllSubjectAnalytics = () => {
     setLoading(true);
     setError('');
     
-    if(!filters.gradeLevel) {
+    if(!filters.classId) {
         setLoading(false);
-        return setError(t('select_class') || "Please select a Grade Level.");
+        return setError(t('select_class') || "Please select a Class.");
     }
     if(!filters.assessmentName.trim()) {
         setLoading(false);
@@ -180,23 +182,31 @@ const AllSubjectAnalytics = () => {
         <div className="p-6 border-b border-gray-200 no-print">
            <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('class_matrix')}</h2>
            
-           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-                <select name="gradeLevel" value={filters.gradeLevel} onChange={handleChange} disabled={availableGrades.length === 0} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                  {availableGrades.length > 0 ? availableGrades.map(g => <option key={g} value={g}>{g}</option>) : <option value="">{t('loading')}</option>}
-                </select>
-                <input type="text" name="assessmentName" value={filters.assessmentName} onChange={handleChange} placeholder={t('assessment')} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-                <select name="semester" value={filters.semester} onChange={handleChange} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                  <option value="First Semester">{t('sem_1')}</option>
-                  <option value="Second Semester">{t('sem_2')}</option>
-                </select>
-                <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} placeholder={t('academic_year')} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-                
-                <button onClick={fetchAnalytics} disabled={loading || !filters.gradeLevel} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">
-                  {loading ? t('loading') : t('view')}
-                </button>
-                
-                <button onClick={() => window.print()} disabled={data.length === 0} className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-md">
-                  🖨️ {t('print')}
+           <div className="flex flex-col lg:flex-row gap-4 items-end">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ClassStreamSelector 
+                    selectedClass={filters.classId}
+                    onClassChange={(id) => setFilters(prev => ({ ...prev, classId: id }))}
+                    selectedStream={filters.streamId}
+                    onStreamChange={(id) => setFilters(prev => ({ ...prev, streamId: id }))}
+                    required={true}
+                    showAllStreamsOption={true}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
+                  <input type="text" name="assessmentName" value={filters.assessmentName} onChange={handleChange} placeholder={t('assessment')} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                  <select name="semester" value={filters.semester} onChange={handleChange} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                    <option value="First Semester">{t('sem_1')}</option>
+                    <option value="Second Semester">{t('sem_2')}</option>
+                  </select>
+                  <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} placeholder={t('academic_year')} className="block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                  
+                  <button onClick={fetchAnalytics} disabled={loading || !filters.classId} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">
+                    {loading ? t('loading') : t('view')}
+                  </button>
+                </div>
+                <button onClick={() => window.print()} disabled={data.length === 0} className="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-6 rounded-md">
+                  🖨️
                 </button>
            </div>
            {error && <div className="mt-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded">{error}</div>}
@@ -205,7 +215,7 @@ const AllSubjectAnalytics = () => {
         {/* PRINTABLE HEADER (Visible ONLY on Print) */}
         <div className="hidden print:block text-center mb-4 pt-4 border-b pb-2">
             <h1 className="text-xl font-bold uppercase text-gray-800">{t('class_matrix')}</h1>
-            <p className="text-sm text-gray-600">{t('grade')}: {filters.gradeLevel} | {t('assessment')}: {filters.assessmentName} | {t('academic_year')}: {filters.academicYear}</p>
+            <p className="text-sm text-gray-600">{t('assessment')}: {filters.assessmentName} | {t('academic_year')}: {filters.academicYear}</p>
         </div>
 
         {/* BEST PERFORMANCE BANNER */}

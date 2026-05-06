@@ -9,7 +9,7 @@ const libraryResourceSchema = new mongoose.Schema({
         default: 'Book' 
     },
     subject: { type: String, required: true },
-    gradeLevel: { type: String, required: true },
+    class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
     
     // --- Main File ---
     fileUrl: { type: String, required: true },

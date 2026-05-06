@@ -130,7 +130,11 @@ const EditGradePage = () => {
 
         // --- ONLINE LOGIC ---
         try {
-            const updatePayload = { assessments: assessmentsPayload };
+            const updatePayload = { 
+                assessments: assessmentsPayload,
+                semester: gradeData.semester,
+                academicYear: gradeData.academicYear
+            };
             await gradeService.updateGrade(gradeId, updatePayload);
             alert(t('success_save') || 'Grade updated successfully!');
             navigate(`/students/${gradeData.student._id || gradeData.student}`);
@@ -167,11 +171,31 @@ const EditGradePage = () => {
                 </div>
                 <div>
                     <p className="text-sm text-gray-500 uppercase font-bold">{t('semester')}</p>
-                    <p className="text-lg font-bold text-blue-900">{gradeData.semester}</p>
+                    {currentUser?.role === 'admin' ? (
+                        <select 
+                            value={gradeData.semester} 
+                            onChange={e => setGradeData({...gradeData, semester: e.target.value})}
+                            className="border p-1 rounded font-bold text-blue-900"
+                        >
+                            <option value="First Semester">{t('sem_1')}</option>
+                            <option value="Second Semester">{t('sem_2')}</option>
+                        </select>
+                    ) : (
+                        <p className="text-lg font-bold text-blue-900">{gradeData.semester}</p>
+                    )}
                 </div>
                 <div>
                     <p className="text-sm text-gray-500 uppercase font-bold">{t('academic_year')}</p>
-                    <p className="text-lg font-bold text-blue-900">{gradeData.academicYear}</p>
+                    {currentUser?.role === 'admin' ? (
+                        <input 
+                            type="text" 
+                            value={gradeData.academicYear} 
+                            onChange={e => setGradeData({...gradeData, academicYear: e.target.value})}
+                            className="border p-1 rounded font-bold text-blue-900 w-24"
+                        />
+                    ) : (
+                        <p className="text-lg font-bold text-blue-900">{gradeData.academicYear}</p>
+                    )}
                 </div>
             </div>
 

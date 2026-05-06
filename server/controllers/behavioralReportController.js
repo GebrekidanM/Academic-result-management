@@ -86,10 +86,6 @@ exports.getReportsByStudent = async (req, res) => {
 // @desc    Update a specific report
 // @route   PUT /api/reports/:reportId
 exports.updateReport = async (req, res) => {
-    if (req.user.role === 'admin') {
-        return res.status(403).json({ message: "Forbidden: Admins can view reports but cannot alter them." });
-    }
-
     try {
         const updatedReport = await BehavioralReport.findByIdAndUpdate(req.params.reportId, req.body, {
             new: true,
@@ -107,10 +103,6 @@ exports.updateReport = async (req, res) => {
 // @desc    Delete a report
 // @route   DELETE /api/reports/:reportId
 exports.deleteReport = async (req, res) => {
-    if (req.user.role === 'admin') {
-        return res.status(403).json({ message: "Forbidden: Admins can view reports but cannot alter them." });
-    }
-    
     try {
         // Use the parameter name you defined in the route (e.g., req.params.reportId)
         const report = await BehavioralReport.findById(req.params.reportId);

@@ -43,8 +43,8 @@ const ParentDashboardPage = () => {
     const [showCompleted, setShowCompleted] = useState(false);
     const navigate = useNavigate()
     // NEW: Nested Tab State Strategy
-    const [activeMainTab, setActiveMainTab] = useState('analytics'); // 'analytics', 'First Semester', 'Second Semester'
-    const[activeAnalyticsTab, setActiveAnalyticsTab] = useState('overall'); // 'overall', 'First Semester', 'Second Semester'
+    const [activeMainTab, setActiveMainTab] = useState('analytics'); // 'analytics', 'Term 1', 'Term 2'
+    const[activeAnalyticsTab, setActiveAnalyticsTab] = useState('overall'); // 'overall', 'Term 1', 'Term 2'
 
     useEffect(() => {
         const loadDashboard = async () => {
@@ -356,7 +356,7 @@ const ParentDashboardPage = () => {
                             : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300'
                         }`}
                     >
-                        📝 {sem === 'First Semester' ? t('sem_1') : t('sem_2')} Details
+                        📝 {sem === 'First Semester' || sem === 'Term 1' ? t('sem_1') : sem === 'Second Semester' || sem === 'Term 2' ? t('sem_2') : sem} Details
                     </button>
                 ))}
             </div>
@@ -389,7 +389,7 @@ const ParentDashboardPage = () => {
                                         : 'text-slate-500 hover:text-slate-700'
                                     }`}
                                 >
-                                    📅 {sem === 'First Semester' ? t('sem_1') : t('sem_2')}
+                                    📅 {sem === 'First Semester' || sem === 'Term 1' ? t('sem_1') : sem === 'Second Semester' || sem === 'Term 2' ? t('sem_2') : sem}
                                 </button>
                             ))}
                         </div>
@@ -413,7 +413,7 @@ const ParentDashboardPage = () => {
                             {/* Semester Header Info */}
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-slate-800 text-white p-4 rounded-xl shadow-md gap-3">
                                 <h2 className="text-xl font-black uppercase tracking-tight">
-                                    {semesterName === 'First Semester' ? t('sem_1') : t('sem_2')} Grades
+                                    {semesterName === 'First Semester' || semesterName === 'Term 1' ? t('sem_1') : semesterName === 'Second Semester' || semesterName === 'Term 2' ? t('sem_2') : semesterName} Grades
                                 </h2>
                                 <div className="flex flex-col md:flex-row gap-3">
                                     <div className="bg-emerald-500 text-white px-4 py-1.5 rounded-lg shadow-sm">

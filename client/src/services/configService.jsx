@@ -1,5 +1,9 @@
+import api from './api';
 import subjectService from './subjectService';
 import userService from './userService';
+
+const getConfig = () => api.get('/config');
+const updateConfig = (data) => api.put('/config', data);
 
 const getGradesForUser = async (currentUser) => {
     try {
@@ -39,7 +43,9 @@ const getGradesForUser = async (currentUser) => {
 };
 
 const configService = {
-    getGradesForUser
+    getGradesForUser,
+    getConfig,
+    updateConfig
 };
 
 export default configService;

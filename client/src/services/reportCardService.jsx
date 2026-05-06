@@ -18,16 +18,15 @@ const reportCardService = {
     },
 
     // NEW: Get Whole Class
-    getClassReports: async (gradeLevel) => {
-        console.log(gradeLevel)
-        return await api.get(`${API_URL}/class/${gradeLevel}`);
+    getClassReports: async (classId, streamId = 'all') => {
+        return await api.get(`${API_URL}/class/${classId}/${streamId}`);
     },
 
-     getCertificateData: async (gradeLevel, academicYear) => {
+     getCertificateData: async (classId, academicYear, streamId = 'all') => {
         const config = getConfig();
         const response = await api.get(`${API_URL}/certificate-data`, {
             ...config,
-            params: { gradeLevel, academicYear }
+            params: { classId, streamId, academicYear }
         });
         return response.data;
     },

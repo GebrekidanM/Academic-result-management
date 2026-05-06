@@ -7,17 +7,12 @@ import userService from '../services/userService';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; 
 
+import configService from '../services/configService';
+
 const MONTHS = [
   "September", "October", "November", "December",
   "January", "February", "March", "April", "May", "June"
 ];
-
-function getEthiopianYear() {
-    const today = new Date();
-    const gregYear = today.getFullYear();
-    const gregMonth = today.getMonth() + 1;
-    return gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
-}
 
 const AssessmentTypesPage = () => {
   const { t } = useTranslation();
@@ -31,16 +26,36 @@ const AssessmentTypesPage = () => {
   const [loading, setLoading] = useState(true);
   const [assessmentsLoading, setAssessmentsLoading] = useState(false);
   const [error, setError] = useState('');
-  const currentEthiopianYear = getEthiopianYear();
   const [formData, setFormData] = useState({
     name: '',
     totalMarks: 10,
     month: 'September',
     semester: 'First Semester',
-    year: currentEthiopianYear,
+    year: '',
   });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [schoolConfig, setSchoolConfig] = useState(null);
+
+  // --- Load Config ---
+  useEffect(() => {
+    const fetchDefaults = async () => {
+        try {
+            const res = await configService.getConfig();
+            if (res.data.data) {
+                setSchoolConfig(res.data.data);
+                setFormData(prev => ({
+                    ...prev,
+                    semester: res.data.data.currentSemester,
+                    year: res.data.data.currentAcademicYear
+                }));
+            }
+        } catch (err) {
+            console.error("Error fetching defaults:", err);
+        }
+    };
+    fetchDefaults();
+  }, []);
 
   // --- Pre-select subject ---
   useEffect(() => {
@@ -78,9 +93,9 @@ const AssessmentTypesPage = () => {
   const subjectsByGrade = useMemo(() => {
     const grouped = {};
     subjects.forEach(sub => {
-      const grade = sub.gradeLevel || 'Uncategorized';
-      if (!grouped[grade]) grouped[grade] = [];
-      grouped[grade].push(sub);
+      const className = sub.class?.className || 'Uncategorized';
+      if (!grouped[className]) grouped[className] = [];
+      grouped[className].push(sub);
     });
     return grouped;
   }, [subjects]);
@@ -141,7 +156,11 @@ const AssessmentTypesPage = () => {
     setSaving(true);
     setError('');
 
-    const payload = { ...formData, subjectId: selectedSubject._id, gradeLevel: selectedSubject.gradeLevel };
+    const payload = { 
+        ...formData, 
+        subjectId: selectedSubject._id, 
+        classId: selectedSubject.class?._id || selectedSubject.class 
+    };
 
     // --- OFFLINE MODE WRITE ---
     // Use navigator.onLine here because we CANNOT write to the server offline
@@ -172,7 +191,13 @@ const AssessmentTypesPage = () => {
             }
             
             await fetchAssessments(); 
-            setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
+            setFormData({ 
+                name: '', 
+                totalMarks: 10, 
+                month: 'September', 
+                semester: schoolConfig?.currentSemester || 'First Semester', 
+                year: schoolConfig?.currentAcademicYear || '' 
+            });
             setEditingId(null);
         } catch (err) {
             setError("Failed to save offline.");
@@ -189,7 +214,13 @@ const AssessmentTypesPage = () => {
         await assessmentTypeService.create(payload);
       }
       await fetchAssessments();
-      setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
+      setFormData({ 
+          name: '', 
+          totalMarks: 10, 
+          month: 'September', 
+          semester: schoolConfig?.currentSemester || 'First Semester', 
+          year: schoolConfig?.currentAcademicYear || '' 
+      });
       setEditingId(null);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to save.';
@@ -323,7 +354,11 @@ const AssessmentTypesPage = () => {
                         to="/grade-sheet"
                         state={{
                             assessmentType: a,
-                            subject: { id: selectedSubject._id, name: selectedSubject.name, gradeLevel: selectedSubject.gradeLevel }
+                            subject: { 
+                                id: selectedSubject._id, 
+                                name: selectedSubject.name, 
+                                classId: selectedSubject.class?._id || selectedSubject.class 
+                            }
                         }}
                         className="flex-1 hover:underline flex flex-col"
                       >

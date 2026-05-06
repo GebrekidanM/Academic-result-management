@@ -6,13 +6,15 @@ const Student = require('../models/Student');
 // @route   GET /api/supportive-grades/sheet
 exports.getGradingSheet = async (req, res) => {
     try {
-        const { gradeLevel, academicYear, semester } = req.query;
+        const { classId, streamId, academicYear, semester } = req.query;
 
-        // 1. Get Subjects for this Grade Level
-        const subjects = await SupportiveSubject.find({ gradeLevel });
+        // 1. Get Subjects for this Class
+        const subjects = await SupportiveSubject.find({ class: classId });
 
-        // 2. Get Students in this Grade
-        const students = await Student.find({ gradeLevel, status: 'Active' })
+        // 2. Get Students in this Class/Stream
+        const query = { class: classId, status: 'Active' };
+        if (streamId && streamId !== 'all') query.stream = streamId;
+        const students = await Student.find(query)
             .select('fullName studentId _id')
             .sort({ fullName: 1 });
 
@@ -67,7 +69,7 @@ exports.saveGrades = async (req, res) => {
 // @route   GET /api/supportive-subjects
 exports.getAllSupportiveSubjects = async (req, res) => {
     try {
-        const subjects = await SupportiveSubject.find().sort({ gradeLevel: 1, name: 1 });
+        const subjects = await SupportiveSubject.find().populate('class').sort({ name: 1 });
         res.json({ success: true, data: subjects });
     } catch (error) {
         console.error(error);
@@ -79,13 +81,13 @@ exports.getAllSupportiveSubjects = async (req, res) => {
 // @route   POST /api/supportive-subjects
 exports.createSupportiveSubject = async (req, res) => {
     try {
-        const { name, gradeLevel } = req.body;
-        const exists = await SupportiveSubject.findOne({ name, gradeLevel });
+        const { name, classId } = req.body;
+        const exists = await SupportiveSubject.findOne({ name, class: classId });
         if (exists) {
-            return res.status(400).json({ message: 'Subject already exists for this grade.' });
+            return res.status(400).json({ message: 'Subject already exists for this class.' });
         }
 
-        const newSubject = await SupportiveSubject.create({ name, gradeLevel });
+        const newSubject = await SupportiveSubject.create({ name, class: classId });
         res.status(201).json({ success: true, data: newSubject });
     } catch (error) {
         console.error(error);

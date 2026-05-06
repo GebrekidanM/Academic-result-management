@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import behavioralReportService from '../services/behavioralReportService';
+import configService from '../services/configService';
 
 // Predefined areas for evaluation
 const EVALUATION_AREAS = [
@@ -25,6 +26,22 @@ const AddReportPage = () => {
     const [absent,setAbsent] = useState('0')
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    // --- Load Config ---
+    React.useEffect(() => {
+        const fetchDefaults = async () => {
+            try {
+                const res = await configService.getConfig();
+                if (res.data.data) {
+                    setSemester(res.data.data.currentSemester);
+                    setAcademicYear(res.data.data.currentAcademicYear);
+                }
+            } catch (err) {
+                console.error("Error fetching defaults:", err);
+            }
+        };
+        fetchDefaults();
+    }, []);
 
     // --- Handlers ---
     const handleEvaluationChange = (index, value) => {

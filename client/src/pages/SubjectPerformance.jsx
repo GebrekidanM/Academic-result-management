@@ -4,6 +4,7 @@ import analyticsService from '../services/analyticsService';
 import authService from '../services/authService';
 import userService from '../services/userService';
 import subjectService from '../services/subjectService';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 const SubjectPerformance = () => {
   const { t } = useTranslation(); // <--- Initialize Hook
@@ -11,66 +12,20 @@ const SubjectPerformance = () => {
   const [availableGrades, setAvailableGrades] = useState([]);
   
   const [filters, setFilters] = useState({
-    gradeLevel: '',
+    classId: '',
+    streamId: 'all',
     semester: 'First Semester',
     academicYear: '2018'
   });
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [loadingConfig, setLoadingConfig] = useState(true);
-
-  // --- Load Config (With School Level Filtering) ---
-  useEffect(() => {
-    const loadConfiguration = async () => {
-      try {
-        let uniqueGrades = [];
-        
-        // CASE 1: ADMIN, STAFF, PRINCIPAL
-        if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
-          const res = await subjectService.getAllSubjects();
-          const allSubjects = res.data.data || res.data;
-          let allGrades = [...new Set(allSubjects.map(s => s.gradeLevel))];
-
-          // Filter by School Level for Staff
-          if (currentUser.role === 'staff' && currentUser.schoolLevel) {
-               const level = currentUser.schoolLevel.toLowerCase();
-               if (level === 'kg') {
-                   allGrades = allGrades.filter(g => /^(kg|nursery)/i.test(g));
-               } else if (level === 'primary') {
-                   allGrades = allGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
-               } else if (level === 'high school') {
-                   allGrades = allGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
-               }
-          }
-          uniqueGrades = allGrades.sort();
-        } 
-        // CASE 2: TEACHER
-        else {
-          const res = await userService.getProfile();
-          if (res.data.subjectsTaught) {
-             uniqueGrades = [...new Set(res.data.subjectsTaught.map(a => a.subject?.gradeLevel).filter(Boolean))].sort();
-          }
-        }
-
-        setAvailableGrades(uniqueGrades);
-        if (uniqueGrades.length > 0) {
-            setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
-        }
-
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoadingConfig(false);
-      }
-    };
-    loadConfiguration();
-  }, [currentUser]);
+  const [loadingConfig, setLoadingConfig] = useState(false);
 
   const handleChange = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
 
   const fetchReport = async () => {
-    if(!filters.gradeLevel) return;
+    if(!filters.classId) return;
     setLoading(true);
     try {
       const res = await analyticsService.getSubjectPerformance(filters);
@@ -120,7 +75,7 @@ const SubjectPerformance = () => {
           
           <div className="flex justify-between items-center mb-6 border-b pb-4">
             <h2 className="text-2xl font-bold text-gray-800">
-                {t('subject_performance')}: {filters.gradeLevel}
+                {t('subject_performance')}
             </h2>
             <button 
               onClick={() => window.print()}
@@ -131,28 +86,34 @@ const SubjectPerformance = () => {
           </div>
 
           {/* FILTERS (Hidden on Print) */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-gray-50 p-4 rounded border print:hidden">
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase">{t('grade_level')}</label>
-              <select name="gradeLevel" value={filters.gradeLevel} onChange={handleChange} className="w-full p-2 border rounded">
-                {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
+          <div className="flex flex-col lg:flex-row gap-4 mb-6 bg-gray-50 p-6 rounded-2xl border-2 border-slate-100 items-end print:hidden">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ClassStreamSelector 
+                selectedClass={filters.classId}
+                onClassChange={(id) => setFilters(prev => ({ ...prev, classId: id }))}
+                selectedStream={filters.streamId}
+                onStreamChange={(id) => setFilters(prev => ({ ...prev, streamId: id }))}
+                required={true}
+                showAllStreamsOption={true}
+              />
             </div>
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase">{t('semester')}</label>
-              <select name="semester" value={filters.semester} onChange={handleChange} className="w-full p-2 border rounded">
-                <option value="First Semester">{t('sem_1')}</option>
-                <option value="Second Semester">{t('sem_2')}</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase">{t('academic_year')}</label>
-              <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} className="w-full p-2 border rounded"/>
-            </div>
-            <div className="flex items-end">
-              <button onClick={fetchReport} disabled={loading} className="w-full bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700">
-                {loading ? t('loading') : t('analytics')}
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">{t('semester')}</label>
+                <select name="semester" value={filters.semester} onChange={handleChange} className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-slate-700">
+                  <option value="First Semester">{t('sem_1')}</option>
+                  <option value="Second Semester">{t('sem_2')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">{t('academic_year')}</label>
+                <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-slate-700"/>
+              </div>
+              <div className="flex items-end">
+                <button onClick={fetchReport} disabled={loading} className="w-full bg-indigo-600 text-white font-black py-3 rounded-xl hover:bg-indigo-700 shadow-lg transition-all active:scale-95">
+                  {loading ? t('loading') : t('analytics')}
+                </button>
+              </div>
             </div>
           </div>
 

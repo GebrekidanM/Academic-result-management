@@ -41,16 +41,17 @@ exports.getGradesByStudent = async (req, res) => {
     
     // 2. Fetch Raw Grades
     const rawGrades = await Grade.find({ student: studentId })
-      .populate('subject', 'name gradeLevel')
+      .populate('subject', 'name class')
       .populate('assessments.assessmentType', 'name totalMarks month')
       .lean();
 
     if (!rawGrades.length) return res.status(200).json({ success: true, count: 0, data: [] });
 
     // 3. FILTER: Keep only current grade level (Removes Grade 4A vs 4B mismatch)
-    const currentGradeLevel = studentObj.gradeLevel.trim();
+    // 3. FILTER: Keep only current class level
+    const currentClassId = studentObj.class.toString();
     const filteredGrades = rawGrades.filter(g => 
-        g.subject && g.subject.gradeLevel === currentGradeLevel
+        g.subject && g.subject.class?.toString() === currentClassId
     );
 
     // 4. MERGE DUPLICATES (Fixes the "Mid Exam" appearing twice)
@@ -105,7 +106,7 @@ exports.getGradesByStudent = async (req, res) => {
 
     // 5. Role-based filtering
     if (req.user?.role === 'teacher') {
-        const isHomeroom = req.user.homeroomGrade === currentGradeLevel;
+        const isHomeroom = req.user.homeroomClass?.toString() === currentClassId;
         if (!isHomeroom && req.user.subjectsTaught) {
             const teacherSubjectIds = new Set(
                 req.user.subjectsTaught.map(s => s.subject?._id?.toString())
@@ -154,9 +155,6 @@ exports.deleteGrade = async (req, res) => {
     const grade = await Grade.findById(req.params.id);
     if (!grade) return res.status(404).json({ message: 'Grade not found' });
 
-    if (req.user.role === 'admin') {
-      return res.status(403).json({ message: "Admins cannot delete grade records." });
-    }
 
     await grade.deleteOne();
     res.status(200).json({ success: true, message: 'Grade deleted successfully.' });
@@ -173,29 +171,32 @@ exports.updateGrade = async (req, res) => {
     const grade = await Grade.findById(req.params.id);
     if (!grade) return res.status(404).json({ message: 'Grade not found' });
 
-    if (req.user.role === 'admin') {
-      return res.status(403).json({ message: "Admins cannot alter grade records." });
+
+    const { assessments, semester, academicYear } = req.body;
+    if (semester) grade.semester = semester;
+    if (academicYear) grade.academicYear = academicYear;
+    
+    if (assessments) {
+        if (!Array.isArray(assessments) || assessments.length === 0) {
+            return res.status(400).json({ message: 'No assessments provided.' });
+        }
+
+        const assessmentTypeIds = assessments.map(a => a.assessmentType);
+        const defs = await AssessmentType.find({ _id: { $in: assessmentTypeIds } });
+
+        let finalScore = 0;
+        for (const a of assessments) {
+            const def = defs.find(d => d._id.equals(a.assessmentType));
+            if (!def) return res.status(400).json({ message: `Invalid assessmentType ID: ${a.assessmentType}` });
+            if (a.score > def.totalMarks)
+                return res.status(400).json({ message: `${def.name} score cannot exceed ${def.totalMarks}` });
+            finalScore += Number(a.score);
+        }
+
+        grade.assessments = assessments;
+        grade.finalScore = finalScore;
     }
-
-    const { assessments } = req.body;
-    if (!Array.isArray(assessments) || assessments.length === 0) {
-      return res.status(400).json({ message: 'No assessments provided.' });
-    }
-
-    const assessmentTypeIds = assessments.map(a => a.assessmentType);
-    const defs = await AssessmentType.find({ _id: { $in: assessmentTypeIds } });
-
-    let finalScore = 0;
-    for (const a of assessments) {
-      const def = defs.find(d => d._id.equals(a.assessmentType));
-      if (!def) return res.status(400).json({ message: `Invalid assessmentType ID: ${a.assessmentType}` });
-      if (a.score > def.totalMarks)
-        return res.status(400).json({ message: `${def.name} score cannot exceed ${def.totalMarks}` });
-      finalScore += Number(a.score);
-    }
-
-    grade.assessments = assessments;
-    grade.finalScore = finalScore;
+    
     const updated = await grade.save();
 
     res.status(200).json({ success: true, data: updated });
@@ -214,7 +215,7 @@ exports.getGradeSheet = async (req, res) => {
     const assessmentType = await AssessmentType.findById(assessmentTypeId);
     if (!assessmentType) return res.status(404).json({ message: 'Assessment Type not found.' });
 
-    const students = await Student.find({ gradeLevel: assessmentType.gradeLevel, status: 'Active' })
+    const students = await Student.find({ class: assessmentType.class, status: 'Active' })
       .sort({ fullName: 1 })
       .select('fullName');
 

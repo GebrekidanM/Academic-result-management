@@ -12,14 +12,14 @@ exports.uploadResource = async (req, res) => {
         const mainFile = req.files['file'][0];
         const coverFile = req.files['cover'] ? req.files['cover'][0] : null;
 
-        const { title, description, type, subject, gradeLevel } = req.body;
+        const { title, description, type, subject, classId } = req.body;
 
         const resource = await LibraryResource.create({
             title,
             description,
             type,
             subject,
-            gradeLevel,
+            class: classId,
             
             // Main File Data
             fileUrl: mainFile.path, 
@@ -39,9 +39,9 @@ exports.uploadResource = async (req, res) => {
         
         await sendSystemNotification(
             `New Resource Added ${typeEmoji}`,
-            `A new ${resource.type} "${resource.title}" has been uploaded for ${resource.gradeLevel} ${resource.subject}.`,
+            `A new ${resource.type} "${resource.title}" has been uploaded for ${resource.subject}.`,
             ['parent', 'admin', 'staff'], // Who gets it
-            resource.gradeLevel, // Target Grade (Parents of this grade)
+            classId, // Target Class (Parents of this class)
             req.user._id // Sender
         );
         // ---------------------------------

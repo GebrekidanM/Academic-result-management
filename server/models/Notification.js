@@ -10,7 +10,9 @@ const notificationSchema = new mongoose.Schema({
         enum: ['admin', 'teacher', 'staff', 'parent'],
         required: true
     }],
-    targetGrade: { type: String, default: 'All' }, // 'All', 'Grade 4', etc.
+    targetClass: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' }, 
+    targetStream: { type: mongoose.Schema.Types.ObjectId, ref: 'Stream' }, 
+    targetGrade: { type: String, default: 'All' }, // Legacy/Backup for "All" or "Primary"
     
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,

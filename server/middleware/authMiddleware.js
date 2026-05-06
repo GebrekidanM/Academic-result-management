@@ -59,22 +59,22 @@ exports.isTeacherForSubject = (req, res, next) => {
 };
 
 exports.isHomeroomTeacherOrAdmin = (req, res, next) => {
-    const requestedGradeLevel = req.query.gradeLevel;
-    if (!requestedGradeLevel) {
-        return res.status(400).json({ message: 'Grade Level is required.' });
+    const requestedClassId = req.query.classId;
+    if (!requestedClassId) {
+        return res.status(400).json({ message: 'Class is required.' });
     }
 
-    const { role, homeroomGrade } = req.user;
+    const { role, homeroomClass } = req.user;
 
     if (role === 'admin'|| role === 'staff') {
         return next();
     }
 
-    if (role === 'teacher' && homeroomGrade && homeroomGrade === requestedGradeLevel) {
+    if (role === 'teacher' && homeroomClass && homeroomClass.toString() === requestedClassId) {
         return next();
     }
 
-    return res.status(403).json({ message: 'Forbidden: You are not the homeroom teacher for this grade.' });
+    return res.status(403).json({ message: 'Forbidden: You are not the homeroom teacher for this class.' });
 };
 
 exports.isHomeroomTeacherForStudent = async (req, res, next) => {
@@ -108,8 +108,8 @@ exports.isHomeroomTeacherForStudent = async (req, res, next) => {
 
         if (
             req.user.role === 'teacher' && 
-            req.user.homeroomGrade &&
-            req.user.homeroomGrade === student.gradeLevel
+            req.user.homeroomClass &&
+            req.user.homeroomClass.toString() === student.class?.toString()
         ) {
             return next(); // Authorized!
         }
@@ -170,7 +170,7 @@ exports.canViewStudentData = async (req, res, next) => {
                     }
 
                     const isAuthorized = user.subjectsTaught.some(
-                        assignment => assignment.subject && assignment.subject.gradeLevel === student.gradeLevel
+                        assignment => assignment.subject && assignment.subject.class?.toString() === student.class?.toString()
                     );
 
                     if (isAuthorized) {

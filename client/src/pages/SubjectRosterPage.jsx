@@ -5,15 +5,10 @@ import rosterService from '../services/rosterService';
 import subjectService from '../services/subjectService';
 import authService from '../services/authService';
 import userService from '../services/userService';
+import classService from '../services/classService';
 import gradeService from '../services/gradeService';
 
-// Helper to get current academic year dynamically
-function getCurrentAcademicYear() {
-    const today = new Date();
-    const gregYear = today.getFullYear();
-    const gregMonth = today.getMonth() + 1;
-    return gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
-}
+import configService from '../services/configService';
 
 const SubjectRosterPage = () => {
     const { t } = useTranslation();
@@ -23,11 +18,29 @@ const SubjectRosterPage = () => {
     const [currentUser] = useState(authService.getCurrentUser());
     const [subjects, setSubjects] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState(location.state?.subjectId || '');
+    const [selectedStream, setSelectedStream] = useState('all');
+    const [streams, setStreams] = useState([]);
     const [semester, setSemester] = useState('First Semester');
-    const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear()); // Used dynamic year here
+    const [academicYear, setAcademicYear] = useState('');
     const [rosterData, setRosterData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // --- Load Config Defaults ---
+    useEffect(() => {
+        const fetchDefaults = async () => {
+            try {
+                const res = await configService.getConfig();
+                if (res.data.data) {
+                    setSemester(res.data.data.currentSemester);
+                    setAcademicYear(res.data.data.currentAcademicYear);
+                }
+            } catch (err) {
+                console.error("Error fetching defaults:", err);
+            }
+        };
+        fetchDefaults();
+    }, []);
 
     // --- Bulk Edit State ---
     const[isEditMode, setIsEditMode] = useState(false);
@@ -54,6 +67,12 @@ const SubjectRosterPage = () => {
                 setSubjects(list);
 
                 if (location.state?.subjectId) {
+                    const targetSub = list.find(s => s._id === location.state.subjectId);
+                    if (targetSub) {
+                        const classId = targetSub.class?._id || targetSub.class;
+                        const res = await classService.getStreamsByClass(classId);
+                        setStreams(res.data.data || []);
+                    }
                     handleGenerate(null, location.state.subjectId, list);
                 }
             } catch (err) {
@@ -63,6 +82,20 @@ const SubjectRosterPage = () => {
         };
         loadInitialData();
     },[currentUser.role, t, location.state]);
+
+    useEffect(() => {
+        if (selectedSubject) {
+            const targetSub = subjects.find(s => s._id === selectedSubject);
+            if (targetSub) {
+                const classId = targetSub.class?._id || targetSub.class;
+                classService.getStreamsByClass(classId).then(res => {
+                    setStreams(res.data.data || []);
+                });
+            }
+        } else {
+            setStreams([]);
+        }
+    }, [selectedSubject, subjects]);
 
     // --- 2. Generate Roster Data ---
     const handleGenerate = async (e, subjectOverride = null, fetchedSubjects = subjects) => {
@@ -77,9 +110,11 @@ const SubjectRosterPage = () => {
         try {
             // Find subject from the passed array to prevent stale state bugs on first load
             const targetSubject = fetchedSubjects.find(s => s._id === targetId);
+            const classId = targetSubject?.class?._id || targetSubject?.class;
 
             const response = await rosterService.getSubjectRoster({
-                gradeLevel: currentSubjectDetails.gradeLevel || targetSubject?.gradeLevel,
+                classId,
+                streamId: selectedStream,
                 subjectId: targetId,
                 semester,
                 academicYear
@@ -239,7 +274,14 @@ const SubjectRosterPage = () => {
                         <label className="text-[10px] font-black text-slate-400 uppercase ml-1">{t('subject')}</label>
                         <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-slate-700 focus:border-indigo-500 outline-none transition-all">
                             <option value="">-- {t('select_subject')} --</option>
-                            {subjects.map(s => <option key={s._id} value={s._id}>{s.name} ({s.gradeLevel})</option>)}
+                            {subjects.map(s => <option key={s._id} value={s._id}>{s.name} ({s.class?.className || 'N/A'})</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Stream</label>
+                        <select value={selectedStream} onChange={e => setSelectedStream(e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-slate-700">
+                            <option value="all">All Streams</option>
+                            {streams.map(str => <option key={str._id} value={str._id}>{str.streamName}</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
@@ -284,7 +326,7 @@ const SubjectRosterPage = () => {
                         <div className="flex justify-center items-center gap-4 mt-2">
                             <div className="h-px w-12 bg-slate-400"></div>
                             <p className="text-center text-sm font-bold text-slate-600 uppercase tracking-widest">
-                                {currentSubjectDetails.name} • {currentSubjectDetails.gradeLevel} • {getCurrentAcademicYear()}
+                                {currentSubjectDetails.name} • {currentSubjectDetails.class?.className || ''} • {selectedStream === 'all' ? 'All Streams' : streams.find(s=>s._id===selectedStream)?.streamName} • {getCurrentAcademicYear()}
                             </p>
                             <div className="h-px w-12 bg-slate-400"></div>
                         </div>

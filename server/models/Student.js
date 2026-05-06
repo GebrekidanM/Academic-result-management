@@ -8,7 +8,8 @@ const studentSchema = new mongoose.Schema({
     fullName: { type: String, required: true, trim: true },
     gender: { type: String, required: true, enum: ['Male', 'Female'] },
     dateOfBirth: { type: Date },
-    gradeLevel: { type: String, required: true, trim: true },
+    class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
+    stream: { type: mongoose.Schema.Types.ObjectId, ref: 'Stream', required: true },
     status: { type: String, required: true, enum: ['Active', 'Graduated', 'Withdrawn','Changed'], default: 'Active' },
     password: { type: String, required: true, select: false },
     isInitialPassword: { type: Boolean, default: true },
@@ -91,7 +92,7 @@ studentSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 studentSchema.index(
-    { fullName: 1, motherName: 1, gradeLevel: 1 },
+    { fullName: 1, motherName: 1, class: 1, stream: 1 },
     { unique: true, collation: { locale: 'en', strength: 2 } }
 );
 

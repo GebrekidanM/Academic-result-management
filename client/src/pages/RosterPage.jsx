@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import rosterService from '../services/rosterService';
 import authService from '../services/authService';
 import { Link } from 'react-router-dom';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 function formatGrade(input) {
   if (!input) return input;
@@ -21,15 +22,16 @@ function formatGrade(input) {
 const RosterPage = () => {
     const { t } = useTranslation(); 
     const [currentUser] = useState(authService.getCurrentUser());
-    const [gradeLevel, setGradeLevel] = useState(currentUser.homeroomGrade || ''); 
+    const [classId, setClassId] = useState(currentUser.homeroomClass?._id || currentUser.homeroomClass || ''); 
+    const [streamId, setStreamId] = useState(currentUser.homeroomStream?._id || currentUser.homeroomStream || '');
     const [academicYear, setAcademicYear] = useState('2018');
     const [rosterData, setRosterData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [homeroomTeacher, setHomeroomTeacher] = useState('');
 
-     useEffect(() => {
-        if (currentUser.role === 'teacher' && currentUser.homeroomGrade) {
+      useEffect(() => {
+        if (currentUser.role === 'teacher' && (currentUser.homeroomClass)) {
             handleGenerateRoster();
         }
     }, [currentUser]);
@@ -38,7 +40,7 @@ const RosterPage = () => {
         if (e) e.preventDefault();
         
         
-        if (!gradeLevel) {
+        if (!classId) {
             setError(t('error'));
             return;
         }
@@ -46,7 +48,7 @@ const RosterPage = () => {
         const trueGradeName = formatGrade(gradeLevel)
         
         try {
-            const response = await rosterService.getRoster({ gradeLevel:trueGradeName, academicYear });
+            const response = await rosterService.getRoster({ classId, streamId, academicYear });
             setRosterData(response.data);
             setHomeroomTeacher(response.data.homeroomTeacherName);
         } catch (err) { 
@@ -65,7 +67,7 @@ const RosterPage = () => {
         const htmlContent = `
             <html>
                 <head>
-                    <title>${t('roster_for')} ${gradeLevel}</title>
+                    <title>${t('roster')}</title>
                     <style>
                         @page { 
                             size: A4 landscape; 
@@ -124,7 +126,7 @@ const RosterPage = () => {
                 <body>
                     <div class="header">
                         <h1>${t('app_name')}</h1>
-                        <p>${t('roster_for')} ${gradeLevel} - ${academicYear}</p>
+                        <p>${t('roster')} - ${academicYear}</p>
                         <p>${t('homeroom_teacher_label')}: ${homeroomTeacher}</p>
                     </div>
 
@@ -164,10 +166,16 @@ const RosterPage = () => {
                 <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">{t('yearly_roster')}</h2>
                 
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-6">
-                    <form onSubmit={handleGenerateRoster} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div>
-                            <label htmlFor="gradeLevel" className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('grade_level')}</label>
-                            <input id="gradeLevel" type="text" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} className={textInput}/>
+                    <form onSubmit={handleGenerateRoster} className="flex flex-col md:flex-row gap-4 items-end">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <ClassStreamSelector 
+                                selectedClass={classId}
+                                onClassChange={setClassId}
+                                selectedStream={streamId}
+                                onStreamChange={setStreamId}
+                                required={true}
+                                showAllStreamsOption={true}
+                            />
                         </div>
                         <div>
                             <label htmlFor="academicYear" className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('academic_year')}</label>

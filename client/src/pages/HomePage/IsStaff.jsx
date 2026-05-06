@@ -23,10 +23,10 @@ function IsStaff({ profileData }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
         
         {/* Homeroom Card */}
-        {profileData.homeroomGrade && (
+        {profileData.homeroomClass && (
           <ActionCard 
             to="/roster" 
-            title={`${t('my_homeroom')}: ${profileData.homeroomGrade}`} 
+            title={`${t('my_homeroom')}: ${profileData.homeroomClass.className}${profileData.homeroomStream ? profileData.homeroomStream.streamName : ''}`} 
             description={t('homeroom_desc')} 
           />
         )}
@@ -44,7 +44,7 @@ function IsStaff({ profileData }) {
               key={assignment.subject._id}
               to="/subject-roster"
               title={assignment.subject.name}
-              description={`${t('view_marklist')} ${assignment.subject.gradeLevel}.`}
+              description={`${t('view_marklist')} ${assignment.subject.class?.className || ''}.`}
               state={{ subjectId: assignment.subject._id }}
             />
           )

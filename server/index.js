@@ -35,6 +35,9 @@ app.use('/api/report-cards', require('./routes/reports'));
 app.use('/api/supportive-grades',require('./routes/supportiveGradeRoutes'))
 app.use('/api/schedule',require('./routes/scheduleRoutes'))
 app.use('/api/quizzes', require('./routes/quizRoutes'))
+app.use('/api/classes', require('./routes/classRoutes'))
+app.use('/api/config', require('./routes/configRoutes'))
+app.use('/api/semesters', require('./routes/semesterRoutes'))
 
 // --- Default admin seeding ---
 const seedAdminUser = async () => {

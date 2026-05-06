@@ -6,14 +6,13 @@ const Subject = require('../models/Subject')
 // Controller to get assessment analysis
 
 exports.getAssessmentAnalysis = async (req, res) => {
-  const { selectedAssessment} = req.query;
-  const gradeLevel = req.query.selectedGrade;
+  const { selectedAssessment, selectedClass: classId } = req.query;
 
   if (!selectedAssessment) {
     return res.status(400).json({ message: 'Assessment Type ID is required.' });
   }
-  if (!gradeLevel) {
-    return res.status(400).json({ message: 'Grade Level is required to get class-level analytics.' });
+  if (!classId) {
+    return res.status(400).json({ message: 'Class is required to get class-level analytics.' });
   }
 
   try {
@@ -21,7 +20,7 @@ exports.getAssessmentAnalysis = async (req, res) => {
     if (!assessmentType) return res.status(404).json({ message: 'Assessment Type not found.' });
 
     // 1️⃣ Get all students in the class
-    const allStudents = await Student.find({ gradeLevel });
+    const allStudents = await Student.find({ class: classId });
     const studentIds = allStudents.map(s => s._id);
     const totalStudents = allStudents.length;
 
@@ -137,15 +136,15 @@ exports.getAssessmentAnalysis = async (req, res) => {
 // @route   GET /api/grades/analysis/class-analytics
 // @query   gradeLevel, assessmentName, semester, academicYear
 exports.getClassAnalytics = async (req, res) => {
-    const { gradeLevel, assessmentName, semester, academicYear } = req.query;
+    const { classId, assessmentName, semester, academicYear } = req.query;
 
-    if (!gradeLevel || !assessmentName || !semester || !academicYear) {
+    if (!classId || !assessmentName || !semester || !academicYear) {
         return res.status(400).json({ message: "Missing required fields." });
     }
 
     try {
-        // 1. Fetch ALL Active Students in this Grade (to know Gender and Total Count)
-        const students = await Student.find({ gradeLevel, status: 'Active' });
+        // 1. Fetch ALL Active Students in this Class
+        const students = await Student.find({ class: classId, status: 'Active' });
         
         // Create a fast lookup map for Student Gender: { "studentId": "Male", ... }
         const studentMap = {};
@@ -162,14 +161,14 @@ exports.getClassAnalytics = async (req, res) => {
 
         // 2. Find the Assessment Types (The Subjects) that match the name (e.g., "Test 1")
         const assessmentTypes = await AssessmentType.find({
-            gradeLevel,
+            class: classId,
             name: { $regex: new RegExp(`^${assessmentName.trim()}$`, 'i') },
             semester,
             year: academicYear
         }).populate('subject', 'name');
 
         if (assessmentTypes.length === 0) {
-            return res.status(404).json({ message: `No assessments found with name '${assessmentName}' for ${gradeLevel}.` });
+            return res.status(404).json({ message: `No assessments found with name '${assessmentName}' for this class.` });
         }
 
         // 3. Prepare the Analysis Array
@@ -268,15 +267,15 @@ exports.getClassAnalytics = async (req, res) => {
 // backend/controllers/gradeController.js
 
 exports.getSubjectPerformanceAnalysis = async (req, res) => {
-    const { gradeLevel, semester, academicYear } = req.query;
+    const { classId, semester, academicYear } = req.query;
 
-    if (!gradeLevel || !semester || !academicYear) {
+    if (!classId || !semester || !academicYear) {
         return res.status(400).json({ message: "Missing required fields." });
     }
 
     try {
-        const subjects = await Subject.find({ gradeLevel }).sort({ name: 1 });
-        const students = await Student.find({ gradeLevel, status: 'Active' }).select('_id');
+        const subjects = await Subject.find({ class: classId }).sort({ name: 1 });
+        const students = await Student.find({ class: classId, status: 'Active' }).select('_id');
         const studentIds = students.map(s => s._id);
 
         const analysis = [];
@@ -285,7 +284,7 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
             // 1. Calculate Total Possible Score
             const assessmentTypes = await AssessmentType.find({
                 subject: subject._id,
-                gradeLevel, semester
+                class: classId, semester
             });
             const totalPossible = assessmentTypes.reduce((sum, a) => sum + a.totalMarks, 0);
 
@@ -372,15 +371,15 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
 // @desc    Get students scoring below 60% per subject
 // @route   GET /api/grades/analysis/at-risk
 exports.getAtRiskStudents = async (req, res) => {
-    const { gradeLevel, semester, academicYear } = req.query;
+    const { classId, semester, academicYear } = req.query;
 
-    if (!gradeLevel || !semester || !academicYear) {
+    if (!classId || !semester || !academicYear) {
         return res.status(400).json({ message: "Missing required fields." });
     }
 
     try {
-        const subjects = await Subject.find({ gradeLevel }).sort({ name: 1 });
-        const students = await Student.find({ gradeLevel, status: 'Active' }).select('_id fullName studentId');
+        const subjects = await Subject.find({ class: classId }).sort({ name: 1 });
+        const students = await Student.find({ class: classId, status: 'Active' }).select('_id fullName studentId');
         const studentIds = students.map(s => s._id);
 
         const report = [];
@@ -388,7 +387,7 @@ exports.getAtRiskStudents = async (req, res) => {
         for (const subject of subjects) {
             // 1. Calculate Total Marks for this Subject
             const assessmentTypes = await AssessmentType.find({
-                subject: subject._id, gradeLevel, semester
+                subject: subject._id, class: classId, semester
             });
             const totalPossible = assessmentTypes.reduce((sum, a) => sum + a.totalMarks, 0);
 

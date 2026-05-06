@@ -1,10 +1,14 @@
 const Grade = require('../models/Grade');
 const Student = require('../models/Student');
+const Class = require('../models/Class');
+const mongoose = require('mongoose');
 
 // --- Helper: Check if Grade is KG ---
-const isKindergarten = (gradeLevel) => {
-    if (!gradeLevel) return false;
-    return /^(kg|nursery|pre)/i.test(gradeLevel);
+// --- Helper: Check if Class is KG ---
+const isKindergarten = async (classId) => {
+    if (!classId) return false;
+    const cls = await Class.findById(classId);
+    return cls?.schoolLevel === 'kg';
 };
 
 // --- Helper: Calculate Rank with Tie-Breaking ---
@@ -27,13 +31,13 @@ const findRankInList = (sortedList, targetStudentId, scoreField) => {
 // 1. SEMESTER RANK (Based on Total Score)
 exports.getSemesterRank = async (req, res) => {
     const { studentId } = req.params;
-    const { academicYear, semester, gradeLevel } = req.query;
+    const { academicYear, semester, classId } = req.query;
 
-    if (!academicYear || !semester || !gradeLevel) {
+    if (!academicYear || !semester || !classId) {
         return res.status(400).json({ message: 'Missing fields' });
     }
 
-    if (isKindergarten(gradeLevel)) return res.status(200).json({ rank: '-' });
+    if (await isKindergarten(classId)) return res.status(200).json({ rank: '-' });
 
     try {
         const rankedList = await Grade.aggregate([
@@ -41,7 +45,7 @@ exports.getSemesterRank = async (req, res) => {
             { $unwind: '$studentInfo' },
             {
                 $match: {
-                    'studentInfo.gradeLevel': gradeLevel,
+                    'studentInfo.class': new mongoose.Types.ObjectId(classId),
                     'studentInfo.status': 'Active',
                     academicYear: academicYear,
                     semester: semester
@@ -68,13 +72,13 @@ exports.getSemesterRank = async (req, res) => {
 // 2. OVERALL RANK (Based on Average)
 exports.getOverallRank = async (req, res) => {
     const { studentId } = req.params;
-    const { academicYear, gradeLevel } = req.query;
+    const { academicYear, classId } = req.query;
 
-    if (!academicYear || !gradeLevel) {
+    if (!academicYear || !classId) {
         return res.status(400).json({ message: 'Missing fields' });
     }
 
-    if (isKindergarten(gradeLevel)) return res.status(200).json({ rank: '-' });
+    if (await isKindergarten(classId)) return res.status(200).json({ rank: '-' });
 
     try {
         const rankedList = await Grade.aggregate([
@@ -82,7 +86,7 @@ exports.getOverallRank = async (req, res) => {
             { $unwind: '$studentInfo' },
             {
                 $match: {
-                    'studentInfo.gradeLevel': gradeLevel,
+                    'studentInfo.class': new mongoose.Types.ObjectId(classId),
                     'studentInfo.status': 'Active',
                     academicYear: academicYear,
                 }

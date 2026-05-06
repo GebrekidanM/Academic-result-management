@@ -3,6 +3,8 @@ const fs = require('fs');
 const Student = require('../models/Student');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
+const Class = require('../models/Class');
+const Stream = require('../models/Stream');
 const calculateAge = require('../utils/calculateAge');
 const getCurrentEthDate = require('../utils/thatYear') 
 // --- HELPER FUNCTIONS ---
@@ -31,13 +33,16 @@ const getEthiopianYear = () => {
 
 exports.getStudents = async (req, res) => {
     try {
-        const { gradeLevel } = req.query;
+        const { classId, streamId } = req.query;
         
         const constraints = [];
 
         // 1. Specific Filter (from Frontend)
-        if (gradeLevel) {
-            constraints.push({ gradeLevel: gradeLevel });
+        if (classId) {
+            constraints.push({ class: classId });
+        }
+        if (streamId) {
+            constraints.push({ stream: streamId });
         }
 
         // 2. Role Based Restrictions
@@ -50,43 +55,34 @@ exports.getStudents = async (req, res) => {
         // B. STAFF: Filter by School Level (Updated Regex)
         else if (req.user.role === 'staff') {
             const level = req.user.schoolLevel;
-
-            if (level === 'kg') {
-                // Matches: "KG 1", "KG 1A", "Nursery", "Nursery A"
-                constraints.push({ gradeLevel: { $regex: /^(kg|nursery)/i } });
-            } 
-            else if (level === 'primary') {
-                // Matches: "Grade 1", "Grade 1A", "Grade 8C"
-                // Logic: Starts with Grade, then 1-8, then optional letters
-                constraints.push({ gradeLevel: { $regex: /^Grade\s*[1-8](\D|$)/i } });
-            } 
-            else if (level === 'High School') {
-                // Matches: "Grade 9", "Grade 9A", "Grade 10B", "Grade 12C"
-                // Logic: Starts with Grade, then 9-12, then optional letters
-                constraints.push({ gradeLevel: { $regex: /^Grade\s*(9|1[0-2])(\D|$)/i } });
-            }
+            const allowedClasses = await Class.find({ schoolLevel: level });
+            const classIds = allowedClasses.map(c => c._id);
+            constraints.push({ class: { $in: classIds } });
         }
 
         // C. TEACHER: Filter by Assigned Subjects/Homeroom
         else if (req.user.role === 'teacher') {
             const teacher = await User.findById(req.user._id).populate('subjectsTaught.subject');
-            const allowedGrades = new Set();
+            const allowedClasses = new Set();
+            const allowedStreams = new Set();
 
-            if (teacher.homeroomGrade) allowedGrades.add(teacher.homeroomGrade);
+            if (teacher.homeroomClass) allowedClasses.add(teacher.homeroomClass.toString());
+            if (teacher.homeroomStream) allowedStreams.add(teacher.homeroomStream.toString());
             
             if (teacher.subjectsTaught) {
                 teacher.subjectsTaught.forEach(assign => {
-                    if (assign.subject?.gradeLevel) allowedGrades.add(assign.subject.gradeLevel);
+                    if (assign.subject?.class) allowedClasses.add(assign.subject.class.toString());
                 });
             }
 
-            const allowedArray = Array.from(allowedGrades);
+            if (allowedClasses.size === 0) return res.json({ success: true, count: 0, data: [] });
             
-            // If no assignments, return empty
-            if (allowedArray.length === 0) return res.json({ success: true, count: 0, data: [] });
+            const classConstraint = { class: { $in: Array.from(allowedClasses) } };
             
-            // Teacher sees "Grade 1A" if they teach "Grade 1A"
-            constraints.push({ gradeLevel: { $in: allowedArray } });
+            // If teacher has a homeroom stream, they might be restricted to that stream for general view, 
+            // but usually teachers see all students in the classes they teach.
+            // For now, let's just filter by class.
+            constraints.push(classConstraint);
         }
 
         // 3. Execute
@@ -96,9 +92,9 @@ exports.getStudents = async (req, res) => {
         }
 
         const students = await Student.find(finalQuery)
-            // Sort by Grade Level (alphabetically) then Name
-            .sort({ gradeLevel: 1, fullName: 1 }) 
-            .select('studentId fullName gender imageUrl gradeLevel status');
+            .sort({ fullName: 1 }) 
+            .populate('class stream', 'className streamName')
+            .select('studentId fullName gender imageUrl class stream status');
         
         res.json({ success: true, count: students.length, data: students });
 
@@ -112,7 +108,7 @@ exports.getStudents = async (req, res) => {
 // @route   GET /api/students/:id
 exports.getStudentById = async (req, res) => {
     try {
-        const student = await Student.findById(req.params.id);
+        const student = await Student.findById(req.params.id).populate('class stream');
         
         if (!student) {
             return res.status(404).json({ message: 'Student not found' });
@@ -156,13 +152,13 @@ exports.getStudentById = async (req, res) => {
 // @route   POST /api/students
 exports.createStudent = async (req, res) => {
     const currentUser = req.user; 
-    const { fullName, gender, dateOfBirth, gradeLevel, motherName, motherContact, fatherContact, healthStatus } = req.body;
+    const { fullName, gender, dateOfBirth, class: classId, stream: streamId, motherName, motherContact, fatherContact, healthStatus } = req.body;
 
     try {
         // 🔹 Permission check
         if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== gradeLevel) {
-                return res.status(403).json({ message: 'You can only create students in your homeroom grade.' });
+            if (!currentUser.homeroomClass || currentUser.homeroomClass.toString() !== classId) {
+                return res.status(403).json({ message: 'You can only create students in your homeroom class.' });
             }
         } else if (currentUser.role !== 'admin') {
             return res.status(403).json({ message: 'You are not authorized to create students.' });
@@ -184,7 +180,8 @@ exports.createStudent = async (req, res) => {
             fullName: capitalizedFullName,
             gender,
             dateOfBirth,
-            gradeLevel,
+            class: classId,
+            stream: streamId,
             password: initialPassword,
             motherName,
             motherContact,
@@ -207,8 +204,8 @@ exports.createStudent = async (req, res) => {
             if (error.keyPattern && error.keyPattern.studentId) {
                 return res.status(500).json({ message: 'Error generating ID. Please try again.' });
             }
-            if (error.keyPattern && error.keyPattern.fullName && error.keyPattern.motherName) {
-                return res.status(400).json({ message: 'A student with the same name and mother name already exists.' });
+            if (error.keyPattern && error.keyPattern.fullName && error.keyPattern.motherName && error.keyPattern.class) {
+                return res.status(400).json({ message: 'A student with the same name, mother name, and class already exists.' });
             }
             return res.status(400).json({ message: 'Duplicate entry detected.' });
         }
@@ -226,7 +223,7 @@ exports.updateStudent = async (req, res) => {
         if (!student) return res.status(404).json({ message: 'Student not found.' });
 
         if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+            if (!currentUser.homeroomClass || currentUser.homeroomClass.toString() !== student.class.toString()) {
                 return res.status(403).json({ message: 'You are not authorized to update this student.' });
             }
         } else if (currentUser.role !== 'admin') {
@@ -263,7 +260,7 @@ exports.deleteStudent = async (req, res) => {
         if (!student) return res.status(404).json({ message: 'Student not found' });
 
         if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+            if (!currentUser.homeroomClass || currentUser.homeroomClass.toString() !== student.class.toString()) {
                 return res.status(403).json({ message: 'You are not authorized to delete this student.' });
             }
         } else if (currentUser.role !== 'admin') {
@@ -289,7 +286,7 @@ exports.deactiveStudent = async (req, res) => {
         if (!student) return res.status(404).json({ message: 'Student not found' });
 
         if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+            if (!currentUser.homeroomClass || currentUser.homeroomClass.toString() !== student.class.toString()) {
                 return res.status(403).json({ message: 'You are not authorized to delete this student.' });
             }
         } else if (currentUser.role !== 'admin') {
@@ -315,7 +312,7 @@ exports.uploadProfilePhoto = async (req, res) => {
         if (!student) return res.status(404).json({ message: 'Student not found.' });
 
         if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+            if (!currentUser.homeroomClass || currentUser.homeroomClass.toString() !== student.class.toString()) {
                 return res.status(403).json({ message: 'You are not authorized to update this student.' });
             }
         } else if (currentUser.role !== 'admin') {
@@ -413,14 +410,27 @@ exports.bulkCreateStudents = async (req, res) => {
 
         for (const row of rows) {
             try {
-                // ❌ REMOVED: studentId generation here.
-
                 const fullName = capitalizeName(row['Full Name']);
                 const motherName = row['Mother Name'] || '';
-                const gradeLevel = row['Grade Level'];
+                const className = row['Class']; // Changed from Grade Level
+                const streamName = row['Stream']; // New column
+
+                // Lookup Class and Stream
+                const cls = await Class.findOne({ className: className });
+                if (!cls) {
+                    createdStudents.push({ status: "error", row: rowNumber, fullName, reason: `Class ${className} not found` });
+                    rowNumber++;
+                    continue;
+                }
+                const stm = await Stream.findOne({ streamName: streamName, classId: cls._id });
+                if (!stm) {
+                    createdStudents.push({ status: "error", row: rowNumber, fullName, reason: `Stream ${streamName} not found in Class ${className}` });
+                    rowNumber++;
+                    continue;
+                }
 
                 // Check duplicate
-                const exists = await Student.findOne({ fullName, motherName, gradeLevel });
+                const exists = await Student.findOne({ fullName, motherName, class: cls._id, stream: stm._id });
                 if (exists) {
                     createdStudents.push({ status: "skipped", row: rowNumber, fullName, reason: "Duplicate student" });
                     rowNumber++;
@@ -431,11 +441,11 @@ exports.bulkCreateStudents = async (req, res) => {
                 const initialPassword = `${getFirstName(fullName)}@${currentYear}`;
 
                 const newStudent = new Student({
-                    // studentId: REMOVED (Handled by Model)
                     fullName,
                     gender: row['Gender'],
                     dateOfBirth: parsedDOB || null,
-                    gradeLevel,
+                    class: cls._id,
+                    stream: stm._id,
                     motherName,
                     motherContact: row['Mother Contact'] || '',
                     fatherContact: row['Father Contact'] || '',
@@ -486,7 +496,7 @@ exports.resetPassword = async (req,res)=>{
         
         const currentUser = req.user;
         if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
+            if (!currentUser.homeroomClass || currentUser.homeroomClass.toString() !== student.class.toString()) {
                 return res.status(403).json({ message: 'You are not authorized to reset this student\'s password.' });
             }
         } else if (currentUser.role !== 'admin') {
@@ -523,7 +533,8 @@ exports.getStudentForRegistration = async (req, res) => {
             _id: student._id,
             studentId: student.studentId,
             fullName: student.fullName,
-            currentGrade: student.gradeLevel,
+            class: student.class,
+            stream: student.stream,
             thatYear: student.createdAt
         });
     } catch (error) {
@@ -533,7 +544,7 @@ exports.getStudentForRegistration = async (req, res) => {
 
 // 2. Process the "New" Registration
 exports.reRegisterStudent = async (req, res) => {
-    const { studentId, newGradeLevel, thatYear} = req.body;
+    const { studentId, newClassId, newStreamId, thatYear} = req.body;
 
     const acadamicYear = getCurrentEthDate(thatYear)
 
@@ -545,18 +556,20 @@ exports.reRegisterStudent = async (req, res) => {
 
         const historyEntry = {
             year: acadamicYear,
-            gradeAtThatTime: student.gradeLevel,
+            classAtThatTime: student.class,
+            streamAtThatTime: student.stream,
             statusAtEnd: 'Completed'
         };
 
         // B. Update the student for the NEW year
         student.academicHistory.push(historyEntry);
-        student.gradeLevel = newGradeLevel;
+        student.class = newClassId;
+        student.stream = newStreamId;
         student.status = 'Active'; 
         
         await student.save();
 
-        res.json({ message: `${student.fullName} successfully registered for ${newGradeLevel}` });
+        res.json({ message: `${student.fullName} successfully registered for the new year.` });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

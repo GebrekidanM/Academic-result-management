@@ -6,12 +6,13 @@ const supportiveSubjectSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    gradeLevel: {
-        type: String,
+    class: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Class',
         required: true
     }
 }, { timestamps: true });
 
-supportiveSubjectSchema.index({ name: 1, gradeLevel: 1 }, { unique: true });
+supportiveSubjectSchema.index({ name: 1, class: 1 }, { unique: true });
 
 module.exports = mongoose.model('SupportiveSubject', supportiveSubjectSchema);

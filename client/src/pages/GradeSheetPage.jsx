@@ -9,6 +9,7 @@ import userService from '../services/userService';
 import studentService from '../services/studentService';
 import offlineGradeService from '../services/offlineGradeService';
 import offlineAssessmentService from '../services/offlineAssessmentService';
+import configService from '../services/configService';
 import ScoreInput from '../components/ScoreInput';
 
 const GradeSheetPage = () => {
@@ -29,12 +30,27 @@ const GradeSheetPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // --- Load Config Defaults ---
+    useEffect(() => {
+        const fetchDefaults = async () => {
+            try {
+                const res = await configService.getConfig();
+                if (res.data.data) {
+                    setAcademicYear(res.data.data.currentAcademicYear);
+                }
+            } catch (err) {
+                console.error("Error fetching defaults:", err);
+            }
+        };
+        fetchDefaults();
+    }, []);
+
     // --- Derived State (Performance Optimization) ---
     const currentSubjectObj = useMemo(() => 
         subjects.find(s => s._id === selectedSubject), 
     [subjects, selectedSubject]);
 
-    // --- 1. Load Subjects & Set Ethiopian Year ---
+    // --- 1. Load Subjects ---
     useEffect(() => {
         const loadSubjects = async () => {
             try {
@@ -46,12 +62,7 @@ const GradeSheetPage = () => {
                     const res = await userService.getProfile();
                     subjectsToDisplay = res.data.subjectsTaught.map(a => a.subject).filter(Boolean);
                 }
-
-                // Ethiopian Year Logic
-                const now = new Date();
-                const ethYear = (now.getMonth() + 1) > 8 ? now.getFullYear() - 7 : now.getFullYear() - 8;
                 
-                setAcademicYear(String(ethYear));
                 setSubjects(subjectsToDisplay);
             } catch (err) {
                 setError(t('error_loading_subjects'));
@@ -100,7 +111,7 @@ const GradeSheetPage = () => {
                 const allStudents = studentRes.data.data;
                 
                 const classStudents = allStudents
-                    .filter(s => s.gradeLevel === currentSubjectObj.gradeLevel)
+                    .filter(s => (s.class?._id || s.class) === (currentSubjectObj.class?._id || currentSubjectObj.class))
                     .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
                 setSheetData({
@@ -192,7 +203,7 @@ const GradeSheetPage = () => {
                         <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 outline-none bg-white font-bold text-slate-700">
                             <option value="">-- {t('select_subject')} --</option>
                             {subjects.map(s => (
-                                <option key={s._id} value={s._id}>{s.name} ({s.gradeLevel}) {s.gradingType === 'descriptive' ? '✍️' : '🔢'}</option>
+                                <option key={s._id} value={s._id}>{s.name} ({s.class?.className || 'N/A'}) {s.gradingType === 'descriptive' ? '✍️' : '🔢'}</option>
                             ))}
                         </select>
                     </div>

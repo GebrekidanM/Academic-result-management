@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import studentService from '../services/studentService';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 const AddStudentPage = () => {
     const { t } = useTranslation();
@@ -13,7 +14,8 @@ const AddStudentPage = () => {
         fullName: '',
         gender: 'Male',
         dateOfBirth: '',
-        gradeLevel: '',
+        class: '',
+        stream: '',
         motherName: '',
         motherContact: '',
         fatherContact: '',
@@ -23,7 +25,8 @@ const AddStudentPage = () => {
     // --- State for RETURNING Student ---
     const [searchId, setSearchId] = useState('');
     const [foundStudent, setFoundStudent] = useState(null);
-    const [newGradeLevel, setNewGradeLevel] = useState('');
+    const [newClassId, setNewClassId] = useState('');
+    const [newStreamId, setNewStreamId] = useState('');
 
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
@@ -77,21 +80,18 @@ const AddStudentPage = () => {
 
         try {
             if (regMode === 'new') {
-                const formattedData = {
-                    ...studentData,
-                    gradeLevel: studentData.gradeLevel.replace(/\b\w/g, c => c.toUpperCase())
-                };
-                const response = await studentService.createStudent(formattedData);
+                const response = await studentService.createStudent(studentData);
                 setSuccess(response.data.data);
             } else {
-                if (!newGradeLevel) {
-                    setError("Please enter the new grade level.");
+                if (!newClassId || !newStreamId) {
+                    setError("Please select the new class and stream.");
                     setLoading(false);
                     return;
                 }
                 const response = await studentService.reRegisterStudent({
                     studentId: foundStudent.studentId,
-                    newGradeLevel: newGradeLevel.replace(/\b\w/g, c => c.toUpperCase()),
+                    newClassId,
+                    newStreamId,
                     thatYear: foundStudent.thatYear
                 });
 
@@ -104,7 +104,8 @@ const AddStudentPage = () => {
                     
                     setSearchId('');
                     setFoundStudent(null);
-                    setNewGradeLevel('');
+                    setNewClassId('');
+                    setNewStreamId('');
                     
                 }
             }
@@ -231,22 +232,21 @@ const AddStudentPage = () => {
                                     </div>
 
                                     <div className="mt-6 pt-6 border-t border-gray-100">
-                                        <label className={inputLabel}>Step 2: Assign New Grade Level</label>
-                                        <input 
-                                            type="text" 
-                                            className={textInput} 
-                                            placeholder="Enter New Grade (e.g. Grade 3B)" 
-                                            value={newGradeLevel}
-                                            onChange={(e) => setNewGradeLevel(e.target.value)}
-                                            required
+                                        <label className={inputLabel}>Step 2: Assign New Class & Stream</label>
+                                        <ClassStreamSelector 
+                                            selectedClass={newClassId}
+                                            onClassChange={setNewClassId}
+                                            selectedStream={newStreamId}
+                                            onStreamChange={setNewStreamId}
+                                            required={true}
                                         />
                                         <p className="text-xs text-gray-400 mt-2">Example: If they were in 2A, put 3A.</p>
                                         <button 
                                             onClick={handleSubmit}
-                                            disabled={loading || !newGradeLevel}
+                                            disabled={loading || !newClassId || !newStreamId}
                                             className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg shadow-lg transition-all transform hover:scale-[1.01]"
                                         >
-                                            {loading ? 'Processing...' : `Promote ${foundStudent.fullName.split(' ')[0]} to ${newGradeLevel}`}
+                                            {loading ? 'Processing...' : `Promote ${foundStudent.fullName.split(' ')[0]}`}
                                         </button>
                                     </div>
                                 </div>
@@ -263,9 +263,14 @@ const AddStudentPage = () => {
                                     <input id="fullName" type="text" name="fullName" value={studentData.fullName} onChange={handleChange} className={textInput} placeholder="e.g. Abebe Kebede" required />
                                 </div>
                                 
-                                <div>
-                                    <label htmlFor="gradeLevel" className={inputLabel}>{t('grade')}</label>
-                                    <input id="gradeLevel" type="text" name="gradeLevel" value={studentData.gradeLevel} onChange={handleChange} className={textInput} placeholder="e.g. Grade 1A, KG 2B" required />
+                                <div className="md:col-span-2 bg-pink-50 p-6 rounded-xl border border-pink-100">
+                                    <ClassStreamSelector 
+                                        selectedClass={studentData.class}
+                                        onClassChange={(val) => setStudentData(prev => ({ ...prev, class: val }))}
+                                        selectedStream={studentData.stream}
+                                        onStreamChange={(val) => setStudentData(prev => ({ ...prev, stream: val }))}
+                                        required={true}
+                                    />
                                 </div>
 
                                 <div>

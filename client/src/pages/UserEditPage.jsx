@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import userService from '../services/userService';
 import subjectService from '../services/subjectService';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 const UserEditPage = () => {
     const { id: userId } = useParams();
@@ -13,7 +14,8 @@ const UserEditPage = () => {
     const [allSubjects, setAllSubjects] = useState([]);
     const [assignedSubjects, setAssignedSubjects] = useState(new Set());
     const [isHomeroom, setIsHomeroom] = useState(false);
-    const [homeroomGrade, setHomeroomGrade] = useState('');
+    const [homeroomClass, setHomeroomClass] = useState('');
+    const [homeroomStream, setHomeroomStream] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -28,8 +30,9 @@ const UserEditPage = () => {
                 const userData = userRes.data;
                 setUser(userData);
                 setAllSubjects(subjectsRes.data.data);
-                setIsHomeroom(!!userData.homeroomGrade);
-                setHomeroomGrade(userData.homeroomGrade || '');
+                setIsHomeroom(!!userData.homeroomClass);
+                setHomeroomClass(userData.homeroomClass?._id || userData.homeroomClass || '');
+                setHomeroomStream(userData.homeroomStream?._id || userData.homeroomStream || '');
                 const assignedIds = new Set(userData.subjectsTaught.map(item => item.subject?._id).filter(Boolean));
                 setAssignedSubjects(assignedIds);
             } catch (err) {
@@ -57,7 +60,8 @@ const UserEditPage = () => {
         const updatedSubjectsTaught = Array.from(assignedSubjects).map(id => ({ subject: id }));
         const updatePayload = {
             subjectsTaught: updatedSubjectsTaught,
-            homeroomGrade: isHomeroom ? homeroomGrade : "" 
+            homeroomClass: isHomeroom ? homeroomClass : null,
+            homeroomStream: isHomeroom ? homeroomStream : null
         };
         try {
             await userService.update(userId, updatePayload);
@@ -109,15 +113,12 @@ const UserEditPage = () => {
                             
                             {isHomeroom && (
                                 <div className="mt-4 pl-8">
-                                    <label htmlFor="homeroomGrade" className="block text-gray-700 text-sm font-bold mb-2">Homeroom Grade Level</label>
-                                    <input 
-                                        id="homeroomGrade"
-                                        type="text"
-                                        className={textInput}
-                                        value={homeroomGrade}
-                                        onChange={(e) => setHomeroomGrade(e.target.value)}
-                                        placeholder="e.g., Grade 4"
-                                        required
+                                    <ClassStreamSelector 
+                                        selectedClass={homeroomClass}
+                                        onClassChange={setHomeroomClass}
+                                        selectedStream={homeroomStream}
+                                        onStreamChange={setHomeroomStream}
+                                        required={true}
                                     />
                                 </div>
                             )}
@@ -136,7 +137,7 @@ const UserEditPage = () => {
                                                 checked={assignedSubjects.has(subject._id)}
                                                 onChange={() => handleCheckboxChange(subject._id)}
                                             />
-                                            <span className="text-gray-700">{subject.name} ({subject.gradeLevel})</span>
+                                            <span className="text-gray-700">{subject.name} ({subject.class?.className || 'N/A'})</span>
                                         </label>
                                     ))}
                                 </div>

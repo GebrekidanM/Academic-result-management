@@ -1,6 +1,8 @@
 const Schedule = require('../models/Schedule');
 const User = require('../models/User');
 const Subject = require('../models/Subject');
+const Class = require('../models/Class');
+const Stream = require('../models/Stream');
 const mongoose = require('mongoose');
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -10,9 +12,9 @@ const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 // @route   GET /api/schedule/:gradeLevel
 exports.getClassSchedule = async (req, res) => {
     try {
-        const { academicYear,gradeLevel } = req.query;
+        const { academicYear, classId, streamId } = req.query;
 
-        const schedule = await Schedule.find({ gradeLevel, academicYear })
+        const schedule = await Schedule.find({ class: classId, stream: streamId, academicYear })
             .populate('subject', 'name')
             .populate('teacher', 'fullName')
             .lean();
@@ -35,12 +37,12 @@ exports.getMasterSchedule = async (req, res) => {
             .populate('teacher', 'fullName')
             .lean();
 
-        // Group by Grade Level
+        // Group by Class and Stream
         const grouped = {};
         allSchedules.forEach(item => {
-            const grade = item.gradeLevel; // e.g. "Grade 4A"
-            if (!grouped[grade]) grouped[grade] = [];
-            grouped[grade].push(item);
+            const key = `${item.class?._id || 'unknown'}-${item.stream?._id || 'unknown'}`;
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(item);
         });
 
         res.json({ success: true, data: grouped });
@@ -52,7 +54,7 @@ exports.getMasterSchedule = async (req, res) => {
 // @desc    Assign/Update a slot (Manual Override)
 // @route   POST /api/schedule/assign
 exports.assignSlot = async (req, res) => {
-    const { gradeLevel, academicYear, dayOfWeek, period, subjectId, teacherId } = req.body;
+    const { classId, streamId, academicYear, dayOfWeek, period, subjectId, teacherId } = req.body;
 
     try {
         // 1. Check if Teacher is busy elsewhere
@@ -61,7 +63,10 @@ exports.assignSlot = async (req, res) => {
             dayOfWeek,
             period,
             academicYear,
-            gradeLevel: { $ne: gradeLevel } // Conflict if they are in another class
+            $or: [
+                { class: { $ne: classId } },
+                { stream: { $ne: streamId } }
+            ]
         });
 
         if (teacherConflict) {
@@ -70,7 +75,7 @@ exports.assignSlot = async (req, res) => {
 
         // 2. Upsert (Update if exists, Insert if new)
         const updatedSlot = await Schedule.findOneAndUpdate(
-            { gradeLevel, dayOfWeek, period, academicYear },
+            { class: classId, stream: streamId, dayOfWeek, period, academicYear },
             { subject: subjectId, teacher: teacherId },
             { new: true, upsert: true }
         ).populate('subject', 'name').populate('teacher', 'fullName');
@@ -86,9 +91,9 @@ exports.assignSlot = async (req, res) => {
 // @desc    Clear a specific slot
 // @route   DELETE /api/schedule/slot
 exports.deleteSlot = async (req, res) => {
-    const { gradeLevel, dayOfWeek, period, academicYear } = req.body;
+    const { classId, streamId, dayOfWeek, period, academicYear } = req.body;
     try {
-        await Schedule.findOneAndDelete({ gradeLevel, dayOfWeek, period, academicYear });
+        await Schedule.findOneAndDelete({ class: classId, stream: streamId, dayOfWeek, period, academicYear });
         res.json({ success: true, message: "Slot cleared" });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
@@ -105,7 +110,7 @@ const shuffle = (arr) => {
     return newArr;
 };
 
-const isKG = (gradeLevel) => /^(kg|nursery|pre)/i.test(String(gradeLevel || ''));
+// No longer needed with Class model having schoolLevel field
 
 
 exports.autoGenerateSchedule = async (req, res) => {
@@ -120,27 +125,29 @@ exports.autoGenerateSchedule = async (req, res) => {
     session.startTransaction();
 
     try {
-        // 1. Identify Target Grades
+        // 1. Identify Target Classes
         const allSubjects = await Subject.find({}).session(session);
-        const allGradeLevels =[...new Set(allSubjects.map(s => s.gradeLevel))];
-
-        let targetGrades =[];
+        const uniqueClassIds = [...new Set(allSubjects.map(s => s.class.toString()))];
+        
+        let targetClasses = [];
         if (category === 'KG') {
-            targetGrades = allGradeLevels.filter(g => isKG(g));
+            targetClasses = await Class.find({ _id: { $in: uniqueClassIds }, schoolLevel: 'kg' }).session(session);
         } else {
-            targetGrades = allGradeLevels.filter(g => !isKG(g));
+            targetClasses = await Class.find({ _id: { $in: uniqueClassIds }, schoolLevel: { $ne: 'kg' } }).session(session);
         }
 
-        if (targetGrades.length === 0) {
+        if (targetClasses.length === 0) {
             await session.abortTransaction();
             session.endSession();
             return res.status(404).json({ message: `No classes found for category: ${category}` });
         }
 
+        const targetClassIds = targetClasses.map(c => c._id);
+
         // 2. Clear Old Schedule (Protected by transaction)
         await Schedule.deleteMany({
             academicYear,
-            gradeLevel: { $in: targetGrades },
+            class: { $in: targetClassIds },
         }, { session });
 
         // 3. Initialize Trackers
@@ -165,76 +172,75 @@ exports.autoGenerateSchedule = async (req, res) => {
         const summary = {}; 
 
         // 5. THE ALGORITHM
-        for (const grade of targetGrades) {
-            summary[grade] = 0;
-            classOccupied[grade] = classOccupied[grade] || {};
+        for (const cls of targetClasses) {
+            const streams = await Stream.find({ classId: cls._id }).session(session);
+            
+            for (const stream of streams) {
+                const streamKey = `${cls.className}-${stream.streamName}`;
+                summary[streamKey] = 0;
+                classOccupied[streamKey] = {};
 
-            // Get Subjects & Shuffle them so Math isn't always first
-            let subjectsForGrade = allSubjects.filter(s => String(s.gradeLevel) === String(grade));
-            subjectsForGrade = shuffle(subjectsForGrade);
+                // Get Subjects for this class
+                let subjectsForClass = allSubjects.filter(s => s.class.toString() === cls._id.toString());
+                subjectsForClass = shuffle(subjectsForClass);
 
-            for (const subj of subjectsForGrade) {
-                if (!subj || !subj._id) continue;
+                for (const subj of subjectsForClass) {
+                    if (!subj || !subj._id) continue;
 
-                // Find Teacher
-                const assignedTeacher = teachers.find(t =>
-                    Array.isArray(t.subjectsTaught) &&
-                    t.subjectsTaught.some(st => {
-                        const subjId = st && st.subject && st.subject._id ? st.subject._id : st.subject;
-                        return subjId && String(subjId) === String(subj._id);
-                    })
-                );
-
-                if (!assignedTeacher) continue;
-
-                // Determine Load
-                let sessionsNeeded = parseInt(subj.sessionsPerWeek || (category === 'KG' ? 3 : 4), 10);
-                const randomDays = shuffle([...DAYS]);
-
-                for (const day of randomDays) {
-                    // If we have finished assigning all sessions for this subject, STOP checking days
-                    if (sessionsNeeded <= 0) break;
-
-                    classOccupied[grade][day] = classOccupied[grade][day] || {};
-
-                    // Rule: One Subject Per Day Check
-                    const alreadyScheduledToday = newSchedule.some(s =>
-                        String(s.gradeLevel) === String(grade) && 
-                        s.dayOfWeek === day && 
-                        String(s.subject) === String(subj._id)
+                    // Find Teacher
+                    const assignedTeacher = teachers.find(t =>
+                        Array.isArray(t.subjectsTaught) &&
+                        t.subjectsTaught.some(st => {
+                            const subjId = st && st.subject && st.subject._id ? st.subject._id : st.subject;
+                            return subjId && String(subjId) === String(subj._id);
+                        })
                     );
-                    
-                    if (alreadyScheduledToday) continue; // Skip this day completely
 
-                    const randomPeriods = shuffle([...PERIODS]);
+                    if (!assignedTeacher) continue;
 
-                    for (const period of randomPeriods) {
-                        // 1. Class Conflict
-                        if (classOccupied[grade][day][period]) continue;
+                    // Determine Load
+                    let sessionsNeeded = parseInt(subj.sessionsPerWeek || (category === 'KG' ? 3 : 4), 10);
+                    const randomDays = shuffle([...DAYS]);
 
-                        // 2. Teacher Conflict
-                        if (teacherOccupied[day][period].has(String(assignedTeacher._id))) continue;
+                    for (const day of randomDays) {
+                        if (sessionsNeeded <= 0) break;
 
-                        // --- ASSIGN SLOT ---
-                        const slot = {
-                            academicYear,
-                            gradeLevel: grade,
-                            dayOfWeek: day,
-                            period,
-                            subject: subj._id,
-                            teacher: assignedTeacher._id,
-                        };
+                        classOccupied[streamKey][day] = classOccupied[streamKey][day] || {};
 
-                        newSchedule.push(slot);
+                        // Rule: One Subject Per Day Check
+                        const alreadyScheduledToday = newSchedule.some(s =>
+                            String(s.class) === String(cls._id) && 
+                            String(s.stream) === String(stream._id) && 
+                            s.dayOfWeek === day && 
+                            String(s.subject) === String(subj._id)
+                        );
                         
-                        // Update Trackers
-                        classOccupied[grade][day][period] = true;
-                        teacherOccupied[day][period].add(String(assignedTeacher._id));
-                        
-                        sessionsNeeded--;
-                        summary[grade] += 1; // [FIXED]: Correctly updates the summary object
-                        
-                        break;
+                        if (alreadyScheduledToday) continue;
+
+                        const randomPeriods = shuffle([...PERIODS]);
+
+                        for (const period of randomPeriods) {
+                            if (classOccupied[streamKey][day][period]) continue;
+                            if (teacherOccupied[day][period].has(String(assignedTeacher._id))) continue;
+
+                            newSchedule.push({
+                                academicYear,
+                                class: cls._id,
+                                stream: stream._id,
+                                dayOfWeek: day,
+                                period,
+                                subject: subj._id,
+                                teacher: assignedTeacher._id,
+                            });
+                            
+                            classOccupied[streamKey][day][period] = true;
+                            teacherOccupied[day][period].add(String(assignedTeacher._id));
+                            
+                            sessionsNeeded--;
+                            summary[streamKey] += 1;
+                            
+                            break;
+                        }
                     }
                 }
             }

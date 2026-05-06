@@ -4,6 +4,7 @@ import analyticsService from '../services/analyticsService';
 import subjectService from '../services/subjectService';
 import authService from '../services/authService';
 import userService from '../services/userService';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 const AtRiskStudents = () => {
   const { t } = useTranslation(); // <--- Initialize Hook
@@ -11,7 +12,8 @@ const AtRiskStudents = () => {
   const [availableGrades, setAvailableGrades] = useState([]);
   
   const [filters, setFilters] = useState({
-    gradeLevel: '',
+    classId: '',
+    streamId: 'all',
     semester: 'First Semester',
     academicYear: '2018'
   });
@@ -21,53 +23,12 @@ const AtRiskStudents = () => {
   const [error, setError] = useState('');
 
   // --- 1. Load Config (With School Level Filtering) ---
-  useEffect(() => {
-    const loadConfiguration = async () => {
-      try {
-        let uniqueGrades = [];
-
-        // CASE 1: ADMIN, STAFF (Filtered by School Level)
-        if (['admin', 'staff', 'principal'].includes(currentUser.role)) {
-          const res = await subjectService.getAllSubjects();
-          const allSubjects = res.data.data || res.data;
-          let allGrades = [...new Set(allSubjects.map(s => s.gradeLevel))];
-
-          // Filter for Staff
-          if (currentUser.role === 'staff' && currentUser.schoolLevel) {
-               const level = currentUser.schoolLevel.toLowerCase();
-               if (level === 'kg') {
-                   allGrades = allGrades.filter(g => /^(kg|nursery)/i.test(g));
-               } else if (level === 'primary') {
-                   allGrades = allGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
-               } else if (level === 'high school') {
-                   allGrades = allGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
-               }
-          }
-          uniqueGrades = allGrades.sort();
-        } 
-        // CASE 2: TEACHER
-        else {
-          const res = await userService.getProfile();
-          if (res.data.subjectsTaught) {
-             uniqueGrades = [...new Set(res.data.subjectsTaught.map(a => a.subject?.gradeLevel).filter(Boolean))].sort();
-          }
-        }
-        
-        setAvailableGrades(uniqueGrades);
-        if (uniqueGrades.length > 0) setFilters(prev => ({ ...prev, gradeLevel: uniqueGrades[0] }));
-
-      } catch (err) { 
-          console.error(err); 
-          setError(t('error'));
-      }
-    };
-    loadConfiguration();
-  }, [currentUser]);
+    // No manual fetching of unique grades
 
   const handleChange = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
 
   const fetchReport = async () => {
-    if(!filters.gradeLevel) return;
+    if(!filters.classId) return;
     setLoading(true);
     setError('');
     try {
@@ -107,26 +68,34 @@ const AtRiskStudents = () => {
             </div>
 
             {/* FILTERS */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 no-print">
-                <select name="gradeLevel" value={filters.gradeLevel} onChange={handleChange} className="border p-2 rounded">
-                    {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-                <select name="semester" value={filters.semester} onChange={handleChange} className="border p-2 rounded">
-                    <option value="First Semester">{t('sem_1')}</option>
-                    <option value="Second Semester">{t('sem_2')}</option>
-                </select>
-                <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} placeholder={t('academic_year')} className="border p-2 rounded"/>
-                <button onClick={fetchReport} disabled={loading} className="bg-red-600 text-white font-bold py-2 rounded hover:bg-red-700">
-                    {loading ? t('loading') : t('view')}
-                </button>
+            <div className="flex flex-col md:flex-row gap-4 no-print items-end">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ClassStreamSelector 
+                    selectedClass={filters.classId}
+                    onClassChange={(id) => setFilters(prev => ({ ...prev, classId: id }))}
+                    selectedStream={filters.streamId}
+                    onStreamChange={(id) => setFilters(prev => ({ ...prev, streamId: id }))}
+                    required={true}
+                    showAllStreamsOption={true}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                  <select name="semester" value={filters.semester} onChange={handleChange} className="border p-2 rounded w-full">
+                      <option value="First Semester">{t('sem_1')}</option>
+                      <option value="Second Semester">{t('sem_2')}</option>
+                  </select>
+                  <input type="text" name="academicYear" value={filters.academicYear} onChange={handleChange} placeholder={t('academic_year')} className="border p-2 rounded w-full"/>
+                  <button onClick={fetchReport} disabled={loading} className="bg-red-600 text-white font-bold py-2 rounded hover:bg-red-700 w-full">
+                      {loading ? t('loading') : t('view')}
+                  </button>
+                </div>
             </div>
             
             {error && <p className="text-red-500 mt-2 text-sm no-print">{error}</p>}
 
-            {/* PRINT HEADER */}
             <div className="hidden print:block text-center mb-4">
                 <h1 className="text-xl font-bold uppercase">{t('intervention_list')}</h1>
-                <p>{t('grade')}: {filters.gradeLevel} | {filters.semester} | {filters.academicYear}</p>
+                <p>{filters.semester} | {filters.academicYear}</p>
             </div>
         </div>
 

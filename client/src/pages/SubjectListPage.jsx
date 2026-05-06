@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; 
 import subjectService from '../services/subjectService';
+import classService from '../services/classService';
 
 function formatGrade(input) {
   if (!input) return input;
@@ -15,8 +16,9 @@ function formatGrade(input) {
 
 const SubjectListPage = () => {
     const { t } = useTranslation();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [searchedGrade, setSearchedGrade] = useState('');
+    const [classes, setClasses] = useState([]);
+    const [selectedClassId, setSelectedClassId] = useState('');
+    const [searchedClass, setSearchedClass] = useState(null);
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -24,10 +26,15 @@ const SubjectListPage = () => {
     // Form State
     const [newSubjectName, setNewSubjectName] = useState('');
     const [newSubjectCode, setNewSubjectCode] = useState('');
-    const [sessionsPerWeek, setSessionsPerWeek] = useState(3); // Default to 3
+    const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
+
+    // Fetch classes on load
+    useState(() => {
+        classService.getClasses().then(res => setClasses(res.data.data || []));
+    }, []);
 
     // --- Handlers ---
-    const fetchSubjects = async (grade) => {
+    const fetchSubjects = async (classId) => {
         setLoading(true);
         setError(null);
         try {
@@ -35,12 +42,11 @@ const SubjectListPage = () => {
             const allSubs = response.data.data || response.data;
             
             const filtered = allSubs.filter(s => 
-                s.gradeLevel.trim().toLowerCase() === grade.trim().toLowerCase()
+                (s.class?._id || s.class) === classId
             );
             
             setSubjects(filtered);
         } catch (err) {
-            console.error(err);
             setError(t('error_fetching_subjects') || "Failed to load subjects.");
         } finally {
             setLoading(false);
@@ -50,38 +56,35 @@ const SubjectListPage = () => {
     const handleSearch = (e) => {
         if (e) e.preventDefault();
         
-        const gradeToSearch = searchTerm || searchedGrade;
-        
-        if (!gradeToSearch) {
-            setError(t('select_class_warning') || "Please enter a grade level first."); 
+        if (!selectedClassId) {
+            setError("Please select a class first."); 
             return;
         }
 
-        setSearchedGrade(gradeToSearch);
-        fetchSubjects(gradeToSearch);
+        const cls = classes.find(c => c._id === selectedClassId);
+        setSearchedClass(cls);
+        fetchSubjects(selectedClassId);
     };
     
     const handleCreate = async (e) => {
         e.preventDefault();
-        if (!searchedGrade) return;
+        if (!searchedClass) return;
         setError(null)
         try {
             const newSubjectData = {
                 name: newSubjectName,
                 code: newSubjectCode,
-                gradeLevel: formatGrade(searchedGrade),
-                sessionsPerWeek: sessionsPerWeek || 3 // Ensure value is sent
+                classId: searchedClass._id,
+                load: sessionsPerWeek || 3
             };
             await subjectService.createSubject(newSubjectData);
             
-            // Reset Form
             setNewSubjectName('');
             setNewSubjectCode('');
             setSessionsPerWeek(3);
             
             alert(t('success_subject_created') || "Subject created successfully!");
-            
-            fetchSubjects(searchedGrade);
+            fetchSubjects(searchedClass._id);
 
         } catch (err) {
             setError(err.response?.data?.message || t('error'));
@@ -89,12 +92,12 @@ const SubjectListPage = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm(t('confirm_delete') || "Are you sure you want to delete this subject?")) {
+        if (window.confirm(t('confirm_delete') || "Are you sure?")) {
             try {
                 await subjectService.deleteSubject(id);
-                fetchSubjects(searchedGrade);
+                fetchSubjects(searchedClass._id);
             } catch (err) {
-                alert(t('error_deleting') || "Error deleting subject.");
+                alert("Error deleting subject.");
             }
         }
     };
@@ -122,29 +125,20 @@ const SubjectListPage = () => {
             <div className="p-6 bg-blue-50 rounded-xl border border-blue-100 mb-8 shadow-inner">
                 <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-end gap-4">
                     <div className="grow w-full">
-                        <label htmlFor="gradeSearch" className="block text-sm font-bold text-blue-900 mb-1">
-                            {t('search_grade_placeholder') || "Search for a Grade Level (e.g. Grade 4A)"}
+                        <label htmlFor="classSelect" className="block text-sm font-bold text-blue-900 mb-1">
+                            Select Class
                         </label>
-                        <div className="relative">
-                            <input
-                                id="gradeSearch"
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="e.g. Grade 4A"
-                                className={textInput}
-                            />
-                            {searchedGrade && (
-                                <button 
-                                    type="button"
-                                    onClick={() => { setSearchTerm(''); setSearchedGrade(''); setSubjects([]); }}
-                                    className="absolute right-3 top-2.5 text-gray-400 hover:text-red-500 font-bold"
-                                    title="Clear Search"
-                                >
-                                    ✕
-                                </button>
-                            )}
-                        </div>
+                        <select
+                            id="classSelect"
+                            value={selectedClassId}
+                            onChange={(e) => setSelectedClassId(e.target.value)}
+                            className={textInput}
+                        >
+                            <option value="">-- Choose a Class --</option>
+                            {classes.map(c => (
+                                <option key={c._id} value={c._id}>{c.className}</option>
+                            ))}
+                        </select>
                     </div>
                     <button type="submit" className={buttonPrimary} disabled={loading}>
                         {loading ? t('loading') : t('load_subjects')}
@@ -160,14 +154,14 @@ const SubjectListPage = () => {
             )}
 
             {/* Content Area */}
-            {searchedGrade && !loading && (
+            {searchedClass && !loading && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     
                     {/* LEFT: List of Subjects */}
                     <div className="lg:col-span-2">
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 className="text-xl font-bold text-gray-800">
-                                {t('subjects_for')} <span className="text-blue-600 bg-blue-50 px-2 rounded">"{searchedGrade}"</span>
+                                {t('subjects_for')} <span className="text-blue-600 bg-blue-50 px-2 rounded">"{searchedClass.className}"</span>
                             </h3>
                             <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{subjects.length} Found</span>
                         </div>
@@ -276,7 +270,7 @@ const SubjectListPage = () => {
                                 
                                 <div className="pt-4 mt-2 border-t">
                                     <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
-                                        Adding to: <strong className="text-blue-600 bg-blue-50 px-1 rounded">{searchedGrade}</strong>
+                                        Adding to: <strong className="text-blue-600 bg-blue-50 px-1 rounded">{searchedClass.className}</strong>
                                     </p>
                                     <button type="submit" className={`w-full ${buttonSuccess} py-3 shadow-lg transform active:scale-95 transition-transform`}>
                                         {t('save_subject')}

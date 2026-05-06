@@ -4,6 +4,7 @@ import scheduleService from '../services/scheduleService';
 import studentService from '../services/studentService';
 import subjectService from '../services/subjectService'; 
 import userService from '../services/userService';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
@@ -12,10 +13,10 @@ const ScheduleManager = () => {
     const { t } = useTranslation();
 
     // --- STATE ---
-    const [gradeLevel, setGradeLevel] = useState('');
-    const [availableGrades, setAvailableGrades] = useState([]);
-    const [scheduleData, setScheduleData] = useState([]); // Array from DB
-    const [academicYear, setAcademicYear] = useState('2018'); // Dynamic logic recommended here
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedStream, setSelectedStream] = useState('');
+    const [scheduleData, setScheduleData] = useState([]); 
+    const [academicYear, setAcademicYear] = useState('2018'); 
     
     // Resources for Dropdowns
     const [allSubjects, setAllSubjects] = useState([]);
@@ -30,18 +31,12 @@ const ScheduleManager = () => {
     useEffect(() => {
         const loadResources = async () => {
             try {
-                const [gradesRes, subRes, teachRes] = await Promise.all([
-                    studentService.getAllStudents(), // To get unique grade levels
+                const [subRes, teachRes] = await Promise.all([
                     subjectService.getAllSubjects(),
-                    userService.getAll() // Filter for role='teacher' in backend or here
+                    userService.getAll() 
                 ]);
 
-                // Extract Unique Grades
-                const uniqueGrades = [...new Set(gradesRes.data.data.map(s => s.gradeLevel))].sort();
-                setAvailableGrades(uniqueGrades);
                 setAllSubjects(subRes.data.data);
-
-                // Assuming getAllUsers returns all, filter for teachers
                 setAllTeachers(teachRes.data.filter(u => u.role === 'teacher'));
 
             } catch (err) { console.error(err); }
@@ -51,9 +46,9 @@ const ScheduleManager = () => {
 
     // --- FETCH SCHEDULE ---
     const fetchSchedule = async () => {
-        if (!gradeLevel) return;
+        if (!selectedClass || !selectedStream) return;
         try {
-            const res = await scheduleService.getClassSchedule(gradeLevel, academicYear);
+            const res = await scheduleService.getClassSchedule(selectedClass, selectedStream, academicYear);
             setScheduleData(res.data.data);
         } catch (err) {
             console.error(err);
@@ -62,7 +57,7 @@ const ScheduleManager = () => {
 
     useEffect(() => {
         fetchSchedule();
-    }, [gradeLevel]);
+    }, [selectedClass, selectedStream]);
 
     // --- HELPERS ---
     const getSlotData = (day, period) => {
@@ -93,7 +88,8 @@ const ScheduleManager = () => {
         if (!formSubject || !formTeacher) return;
         try {
             await scheduleService.assignSlot({
-                gradeLevel,
+                classId: selectedClass,
+                streamId: selectedStream,
                 academicYear,
                 dayOfWeek: selectedSlot.day,
                 period: selectedSlot.period,
@@ -111,7 +107,8 @@ const ScheduleManager = () => {
         if (!window.confirm("Clear this slot?")) return;
         try {
             await scheduleService.deleteSlot({
-                gradeLevel,
+                classId: selectedClass,
+                streamId: selectedStream,
                 dayOfWeek: selectedSlot.day,
                 period: selectedSlot.period,
                 academicYear
@@ -125,21 +122,21 @@ const ScheduleManager = () => {
         <div className="min-h-screen bg-gray-50 p-6 font-sans">
             
             {/* --- CONTROLS --- */}
-            <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-col md:flex-row justify-between items-center no-print">
-                <div className="flex gap-4 items-center">
-                    <h2 className="text-xl font-bold text-gray-800">📅 Class Schedule</h2>
-                    <select 
-                        className="border p-2 rounded" 
-                        value={gradeLevel} 
-                        onChange={e => setGradeLevel(e.target.value)}
-                    >
-                        <option value="">-- Select Grade --</option>
-                        {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
+            <div className="bg-white p-6 rounded-xl shadow mb-6 flex flex-col lg:flex-row justify-between items-end gap-6 no-print">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 w-full">
+                    <ClassStreamSelector 
+                        selectedClass={selectedClass}
+                        onClassChange={setSelectedClass}
+                        selectedStream={selectedStream}
+                        onStreamChange={setSelectedStream}
+                        required={true}
+                    />
                 </div>
-                <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-2 rounded font-bold hover:bg-slate-800">
-                    🖨️ Print Timetable
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center gap-2">
+                        🖨️ {t('print')}
+                    </button>
+                </div>
             </div>
             <div>
                 <div className="flex gap-2">
@@ -166,13 +163,13 @@ const ScheduleManager = () => {
             </div>
 
             {/* --- THE GRID --- */}
-            {gradeLevel ? (
+            {selectedClass && selectedStream ? (
                 <div className="bg-white p-8 rounded-xl shadow-lg print:shadow-none print:p-0">
                     
                     {/* Print Header */}
                     <div className="hidden print:block text-center mb-6 border-b-4 border-slate-900 pb-2">
                         <h1 className="text-3xl font-black uppercase">Freedom KG & Primary School</h1>
-                        <h2 className="text-xl font-bold mt-1">Class Schedule: <span className="text-blue-700">{gradeLevel}</span></h2>
+                        <h2 className="text-xl font-bold mt-1">Class Schedule</h2>
                         <p className="text-sm text-gray-500">{academicYear}</p>
                     </div>
 
@@ -249,7 +246,7 @@ const ScheduleManager = () => {
                                     onChange={e => setFormSubject(e.target.value)}
                                 >
                                     <option value="">Select Subject</option>
-                                    {allSubjects?.filter(s => s.gradeLevel === gradeLevel).map(s => (
+                                    {allSubjects?.filter(s => (s.class?._id || s.class) === selectedClass).map(s => (
                                         <option key={s._id} value={s._id}>{s.name}</option>
                                     ))}
                                 </select>

@@ -65,7 +65,7 @@ exports.updateUser = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const { fullName, role, subjectsTaught, homeroomGrade ,schoolLevel} = req.body;
+        const { fullName, role, subjectsTaught, homeroomClass, homeroomStream, schoolLevel } = req.body;
 
         // --- VALIDATION 1: Check for Subject Assignment Conflicts ---
         if (subjectsTaught) {
@@ -80,23 +80,23 @@ exports.updateUser = async (req, res) => {
                     assignment => subjectIdsToAssign.includes(assignment.subject._id.toString())
                 ).subject;
                 return res.status(400).json({
-                    message: `Assignment failed. The subject "${conflictingSubject.name} (${conflictingSubject.gradeLevel})" is already assigned to another teacher: ${conflictingTeacher.fullName}.`
+                    message: `Assignment failed. The subject "${conflictingSubject.name}" is already assigned to another teacher: ${conflictingTeacher.fullName}.`
                 });
             }
         }
 
         // --- VALIDATION 2: Check for Homeroom Teacher Conflicts ---
-        // This check only runs if the admin is trying to assign a homeroom grade.
-        if (homeroomGrade) {
+        // This check only runs if the admin is trying to assign a homeroom.
+        if (homeroomClass && homeroomStream) {
             const conflictingHomeroomTeacher = await User.findOne({
-                homeroomGrade: homeroomGrade,
+                homeroomClass: homeroomClass,
+                homeroomStream: homeroomStream,
                 _id: { $ne: userToUpdate._id }
             });
 
             if (conflictingHomeroomTeacher) {
-                // Send back a clear, specific error message
                 return res.status(400).json({
-                    message: `Assignment failed. The grade "${homeroomGrade}" already has a homeroom teacher: ${conflictingHomeroomTeacher.fullName}.`
+                    message: `Assignment failed. This class/stream already has a homeroom teacher: ${conflictingHomeroomTeacher.fullName}.`
                 });
             }
         }
@@ -110,9 +110,11 @@ exports.updateUser = async (req, res) => {
             userToUpdate.subjectsTaught = subjectsTaught;
         }
 
-        // Handle homeroomGrade update (set to null if empty string is passed)
-        if (homeroomGrade !== undefined) {
-            userToUpdate.homeroomGrade = homeroomGrade || null;
+        if (homeroomClass !== undefined) {
+            userToUpdate.homeroomClass = homeroomClass || null;
+        }
+        if (homeroomStream !== undefined) {
+            userToUpdate.homeroomStream = homeroomStream || null;
         }
         
         const updatedUser = await userToUpdate.save();
@@ -199,18 +201,19 @@ exports.bulkCreateUsers = async (req, res) => {
     }
 };
 
-// @desc    Get the homeroom teacher for a specific grade level
-// @route   GET /api/users/homeroom-teacher?gradeLevel=...
+// @desc    Get the homeroom teacher for a specific class/stream
+// @route   GET /api/users/homeroom-teacher?classId=...&streamId=...
 exports.getHomeroomTeacher = async (req, res) => {
-    const { gradeLevel } = req.query;
-    if (!gradeLevel) {
-        return res.status(400).json({ message: 'Grade Level is required.' });
+    const { classId, streamId } = req.query;
+    if (!classId || !streamId) {
+        return res.status(400).json({ message: 'Class and Stream are required.' });
     }
 
     try {
         const homeroomTeacher = await User.findOne({
             role: 'teacher',
-            homeroomGrade: gradeLevel
+            homeroomClass: classId,
+            homeroomStream: streamId
         }).select('fullName');
 
         if (homeroomTeacher) {

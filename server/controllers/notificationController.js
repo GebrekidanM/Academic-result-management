@@ -2,6 +2,7 @@ const Notification = require('../models/Notification');
 const Student = require('../models/Student');
 const User = require('../models/User');
 const webpush = require('web-push');
+const mongoose = require('mongoose');
 
 // 1. Configure Web Push
 // Ensure these are set in your .env file
@@ -17,7 +18,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 // @route   POST /api/notifications
 exports.createNotification = async (req, res) => {
     try {
-        const { title, message, targetRoles, targetGrade } = req.body;
+        const { title, message, targetRoles, targetGrade, targetClass, targetStream } = req.body;
 
         // Validation
         if (!title || !message || !targetRoles) {
@@ -30,6 +31,8 @@ exports.createNotification = async (req, res) => {
             message,
             targetRoles,
             targetGrade: targetGrade || 'All',
+            targetClass: targetClass || null,
+            targetStream: targetStream || null,
             createdBy: req.user._id
         });
 
@@ -67,10 +70,12 @@ exports.createNotification = async (req, res) => {
                 if (targetRoles.includes('parent')) {
                     let parentQuery = { pushSubscription: { $exists: true } };
                     
-                    // Filter by Grade if specified (and not 'All')
-                    if (targetGrade && targetGrade !== 'All') {
-                        // Regex to match "Grade 4" with "Grade 4A", "Grade 4B" etc.
-                        parentQuery.gradeLevel = { $regex: new RegExp(`^${targetGrade}`, 'i') };
+                    // Filter by Class if specified
+                    if (targetClass) {
+                        parentQuery.class = targetClass;
+                    }
+                    if (targetStream) {
+                        parentQuery.stream = targetStream;
                     }
 
                     const parents = await Student.find(parentQuery);
@@ -137,23 +142,16 @@ exports.getMyNotifications = async (req, res) => {
 
         // --- Smart Grade Filtering for Parents ---
         if (userRole === 'parent' || userRole === 'student') {
-            const student = await Student.findById(userId);
+            const student = await Student.findById(userId).populate('class');
             
             if (student) {
-                const fullGrade = student.gradeLevel; // e.g. "Grade 4A"
-                gradeFilters.push(fullGrade); 
-
-                // Add base grade (e.g. "Grade 4") so broad announcements work
-                const baseGradeMatch = fullGrade.match(/(Grade\s*\d+|KG\s*\d+|Nursery)/i);
-                if (baseGradeMatch) {
-                    const baseGrade = baseGradeMatch[0]; 
-                    if (baseGrade !== fullGrade) gradeFilters.push(baseGrade);
+                if (student.class) {
+                    gradeFilters.push(student.class._id.toString());
+                    if (student.class.schoolLevel === 'primary') gradeFilters.push("Primary");
+                    if (student.class.schoolLevel === 'high') gradeFilters.push("High School");
+                    if (student.class.schoolLevel === 'kg') gradeFilters.push("KG");
                 }
-                
-                // Add School Level (Primary/High School)
-                if (/^Grade\s*[1-8](\D|$)/i.test(fullGrade)) gradeFilters.push("Primary");
-                if (/^Grade\s*(9|1[0-2])(\D|$)/i.test(fullGrade)) gradeFilters.push("High School");
-                if (/^(kg|nursery)/i.test(fullGrade)) gradeFilters.push("KG");
+                if (student.stream) gradeFilters.push(student.stream.toString());
             }
         }
 
@@ -162,9 +160,13 @@ exports.getMyNotifications = async (req, res) => {
             targetRoles: { $in: [userRole, 'parent'] }
         };
 
-        // Only apply grade filter for parents. Staff sees all messages for their role.
+        // Only apply grade/class filter for parents. Staff sees all messages for their role.
         if (userRole === 'parent' || userRole === 'student') {
-            query.targetGrade = { $in: gradeFilters };
+            query.$or = [
+                { targetGrade: { $in: gradeFilters } },
+                { targetClass: { $in: gradeFilters.filter(f => mongoose.isValidObjectId(f)) } },
+                { targetStream: { $in: gradeFilters.filter(f => mongoose.isValidObjectId(f)) } }
+            ];
         }
 
         const notifications = await Notification.find(query)

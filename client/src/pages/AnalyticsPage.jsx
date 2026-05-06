@@ -6,6 +6,7 @@ import assessmentTypeService from '../services/assessmentTypeService';
 import analyticsService from '../services/analyticsService';
 import authService from '../services/authService';
 import userService from '../services/userService';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 // --- Reusable Stat Card Component ---
 const StatCard = ({ title, value, unit = '', colorClass = 'text-gray-900' }) => (
@@ -22,7 +23,8 @@ const AnalyticsPage = () => {
   const [assessmentTypes, setAssessmentTypes] = useState([]);
   const [analysisResult, setAnalysisResult] = useState(null);
 
-  const [selectedGrade, setSelectedGrade] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState('');
+  const [selectedStreamId, setSelectedStreamId] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedAssessment, setSelectedAssessment] = useState('');
 
@@ -40,17 +42,8 @@ const AnalyticsPage = () => {
           const res = await subjectService.getAllSubjects();
           subjects = res.data.data || res.data;
 
-          // Filter by School Level for Staff
-          if (currentUser.role === 'staff' && currentUser.schoolLevel) {
-              const level = currentUser.schoolLevel.toLowerCase();
-              if (level === 'kg') {
-                  subjects = subjects.filter(s => /^(kg|nursery)/i.test(s.gradeLevel));
-              } else if (level === 'primary') {
-                  subjects = subjects.filter(s => /^Grade\s*[1-8](\D|$)/i.test(s.gradeLevel));
-              } else if (level === 'high school') {
-                  subjects = subjects.filter(s => /^Grade\s*(9|1[0-2])(\D|$)/i.test(s.gradeLevel));
-              }
-          }
+          // No manual filtering by gradeLevel string anymore
+          subjects = res.data.data || res.data;
         } else {
           const res = await userService.getProfile();
           subjects = res.data.subjectsTaught.map(a => a.subject).filter(Boolean);
@@ -82,20 +75,19 @@ const AnalyticsPage = () => {
 
   // --- Fetch analysis ---
   const handleFetchAnalysis = () => {
-    if (!selectedAssessment || !selectedGrade) return;
+    if (!selectedAssessment || !selectedClassId) return;
 
     setLoadingAnalysis(true);
     setError(null);
     setAnalysisResult(null);
 
-    analyticsService.getAnalysis(selectedAssessment, selectedGrade)
+    analyticsService.getAnalysis(selectedAssessment, selectedClassId)
       .then(res => setAnalysisResult(res.data))
       .catch(err => setError(err.response?.data?.message || t('error')))
       .finally(() => setLoadingAnalysis(false));
   };
 
-  const gradeLevels = [...new Set(availableSubjects.map(s => s.gradeLevel))].sort();
-  const subjectsForGrade = selectedGrade ? availableSubjects.filter(s => s.gradeLevel === selectedGrade) : [];
+  const subjectsForGrade = selectedClassId ? availableSubjects.filter(s => (s.class?._id || s.class) === selectedClassId) : [];
 
   const thStyle = "p-2 border border-black text-center align-middle text-xs font-medium uppercase";
   const subThStyle = `${thStyle} bg-gray-100`;
@@ -118,25 +110,23 @@ const AnalyticsPage = () => {
       </div>
     
       {/* Selection Controls */}
-      <div className="p-4 bg-gray-50 rounded-lg border grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-        <div>
-          <label className="font-bold block mb-1 text-sm">{t('grade_level')}</label>
-          <select
-            onChange={(e) => { setSelectedGrade(e.target.value); setSelectedSubject(''); }}
-            value={selectedGrade}
-            className="w-full p-2 border rounded-md"
-          >
-            <option value="">{t('select_class')}</option>
-            {gradeLevels.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
+      <div className="p-6 bg-slate-50 rounded-2xl border-2 border-slate-100 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+        <div className="lg:col-span-1">
+          <ClassStreamSelector 
+            selectedClass={selectedClassId}
+            onClassChange={(id) => { setSelectedClassId(id); setSelectedSubject(''); }}
+            selectedStream={selectedStreamId}
+            onStreamChange={setSelectedStreamId}
+            required={true}
+          />
         </div>
         <div>
-          <label className="font-bold block mb-1 text-sm">{t('subject')}</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">{t('subject')}</label>
           <select
             onChange={(e) => setSelectedSubject(e.target.value)}
             value={selectedSubject}
-            className="w-full p-2 border rounded-md"
-            disabled={!selectedGrade}
+            className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-slate-700 focus:border-indigo-500 outline-none transition-all"
+            disabled={!selectedClassId}
           >
             <option value="">{t('subject')}</option>
             {subjectsForGrade.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}

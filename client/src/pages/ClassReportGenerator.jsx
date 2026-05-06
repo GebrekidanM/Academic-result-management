@@ -4,33 +4,22 @@ import reportCardService from '../services/reportCardService';
 import ReportCardDocument from '../components/ReportCardDocument';
 import rankService from '../services/rankService';
 import {schoolInfoData} from '../utils/schoolInfoData';
+import ClassStreamSelector from '../components/ClassStreamSelector';
 
 const ClassReportGenerator = () => {
     
     // --- STATE ---
-    const [reportType, setReportType] = useState('year'); // State is HERE now
-    const [availableGrades, setAvailableGrades] = useState([]);
-    const [selectedGrade, setSelectedGrade] = useState('');
+    const [reportType, setReportType] = useState('year');
+    const [selectedClassId, setSelectedClassId] = useState('');
+    const [selectedStreamId, setSelectedStreamId] = useState('all');
     const [classReportData, setClassReportData] = useState([]); 
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
 
-    useEffect(() => {
-        const loadGrades = async () => {
-            try {
-                const res = await studentService.getAllStudents();
-                const students = res.data?.data || [];
-                const uniqueGrades = [...new Set(students.map(s => s.gradeLevel))].sort();
-                setAvailableGrades(uniqueGrades);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        loadGrades();
-    }, []);
+    // No manual fetching of unique grades
 
     const handleGenerate = async () => {
-        if (!selectedGrade) return;
+        if (!selectedClassId) return;
         
         setLoading(true);
         setClassReportData([]);
@@ -38,7 +27,7 @@ const ClassReportGenerator = () => {
 
         try {
             // 1. SINGLE CALL TO BACKEND (Fetches Grades & Behavior)
-            const res = await reportCardService.getClassReports(selectedGrade);
+            const res = await reportCardService.getClassReports(selectedClassId, selectedStreamId);
             let reports = res.data.data;
 
             if (!reports || reports.length === 0) {
@@ -114,15 +103,16 @@ const ClassReportGenerator = () => {
                     <div className="flex flex-col md:flex-row gap-4 items-center w-full md:w-auto">
                         
                         {/* 1. Grade Selector */}
-                        <select 
-                            className="border p-2 rounded w-full md:w-48" 
-                            value={selectedGrade} 
-                            onChange={(e) => setSelectedGrade(e.target.value)}
-                            disabled={loading}
-                        >
-                            <option value="">-- Select Grade --</option>
-                            {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
-                        </select>
+                        <div className="w-full md:w-auto flex-1">
+                            <ClassStreamSelector 
+                                selectedClass={selectedClassId}
+                                onClassChange={setSelectedClassId}
+                                selectedStream={selectedStreamId}
+                                onStreamChange={setSelectedStreamId}
+                                required={true}
+                                showAllStreamsOption={true}
+                            />
+                        </div>
 
                         {/* 2. Report Type Selector (Lifted Up!) */}
                         <div className="bg-gray-100 p-1 rounded-lg flex">
@@ -140,7 +130,7 @@ const ClassReportGenerator = () => {
                         {/* 3. Generate Button */}
                         <button 
                             onClick={handleGenerate} 
-                            disabled={loading || !selectedGrade}
+                            disabled={loading || !selectedClassId}
                             className="bg-cyan-600 text-white px-6 py-2 rounded font-bold hover:bg-cyan-700 disabled:opacity-50"
                         >
                             {loading ? `Fetching... ${progress}%` : "Generate All"}

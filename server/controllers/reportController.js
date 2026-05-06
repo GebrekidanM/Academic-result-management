@@ -11,10 +11,10 @@ const Subject = require("../models/Subject")
  * - Merges duplicate subjects.
  * - Deduplicates assessments.
  */
-const mergeDuplicateGrades = (rawGrades, currentGradeLevel) => {
-    // 1. Strict Filter: Only keep subjects for the current Grade Level
+const mergeDuplicateGrades = (rawGrades, currentClassId) => {
+    // 1. Strict Filter: Only keep subjects for the current Class
     const filteredGrades = rawGrades.filter(g => 
-        g.subject && g.subject.gradeLevel === currentGradeLevel
+        g.subject && g.subject.class?.toString() === currentClassId.toString()
     );
 
     const gradeMap = new Map();
@@ -160,14 +160,14 @@ exports.generateStudentReport = async (req, res) => {
 
     // 2. Fetch All Raw Data Parallelly
     const [rawGrades, behaviorDocs, rawSupportive] = await Promise.all([
-        Grade.find({ student: student._id }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
+        Grade.find({ student: student._id }).populate('subject', 'name class').populate('assessments.assessmentType', 'name totalMarks month').lean(),
         BehavioralReport.find({ student: student._id }),
         SupportiveGrade.find({ student: student._id }).populate('subject', 'name').lean()
     ]);
 
     // 3. Process Academic Grades (Numeric)
-    const currentGradeLevel = student.gradeLevel.trim();
-    const cleanedGrades = mergeDuplicateGrades(rawGrades, currentGradeLevel);
+    const currentClassId = student.class;
+    const cleanedGrades = mergeDuplicateGrades(rawGrades, currentClassId);
 
     // 4. Calculate Stats (Academic Only)
     const statsSem1 = calculateStats(cleanedGrades, 'First Semester');
@@ -180,10 +180,10 @@ exports.generateStudentReport = async (req, res) => {
     // 5. Process Supportive Grades (Letters)
     const supportiveData = processSupportiveGrades(rawSupportive);
 
-    // 6. Promotion Logic
-    const gradeNumMatch = student.gradeLevel.match(/\d+/);
+    // 6. Promotion Logic (Assumes className like P1, P2...)
+    const gradeNumMatch = student.class?.className?.match(/\d+/);
     const nextGrade = gradeNumMatch ? parseInt(gradeNumMatch[0]) + 1 : null;
-    const promotedStr = nextGrade ? `Grade ${nextGrade}` : 'Next Level';
+    const promotedStr = nextGrade ? `P${nextGrade}` : 'Next Level';
 
     // 7. Assemble Response
     const finalReport = {
@@ -192,7 +192,8 @@ exports.generateStudentReport = async (req, res) => {
         studentId: student.studentId,
         sex: student.gender,
         age: calculateAge(student.dateOfBirth),
-        classId: student.gradeLevel,
+        classId: student.class,
+        streamId: student.stream,
         academicYear: rawGrades[0]?.academicYear || '2018',
         photoUrl: student.imageUrl,
         promotedTo: studentFinalAvg >= 50 ? promotedStr : 'Retained',
@@ -224,15 +225,17 @@ exports.generateStudentReport = async (req, res) => {
 
 /**
  * @desc    Generate Reports for an Entire Class (AGGREGATION APPROACH)
- * @route   GET /api/reports/class/:gradeLevel
+ * @route   GET /api/reports/class/:classId
  * */
  exports.generateClassReports = async (req, res) => {
     try {
-        const { gradeLevel } = req.params;
+        const { classId, streamId } = req.params;
         const { academicYear } = req.query; 
 
-        // 1. Find all Active Students in this Grade
-        const students = await Student.find({ gradeLevel, status: 'Active' }).sort({ fullName: 1 });
+        // 1. Find all Active Students in this Class/Stream
+        const query = { class: classId, status: 'Active' };
+        if (streamId && streamId !== 'all') query.stream = streamId;
+        const students = await Student.find(query).sort({ fullName: 1 });
 
         if (!students.length) {
             return res.status(404).json({ message: 'No students found in this grade.' });
@@ -241,9 +244,8 @@ exports.generateStudentReport = async (req, res) => {
         const studentIds = students.map(s => s._id);
 
         // 2. BULK FETCH (Optimization: 3 DB calls instead of 3 * N)
-        // Added SupportiveGrade.find here
         const [allGrades, allBehaviors, allSupportive] = await Promise.all([
-            Grade.find({ student: { $in: studentIds } }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
+            Grade.find({ student: { $in: studentIds } }).populate('subject', 'name class').populate('assessments.assessmentType', 'name totalMarks month').lean(),
             BehavioralReport.find({ student: { $in: studentIds } }),
             SupportiveGrade.find({ student: { $in: studentIds } }).populate('subject', 'name').lean()
         ]);
@@ -257,7 +259,7 @@ exports.generateStudentReport = async (req, res) => {
                 const rawSupportive = allSupportive.filter(s => s.student.toString() === student._id.toString());
 
                 // Process Logic (Same as single report)
-                const cleanedGrades = mergeDuplicateGrades(rawGrades, student.gradeLevel);
+                const cleanedGrades = mergeDuplicateGrades(rawGrades, student.class);
                 const statsSem1 = calculateStats(cleanedGrades, 'First Semester');
                 const statsSem2 = calculateStats(cleanedGrades, 'Second Semester');
 
@@ -268,16 +270,16 @@ exports.generateStudentReport = async (req, res) => {
                 if (statsSem1.avg > 0 && statsSem2.avg > 0) finalAverage = (statsSem1.avg + statsSem2.avg) / 2;
                 else finalAverage = statsSem1.avg + statsSem2.avg;
 
-                const gradeNumMatch = student.gradeLevel.match(/\d+/);
+                const gradeNumMatch = student.class?.className?.match(/\d+/);
                 const nextGrade = gradeNumMatch ? parseInt(gradeNumMatch[0]) + 1 : null;
-                const promotedStr = nextGrade ? `Grade ${nextGrade}` : 'Next Level';
+                const promotedStr = nextGrade ? `P${nextGrade}` : 'Next Level';
 
                 return {
                     studentInfo: {
                         fullName: student.fullName,
                         studentId: student.studentId,
-                        gradeLevel: student.gradeLevel,
-                        classId: student.gradeLevel,
+                        classId: student.class,
+                        streamId: student.stream,
                         academicYear: cleanedGrades[0]?.academicYear || academicYear || '2018',
                         photoUrl: student.imageUrl,
                         sex: student.gender,
@@ -313,22 +315,25 @@ exports.generateStudentReport = async (req, res) => {
  * @route   GET /api/reports/certificate-data
  */
 exports.getCertificateData = async (req, res) => {
-    const { gradeLevel, academicYear } = req.query;
+    const { classId, streamId, academicYear } = req.query;
 
-    if (!gradeLevel || !academicYear) {
-        return res.status(400).json({ message: 'Grade Level and Academic Year are required.' });
+    if (!classId || !academicYear) {
+        return res.status(400).json({ message: 'Class and Academic Year are required.' });
     }
 
     try {
         // 1. Fetch Students
-        const students = await Student.find({ gradeLevel, status: 'Active' })
+        const studentQuery = { class: classId, status: 'Active' };
+        if (streamId && streamId !== 'all') studentQuery.stream = streamId;
+        
+        const students = await Student.find(studentQuery)
             .select('studentId fullName gender dateOfBirth photoUrl')
             .sort({ fullName: 1 });
 
         if (students.length === 0) return res.status(404).json({ message: 'No students found.' });
 
-        // 2. Fetch Only ACADEMIC Subjects (Supportive subjects don't count for Rank)
-        const academicSubjects = await Subject.find({ gradeLevel }).sort({ name: 1 }).lean();
+        // 2. Fetch Only ACADEMIC Subjects
+        const academicSubjects = await Subject.find({ class: classId }).sort({ name: 1 }).lean();
         
         // 3. Fetch Grades
         const studentIds = students.map(s => s._id);
@@ -463,8 +468,8 @@ exports.getHighScorers = async (req, res) => {
             { $match: { 'studentInfo.status': 'Active' } },
             { $lookup: { from: 'subjects', localField: 'subject', foreignField: '_id', as: 'subjectInfo' } },
             { $unwind: '$subjectInfo' },
-            // Strict Grade Level Filter
-            { $match: { $expr: { $eq: ["$studentInfo.gradeLevel", "$subjectInfo.gradeLevel"] } } },
+            // Strict Class Filter
+            { $match: { $expr: { $eq: ["$studentInfo.class", "$subjectInfo.class"] } } },
             
             // GROUPING: Calculate SUMS only
             {
@@ -472,7 +477,8 @@ exports.getHighScorers = async (req, res) => {
                     _id: "$student",
                     fullName: { $first: "$studentInfo.fullName" },
                     studentId: { $first: "$studentInfo.studentId" },
-                    gradeLevel: { $first: "$studentInfo.gradeLevel" },
+                    class: { $first: "$studentInfo.class" },
+                    stream: { $first: "$studentInfo.stream" },
                     photoUrl: { $first: "$studentInfo.imageUrl" },
                     gender: { $first: "$studentInfo.gender" },
                     
@@ -493,19 +499,20 @@ exports.getHighScorers = async (req, res) => {
 
         // --- STEP 2: RANKING LOGIC (Based on Total) ---
         
-        const groupedByGrade = {};
+        const groupedByClass = {};
 
         studentTotals.forEach(student => {
-            if (!groupedByGrade[student.gradeLevel]) {
-                groupedByGrade[student.gradeLevel] = [];
+            const classKey = student.class.toString();
+            if (!groupedByClass[classKey]) {
+                groupedByClass[classKey] = [];
             }
-            groupedByGrade[student.gradeLevel].push(student);
+            groupedByClass[classKey].push(student);
         });
 
         const finalResult = {};
 
-        Object.keys(groupedByGrade).forEach(grade => {
-            const classList = groupedByGrade[grade];
+        Object.keys(groupedByClass).forEach(classId => {
+            const classList = groupedByClass[classId];
 
             // Helper to Rank based on a specific Key (s1Sum, s2Sum, or overallTotal)
             const getTop3 = (key) => {

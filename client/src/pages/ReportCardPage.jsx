@@ -90,9 +90,9 @@ const ReportCardPage = () => {
             const entry = subjectMap.get(subjectName);
 
             // Assign score based on semester string from API
-            if (gradeEntry.semester === 'First Semester') {
+            if (gradeEntry.semester === 'First Semester' || gradeEntry.semester === 'Term 1') {
                 entry.firstSemester = gradeEntry.finalScore;
-            } else if (gradeEntry.semester === 'Second Semester') {
+            } else if (gradeEntry.semester === 'Second Semester' || gradeEntry.semester === 'Term 2') {
                 entry.secondSemester = gradeEntry.finalScore;
             }
         });
@@ -132,8 +132,8 @@ const ReportCardPage = () => {
     }, [reportData]);
 
     const getReportTitle = () => {
-        if (reportType === 'sem1') return "SEMESTER 1";
-        if (reportType === 'sem2') return "SEMESTER 2";
+        if (reportType === 'sem1') return "TERM 1";
+        if (reportType === 'sem2') return "TERM 2";
         return "ANNUAL REPORT";
     };
 

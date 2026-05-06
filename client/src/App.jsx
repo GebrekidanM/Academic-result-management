@@ -62,6 +62,9 @@ import TeachersPage from './pages/TeachersPage';
 import SubjectPerformance from './pages/SubjectPerformance';
 import AtRiskStudents from './pages/AtRiskStudents';
 import AllSubjectAnalytics from './pages/AllSubjectAnalytics';
+import ClassManagementPage from './pages/ClassManagementPage';
+import SchoolSettingsPage from './pages/SchoolSettingsPage';
+import SemesterManagementPage from './pages/SemesterManagementPage';
 
 import CertificatePage from './pages/CertificatePage';
 import SendNotificationPage from './pages/SendNotificationPage';
@@ -177,6 +180,9 @@ function App() {
               <Route path="/admin/users/import" element={<ImportUsersPage />} />
               <Route path='/schedule' element={<ScheduleManager/>}/>
               <Route path='/master' element={<MasterSchedulePage/>}/>
+              <Route path='/classes' element={<ClassManagementPage />} />
+              <Route path='/settings' element={<SchoolSettingsPage />} />
+              <Route path='/admin/semesters' element={<SemesterManagementPage />} />
             </Route>
           </Route>
           
