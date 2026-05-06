@@ -190,6 +190,9 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     <NavLink to="/admin/semesters" className={dropdownLinkClass} onClick={closeMenu}>
                         🗓️ {t('manage_terms') || 'Manage Terms'}
                     </NavLink>
+                    <NavLink to="/admin/upload-pdf" className={dropdownLinkClass} onClick={closeMenu}>
+                        📄 {t('upload_pdf_marks') || 'PDF Marks Upload'}
+                    </NavLink>
                   </NavDropdown>
                 )}
               </>

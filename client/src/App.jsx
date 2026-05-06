@@ -65,6 +65,7 @@ import AllSubjectAnalytics from './pages/AllSubjectAnalytics';
 import ClassManagementPage from './pages/ClassManagementPage';
 import SchoolSettingsPage from './pages/SchoolSettingsPage';
 import SemesterManagementPage from './pages/SemesterManagementPage';
+import PdfUploadPage from './pages/PdfUploadPage';
 
 import CertificatePage from './pages/CertificatePage';
 import SendNotificationPage from './pages/SendNotificationPage';
@@ -183,6 +184,7 @@ function App() {
               <Route path='/classes' element={<ClassManagementPage />} />
               <Route path='/settings' element={<SchoolSettingsPage />} />
               <Route path='/admin/semesters' element={<SemesterManagementPage />} />
+              <Route path='/admin/upload-pdf' element={<PdfUploadPage />} />
             </Route>
           </Route>
           

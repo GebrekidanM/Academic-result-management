@@ -39,4 +39,22 @@ const getGradeDetails = ({ studentId, subjectId, semester, academicYear }) => {
     });
 };
 
-export default { getGradesByStudent, createGrade,deleteGrade, getGradeById, updateGrade, getGradeSheet, saveGradeSheet  ,getGradeDetails };
+const uploadPdfGrades = (formData) => {
+    return api.post(`${API_URL}/upload-pdf`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+};
+
+export default { 
+    getGradesByStudent, 
+    createGrade,
+    deleteGrade, 
+    getGradeById, 
+    updateGrade, 
+    getGradeSheet, 
+    saveGradeSheet, 
+    getGradeDetails,
+    uploadPdfGrades
+};

@@ -134,7 +134,7 @@ const StudentListPage = () => {
             </div>
 
             {/* --- GRAPHS --- */}
-            {!selectedGrade && (
+            {!selectedClass && (
                 <StudentStats 
                     students={graphStudents} 
                     sectionName={
@@ -147,7 +147,7 @@ const StudentListPage = () => {
             )}
 
             {/* --- SECTION SELECTOR --- */}
-            {!selectedGrade && (
+            {!selectedClass && (
                 <div className="flex flex-wrap gap-6 mb-8">
                     <SectionCard id="kg" label={t('section_kg')} color="border-purple-200 text-purple-800" />
                     <SectionCard id="primary" label={t('section_primary')} color="border-blue-200 text-blue-800" />

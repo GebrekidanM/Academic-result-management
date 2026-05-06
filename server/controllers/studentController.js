@@ -13,6 +13,15 @@ const capitalizeName = (name) => {
     return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 };
 
+const parseExcelDate = (value) => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    // Excel serial number
+    if (!isNaN(value)) return new Date((Number(value) - 25569) * 86400 * 1000);
+    // String date
+    return new Date(value);
+};
+
 const getFirstName = (fullName) => {
     if (!fullName || typeof fullName !== 'string') return 'User';
     const names = fullName.trim().split(/\s+/);
@@ -336,154 +345,149 @@ exports.bulkCreateStudents = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
 
     const filePath = req.file.path;
-
     try {
         const workbook = xlsx.readFile(filePath);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = xlsx.utils.sheet_to_json(worksheet);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = xlsx.utils.sheet_to_json(sheet);
 
         if (!rows.length) {
-            fs.unlinkSync(filePath);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
             return res.status(400).json({ message: 'The Excel file is empty.' });
         }
 
-        const requiredColumns = ['Full Name', 'Gender', 'Grade Level'];
-        const missing = requiredColumns.filter(c => !Object.keys(rows[0]).includes(c));
+        const currentYear = new Date().getFullYear();
+        const results = [];
+        let created = 0, skipped = 0, errors = 0;
 
-        if (missing.length) {
-            fs.unlinkSync(filePath);
-            return res.status(400).json({ message: `Missing required columns: ${missing.join(', ')}` });
-        }
-
-        // Get Year for PASSWORDS only
-        const currentYear = getEthiopianYear();
-
-        // ❌ REMOVED: lastStudent and lastSeq calculation. 
-        // We will rely on newStudent.save() inside the loop.
-
-        const createdStudents = [];
-        let rowNumber = 2; 
-
-        // Helper: Date parsing (Kept same as your code)
-        function convertEthiopianToGregorian(ethYear, ethMonth, ethDay) {
-            const jd = Math.floor(1723856 + 365 + 365 * (ethYear - 1) + Math.floor(ethYear / 4) + 30 * ethMonth + ethDay - 31);
-            const r = (jd - 1721426) % 1461;
-            const n = Math.floor(r / 365) - Math.floor(r / 1460);
-            const gYear = Math.floor((jd - 1721426 - r) / 365.25) + n + 1;
-            const s = jd - Math.floor((gYear - 1) * 365.25) - 1721426;
-            let gMonth, gDay;
-            if (s <= 31) { gMonth = 1; gDay = s; }
-            else if (s <= 59) { gMonth = 2; gDay = s - 31; }
-            else if (s <= 90) { gMonth = 3; gDay = s - 59; }
-            else if (s <= 120) { gMonth = 4; gDay = s - 90; }
-            else if (s <= 151) { gMonth = 5; gDay = s - 120; }
-            else if (s <= 181) { gMonth = 6; gDay = s - 151; }
-            else if (s <= 212) { gMonth = 7; gDay = s - 181; }
-            else if (s <= 243) { gMonth = 8; gDay = s - 212; }
-            else if (s <= 273) { gMonth = 9; gDay = s - 243; }
-            else if (s <= 304) { gMonth = 10; gDay = s - 273; }
-            else if (s <= 334) { gMonth = 11; gDay = s - 304; }
-            else { gMonth = 12; gDay = s - 334; }
-            return new Date(`${gYear}-${String(gMonth).padStart(2, '0')}-${String(gDay).padStart(2, '0')}`);
-        }
-
-        function parseExcelDate(value) {
-            if (!value) return null;
-            if (!isNaN(value)) {
-                const excelEpoch = new Date(1899, 11, 30);
-                return new Date(excelEpoch.getTime() + value * 86400000);
-            }
-            const parts = value.toString().split(/[-/]/);
-            if (parts.length === 3) {
-                let [day, month, year] = parts.map(Number);
-                if (year < 1800 && day > 1900) { [year, month, day] = [day, month, year]; }
-                if (year < 1800) { return convertEthiopianToGregorian(year, month, day); } 
-                else { return new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`); }
-            }
-            return null;
-        }
-
-        // ------------------------
-        //   PROCESS EACH STUDENT
-        // ------------------------
-
-        for (const row of rows) {
+        for (const [index, row] of rows.entries()) {
             try {
-                const fullName = capitalizeName(row['Full Name']);
-                const motherName = row['Mother Name'] || '';
-                const className = row['Class']; // Changed from Grade Level
-                const streamName = row['Stream']; // New column
+                // 1. Resolve Full Name
+                let fullName = row['Full Name'] || row['Name'];
+                if (!fullName && (row['First Name'] || row['Last Name'])) {
+                    fullName = [row['First Name'], row['Middle Name'], row['Last Name']].filter(Boolean).join(' ');
+                }
+                if (!fullName) {
+                    results.push({ row: index + 2, status: 'error', reason: 'Missing name columns' });
+                    errors++;
+                    continue;
+                }
+                fullName = capitalizeName(fullName);
 
-                // Lookup Class and Stream
-                const cls = await Class.findOne({ className: className });
+                // 2. Resolve Gender
+                let gender = row['Gender'] || row['Sex'] || 'Other';
+                if (gender.toString().toLowerCase().startsWith('m')) gender = 'Male';
+                else if (gender.toString().toLowerCase().startsWith('f')) gender = 'Female';
+
+                // 3. Resolve Class and Stream
+                let rawClass = (row['Class'] || row['Grade Level'] || row['Grade'] || '').toString().trim();
+                let rawStream = (row['Stream'] || row['Section'] || '').toString().trim();
+
+                if (!rawClass) {
+                    results.push({ row: index + 2, status: 'error', reason: 'Missing class/grade column' });
+                    errors++;
+                    continue;
+                }
+
+                // Smart Resolution: If Class contains a space (e.g., "P.7 S"), split it
+                if (!rawStream && rawClass.includes(' ')) {
+                    const parts = rawClass.split(/\s+/);
+                    if (parts.length === 2 && parts[1].length === 1) {
+                        rawClass = parts[0];
+                        rawStream = parts[1];
+                    }
+                } else if (!rawStream && rawClass.length > 2) {
+                    // Try to catch "P.7S" (split last char if it's a letter)
+                    const lastChar = rawClass.slice(-1).toUpperCase();
+                    if (/[A-Z]/.test(lastChar) && !isNaN(rawClass.slice(-2, -1))) {
+                        rawClass = rawClass.slice(0, -1);
+                        rawStream = lastChar;
+                    }
+                }
+
+                // Helper: normalize for matching (P.7 -> P7)
+                const normalize = (s) => s.toString().replace(/[\s\.]/g, '').toUpperCase();
+
+                // Try to find the class (exact, then normalized e.g. P.7 -> P7)
+                let cls = await Class.findOne({ className: { $regex: new RegExp(`^${rawClass}$`, 'i') } });
                 if (!cls) {
-                    createdStudents.push({ status: "error", row: rowNumber, fullName, reason: `Class ${className} not found` });
-                    rowNumber++;
-                    continue;
+                    const allClasses = await Class.find({});
+                    cls = allClasses.find(c => normalize(c.className) === normalize(rawClass));
                 }
-                const stm = await Stream.findOne({ streamName: streamName, classId: cls._id });
-                if (!stm) {
-                    createdStudents.push({ status: "error", row: rowNumber, fullName, reason: `Stream ${streamName} not found in Class ${className}` });
-                    rowNumber++;
+
+                if (!cls) {
+                    results.push({ row: index + 2, status: 'error', reason: `Class "${rawClass}" not found in database` });
+                    errors++;
                     continue;
                 }
 
-                // Check duplicate
-                const exists = await Student.findOne({ fullName, motherName, class: cls._id, stream: stm._id });
-                if (exists) {
-                    createdStudents.push({ status: "skipped", row: rowNumber, fullName, reason: "Duplicate student" });
-                    rowNumber++;
+                // 5. Find Stream in DB
+                const allStreams = await Stream.find({ classId: cls._id });
+                let stmId = null;
+                if (rawStream) {
+                    const stm = allStreams.find(s => normalize(s.streamName) === normalize(rawStream));
+                    if (stm) stmId = stm._id;
+                }
+                if (!stmId) {
+                    if (allStreams.length === 1) {
+                        stmId = allStreams[0]._id;
+                    } else {
+                        results.push({ row: index + 2, status: 'error', reason: `Stream "${rawStream || 'None'}" not found in ${cls.className}. Available: ${allStreams.map(s => s.streamName).join(', ')}` });
+                        errors++;
+                        continue;
+                    }
+                }
+
+                // 6. Duplicate check — if exists, update stream
+                let student = await Student.findOne({ fullName, class: cls._id });
+                if (student) {
+                    student.stream = stmId;
+                    await student.save();
+                    results.push({ row: index + 2, status: 'updated', fullName, message: `Updated stream` });
+                    created++;
                     continue;
                 }
 
-                const parsedDOB = parseExcelDate(row['Date of Birth']);
+                // 7. Create new student
                 const initialPassword = `${getFirstName(fullName)}@${currentYear}`;
-
                 const newStudent = new Student({
                     fullName,
-                    gender: row['Gender'],
-                    dateOfBirth: parsedDOB || null,
+                    gender,
+                    dateOfBirth: parseExcelDate(row['Date of Birth'] || row['DOB']),
                     class: cls._id,
-                    stream: stm._id,
-                    motherName,
-                    motherContact: row['Mother Contact'] || '',
+                    stream: stmId,
+                    motherName: row['Mother Name'] || '',
+                    motherContact: row['Mother Contact'] || row['Parent Phone'] || '',
                     fatherContact: row['Father Contact'] || '',
                     password: initialPassword,
-                    healthStatus: row['Health Status'] || 'No known conditions'
+                    healthStatus: row['Health Status'] || 'Normal'
                 });
 
                 await newStudent.save();
-
-                createdStudents.push({
-                    status: "created",
-                    row: rowNumber,
-                    studentId: newStudent.studentId,
-                    fullName,
-                    initialPassword
-                });
+                results.push({ row: index + 2, status: 'created', fullName, studentId: newStudent.studentId });
+                created++;
 
             } catch (rowErr) {
-                createdStudents.push({ status: "error", row: rowNumber, fullName: row['Full Name'], reason: rowErr.message });
+                results.push({ row: index + 2, status: 'error', reason: rowErr.message });
+                errors++;
             }
-            rowNumber++;
         }
 
-        fs.unlinkSync(filePath);
-
-        return res.status(201).json({
-            message: "Import completed.",
-            summary: {
-                created: createdStudents.filter(s => s.status === "created").length,
-                skipped: createdStudents.filter(s => s.status === "skipped").length,
-                errors: createdStudents.filter(s => s.status === "error").length
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        res.status(201).json({
+            success: true,
+            message: `Import complete: ${created} created, ${results.filter(r => r.status === 'updated').length} updated, ${errors} errors.`,
+            summary: { 
+                created: results.filter(r => r.status === 'created').length,
+                updated: results.filter(r => r.status === 'updated').length,
+                skipped: results.filter(r => r.status === 'skipped').length,
+                errors 
             },
-            results: createdStudents
+            results
         });
 
     } catch (err) {
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        return res.status(500).json({ message: "Server error processing the file.", details: err.message });
+        res.status(500).json({ message: 'Error processing file', error: err.message });
     }
 };
 

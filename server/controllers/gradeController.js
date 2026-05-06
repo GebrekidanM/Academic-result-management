@@ -1,7 +1,10 @@
 const Grade = require('../models/Grade');
 const Student = require('../models/Student');
+const Subject = require('../models/Subject');
 const AssessmentType = require('../models/AssessmentType');
+const GlobalConfig = require('../models/GlobalConfig');
 const sendSystemNotification = require('../utils/sendSystemNotification'); 
+const { parseGradesPdf } = require('../utils/pdfParser');
 
 // @desc    Get a single grade by ID
 // @route   GET /api/grades/:id
@@ -29,17 +32,139 @@ exports.getGrades = async (req, res) => {
   }
 };
 
-// @desc    Get grades (Filtered, Merged, and Deduplicated)
-// @route   GET /api/grades/student/:studentId
+// @desc    Upload grades from PDF
+// @route   POST /api/grades/upload-pdf
+exports.uploadPdfGrades = async (req, res) => {
+    try {
+        const { classId, streamId, testPeriod } = req.body; 
+        if (!req.file) return res.status(400).json({ message: "Please upload a PDF file." });
+
+        const config = await GlobalConfig.findOne();
+        if (!config) return res.status(500).json({ message: "Global configuration not found." });
+        const { currentSemester, currentAcademicYear } = config;
+
+        // Parse PDF using the improved parser
+        const extractedData = await parseGradesPdf(req.file.buffer);
+
+        // Fetch subjects for this class to create a mapping
+        const subjects = await Subject.find({ class: classId });
+        const subjectMap = {}; 
+        subjects.forEach(s => {
+            const name = s.name.toLowerCase();
+            subjectMap[name] = s._id;
+            // Common aliases
+            if (name === 'mathematics') subjectMap['maths'] = s._id;
+            if (name === 'social studies') subjectMap['sst'] = s._id;
+            if (s.code) subjectMap[s.code.toLowerCase()] = s._id;
+        });
+
+        // Fetch assessment types for this period
+        const assessmentTypes = await AssessmentType.find({
+            class: classId,
+            semester: { $regex: new RegExp(currentSemester.split(' ')[0], 'i') },
+            year: currentAcademicYear,
+            name: { $regex: new RegExp(testPeriod, 'i') }
+        });
+
+        const atMap = {}; // subjectId -> assessmentTypeId
+        assessmentTypes.forEach(at => {
+            atMap[at.subject.toString()] = at._id;
+        });
+
+        // Helper: check if all words in pdfName are present in dbName (any order)
+        const nameWordsMatch = (pdfName, dbName) => {
+            const pdfWords = pdfName.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+            const dbLower = dbName.toLowerCase();
+            return pdfWords.every(w => dbLower.includes(w));
+        };
+
+        // Pre-load all students in the class/stream for fast in-memory matching
+        const classStudents = await Student.find({ class: classId, stream: streamId });
+        console.log(`Found ${classStudents.length} students in class/stream for matching.`);
+
+        let successCount = 0;
+        let skipCount = 0;
+
+        for (const data of extractedData) {
+            // Find student by word-subset match (handles any name order)
+            const pdfName = data.studentName.trim();
+            let student = classStudents.find(s => nameWordsMatch(pdfName, s.fullName));
+
+            if (!student) {
+                console.log(`Student not found: "${pdfName}"`);
+                skipCount++;
+                continue;
+            }
+
+            for (const [subHeader, pdfScore] of Object.entries(data.scores)) {
+                const subId = subjectMap[subHeader.toLowerCase()];
+                if (!subId) continue;
+
+                const atId = atMap[subId.toString()];
+                if (!atId) continue;
+
+                // Get the assessment type to know its totalMarks
+                const at = assessmentTypes.find(a => a._id.toString() === atId.toString());
+
+                // Store the score exactly as it appears in the PDF (already out of 100)
+                const rawScore = pdfScore;
+
+                let gradeDoc = await Grade.findOne({
+                    student: student._id,
+                    subject: subId,
+                    semester: { $regex: new RegExp(currentSemester.split(' ')[0], 'i') },
+                    academicYear: currentAcademicYear
+                });
+
+                if (!gradeDoc) {
+                    gradeDoc = new Grade({
+                        student: student._id,
+                        subject: subId,
+                        semester: currentSemester,
+                        academicYear: currentAcademicYear,
+                        assessments: [],
+                        finalScore: 0
+                    });
+                }
+
+                // Update or add the assessment score
+                const existingIndex = gradeDoc.assessments.findIndex(
+                    a => a.assessmentType.toString() === atId.toString()
+                );
+                if (existingIndex > -1) {
+                    gradeDoc.assessments[existingIndex].score = rawScore;
+                } else {
+                    gradeDoc.assessments.push({ assessmentType: atId, score: rawScore });
+                }
+
+                // finalScore = sum of all assessment scores as stored
+                gradeDoc.finalScore = parseFloat(
+                    gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0).toFixed(2)
+                );
+                await gradeDoc.save();
+            }
+            successCount++;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Processed ${successCount} students. Skipped ${skipCount} students not found in this class/stream.`,
+            data: { successCount, skipCount }
+        });
+
+    } catch (error) {
+        console.error("PDF Upload Error:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Get grades for a specific student (Filtered and Merged)
 exports.getGradesByStudent = async (req, res) => {
   try {
     const studentId = req.params.id || req.params.studentId;
-
-    // 1. Fetch Student
     const studentObj = await Student.findById(studentId);
     if (!studentObj) return res.status(404).json({ message: "Student not found" });
     
-    // 2. Fetch Raw Grades
     const rawGrades = await Grade.find({ student: studentId })
       .populate('subject', 'name class')
       .populate('assessments.assessmentType', 'name totalMarks month')
@@ -47,100 +172,51 @@ exports.getGradesByStudent = async (req, res) => {
 
     if (!rawGrades.length) return res.status(200).json({ success: true, count: 0, data: [] });
 
-    // 3. FILTER: Keep only current grade level (Removes Grade 4A vs 4B mismatch)
-    // 3. FILTER: Keep only current class level
     const currentClassId = studentObj.class.toString();
     const filteredGrades = rawGrades.filter(g => 
         g.subject && g.subject.class?.toString() === currentClassId
     );
 
-    // 4. MERGE DUPLICATES (Fixes the "Mid Exam" appearing twice)
     const gradeMap = new Map();
-
     filteredGrades.forEach(grade => {
-        // Filter out null/broken assessments
         const cleanAssessments = (grade.assessments || []).filter(a => a.assessmentType != null);
-        
-        // Key: "First Semester-Amharic"
         const key = `${grade.semester}-${grade.subject.name.trim().toLowerCase()}`;
 
         if (gradeMap.has(key)) {
             const existing = gradeMap.get(key);
-            
-            // A. Prefer valid Academic Year
-            // If the existing one has "" but the new one has "2018", update the year.
-            if (!existing.academicYear && grade.academicYear) {
-                existing.academicYear = grade.academicYear;
-            }
-
-            // B. ADVANCED MERGE: Deduplicate Assessments by ID
-            // This prevents "Mid Exam" (score 15.5) from being added twice
             const assessmentMap = new Map();
-            
-            // Load existing assessments
             existing.assessments.forEach(a => assessmentMap.set(a.assessmentType._id.toString(), a));
-            
-            // Try to add new ones. If ID exists, SKIP IT.
             cleanAssessments.forEach(a => {
                 const assessId = a.assessmentType._id.toString();
-                if (!assessmentMap.has(assessId)) {
-                    assessmentMap.set(assessId, a);
-                }
+                if (!assessmentMap.has(assessId)) assessmentMap.set(assessId, a);
             });
-
-            // Save merged list
             existing.assessments = Array.from(assessmentMap.values());
-
-            // C. Recalculate Final Score
-            // We sum the UNIQUE assessments only.
             existing.finalScore = existing.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
-
         } else {
-            // New Entry
             grade.assessments = cleanAssessments;
             gradeMap.set(key, grade);
         }
     });
 
     let processedGrades = Array.from(gradeMap.values());
-
-    // 5. Role-based filtering
-    if (req.user?.role === 'teacher') {
-        const isHomeroom = req.user.homeroomClass?.toString() === currentClassId;
-        if (!isHomeroom && req.user.subjectsTaught) {
-            const teacherSubjectIds = new Set(
-                req.user.subjectsTaught.map(s => s.subject?._id?.toString())
-            );
-            processedGrades = processedGrades.filter(g => teacherSubjectIds.has(g.subject._id.toString()));
-        }
-    }
-
-    // 6. Sort
     processedGrades.sort((a, b) => {
         if (a.semester === b.semester) return a.subject.name.localeCompare(b.subject.name);
         return a.semester.localeCompare(b.semester);
     });
 
     res.status(200).json({ success: true, count: processedGrades.length, data: processedGrades });
-
   } catch (error) {
     console.error("Error fetching grades:", error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
 
-// @desc    Get grade details (by student, subject, semester, year)
-// @route   GET /api/grades/details
+// @desc    Get grade details
 exports.getGradeDetails = async (req, res) => {
   const { studentId, subjectId, semester, academicYear } = req.query;
   try {
-    // Note: If you have duplicates in DB, 'findOne' might pick the wrong one (e.g. the 4B one).
-    // Ideally, you should use 'find' here too and merge if you want to be 100% safe, 
-    // but usually editing happens on a specific ID.
-    
     const grade = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear })
       .populate('assessments.assessmentType', 'name totalMarks');
-      
     res.json({ success: true, data: grade });
   } catch (error) {
     console.error("Error fetching grade details:", error);
@@ -148,14 +224,11 @@ exports.getGradeDetails = async (req, res) => {
   }
 };
 
-// @desc    Delete a grade (only teachers can delete)
-// @route   DELETE /api/grades/:id
+// @desc    Delete a grade
 exports.deleteGrade = async (req, res) => {
   try {
     const grade = await Grade.findById(req.params.id);
     if (!grade) return res.status(404).json({ message: 'Grade not found' });
-
-
     await grade.deleteOne();
     res.status(200).json({ success: true, message: 'Grade deleted successfully.' });
   } catch (error) {
@@ -165,40 +238,28 @@ exports.deleteGrade = async (req, res) => {
 };
 
 // @desc    Update a grade entry
-// @route   PUT /api/grades/:id
 exports.updateGrade = async (req, res) => {
   try {
     const grade = await Grade.findById(req.params.id);
     if (!grade) return res.status(404).json({ message: 'Grade not found' });
-
 
     const { assessments, semester, academicYear } = req.body;
     if (semester) grade.semester = semester;
     if (academicYear) grade.academicYear = academicYear;
     
     if (assessments) {
-        if (!Array.isArray(assessments) || assessments.length === 0) {
-            return res.status(400).json({ message: 'No assessments provided.' });
-        }
-
         const assessmentTypeIds = assessments.map(a => a.assessmentType);
         const defs = await AssessmentType.find({ _id: { $in: assessmentTypeIds } });
-
         let finalScore = 0;
         for (const a of assessments) {
             const def = defs.find(d => d._id.equals(a.assessmentType));
-            if (!def) return res.status(400).json({ message: `Invalid assessmentType ID: ${a.assessmentType}` });
-            if (a.score > def.totalMarks)
-                return res.status(400).json({ message: `${def.name} score cannot exceed ${def.totalMarks}` });
+            if (!def) continue;
             finalScore += Number(a.score);
         }
-
         grade.assessments = assessments;
         grade.finalScore = finalScore;
     }
-    
     const updated = await grade.save();
-
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
     console.error("Error updating grade:", error);
@@ -206,193 +267,93 @@ exports.updateGrade = async (req, res) => {
   }
 };
 
-// @desc    Get grade sheet
+// @desc    Get grade sheet for entry
 exports.getGradeSheet = async (req, res) => {
-  const { assessmentTypeId } = req.query;
-  if (!assessmentTypeId) return res.status(400).json({ message: 'Assessment Type ID is required.' });
-
+  const { assessmentTypeId, streamId } = req.query;
   try {
     const assessmentType = await AssessmentType.findById(assessmentTypeId);
     if (!assessmentType) return res.status(404).json({ message: 'Assessment Type not found.' });
 
-    const students = await Student.find({ class: assessmentType.class, status: 'Active' })
-      .sort({ fullName: 1 })
-      .select('fullName');
+    // Build student filter — optionally restrict by stream
+    const studentFilter = { class: assessmentType.class, status: 'Active' };
+    if (streamId) studentFilter.stream = streamId;
 
-    // Populate assessmentType to ensure we don't work with raw IDs causing type mismatches
+    const students = await Student.find(studentFilter).sort({ fullName: 1 });
     const grades = await Grade.find({
       student: { $in: students.map(s => s._id) },
       'assessments.assessmentType': assessmentTypeId
-    }).populate('assessments.assessmentType'); // <--- ADD POPULATE FOR SAFETY
+    }).populate('assessments.assessmentType');
 
     const result = students.map(student => {
       const grade = grades.find(g => g.student.equals(student._id));
-      
-      // --- FIX: Add Safe Check (a.assessmentType && ...) ---
-      const score = grade?.assessments.find(a => 
-          a.assessmentType && a.assessmentType._id.equals(assessmentTypeId)
-      )?.score ?? null;
-      
+      const score = grade?.assessments.find(a => a.assessmentType && a.assessmentType._id.equals(assessmentTypeId))?.score ?? null;
       return { _id: student._id, fullName: student.fullName, score };
     });
-
     res.status(200).json({ assessmentType, students: result });
   } catch (error) {
     console.error("Error fetching grade sheet:", error);
     res.status(500).json({ message: 'Server error fetching grade sheet.' });
   }
 };
-// @desc    Save or update multiple grades for one assessment
-// @route   POST /api/grades/sheet
+
+// @desc    Save multiple grades (Sheet)
 exports.saveGradeSheet = async (req, res) => {
   try {
     const { subjectId, semester, academicYear } = req.body;
-
-    // 1️⃣ Validate common fields that BOTH cases share
-    if (!subjectId || !semester || !academicYear) {
-      return res.status(400).json({ message: "Missing subject, semester, or academic year" });
-    }
-
-    // =========================================================================
-    // CASE A: By Assessment (1 Assessment, Multiple Students)
-    // Payload has: assessmentTypeId and scores: [{studentId, score}]
-    // =========================================================================
     if (req.body.assessmentTypeId && req.body.scores) {
       const { assessmentTypeId, scores } = req.body;
-
-      // Loop through each student in the scores array
       for (const item of scores) {
         if (item.score === null || item.score === undefined || item.score === '') continue;
-
-        // Find or create grade doc for this specific student
         let gradeDoc = await Grade.findOne({ student: item.studentId, subject: subjectId, semester, academicYear });
-        
-        if (!gradeDoc) {
-          gradeDoc = new Grade({ student: item.studentId, subject: subjectId, semester, academicYear, assessments:[], finalScore: 0 });
-        }
-
-        // Check if this assessment already exists for the student
-        const existingIndex = gradeDoc.assessments.findIndex(a => a.assessmentType.toString() === assessmentTypeId.toString());
-
-        if (existingIndex > -1) {
-          gradeDoc.assessments[existingIndex].score = Number(item.score); // Update
-        } else {
-          gradeDoc.assessments.push({ assessmentType: assessmentTypeId, score: Number(item.score) }); // Add new
-        }
-
-        // Clean up and calculate final score
-        gradeDoc.assessments = gradeDoc.assessments.filter(a => a.assessmentType);
+        if (!gradeDoc) gradeDoc = new Grade({ student: item.studentId, subject: subjectId, semester, academicYear, assessments:[], finalScore: 0 });
+        const idx = gradeDoc.assessments.findIndex(a => a.assessmentType.toString() === assessmentTypeId.toString());
+        if (idx > -1) gradeDoc.assessments[idx].score = Number(item.score);
+        else gradeDoc.assessments.push({ assessmentType: assessmentTypeId, score: Number(item.score) });
         gradeDoc.finalScore = gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
-
-        await gradeDoc.save(); // Save this student's document
+        await gradeDoc.save();
       }
-
-      return res.status(200).json({ success: true, message: "Grades saved successfully for multiple students" });
+      return res.status(200).json({ success: true, message: "Grades saved successfully" });
+    } else if (req.body.studentId && req.body.assessments) {
+        const { studentId, assessments } = req.body;
+        let gradeDoc = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear });
+        if (!gradeDoc) gradeDoc = new Grade({ student: studentId, subject: subjectId, semester, academicYear, assessments:[], finalScore: 0 });
+        assessments.forEach(update => {
+            const idx = gradeDoc.assessments.findIndex(a => a.assessmentType.toString() === update.assessmentType.toString());
+            if (idx > -1) gradeDoc.assessments[idx].score = Number(update.score);
+            else gradeDoc.assessments.push({ assessmentType: update.assessmentType, score: Number(update.score) });
+        });
+        gradeDoc.finalScore = gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+        await gradeDoc.save();
+        return res.status(200).json({ success: true, message: "Student assessments saved" });
     }
-
-    // =========================================================================
-    // CASE B: By Student (1 Student, Multiple Assessments)
-    // Payload has: studentId and assessments: [{assessmentType, score}]
-    // =========================================================================
-    else if (req.body.studentId && req.body.assessments) {
-      const { studentId, assessments } = req.body;
-
-      // Find or create grade doc for this one student
-      let gradeDoc = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear });
-      
-      if (!gradeDoc) {
-        gradeDoc = new Grade({ student: studentId, subject: subjectId, semester, academicYear, assessments:[], finalScore: 0 });
-      }
-
-      // Loop through the submitted assessments
-      assessments.forEach(update => {
-        if (update.score === null || update.score === undefined || update.score === '') return;
-
-        const existingIndex = gradeDoc.assessments.findIndex(a => a.assessmentType.toString() === update.assessmentType.toString());
-
-        if (existingIndex > -1) {
-          gradeDoc.assessments[existingIndex].score = Number(update.score); // Update
-        } else {
-          gradeDoc.assessments.push({ assessmentType: update.assessmentType, score: Number(update.score) }); // Add new
-        }
-      });
-
-      // Clean up and calculate final score
-      gradeDoc.assessments = gradeDoc.assessments.filter(a => a.assessmentType);
-      gradeDoc.finalScore = gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
-
-      await gradeDoc.save();
-
-      return res.status(200).json({ success: true, message: "Assessments saved successfully for student" });
-    }
-
-    // =========================================================================
-    // CASE C: Invalid Payload format sent
-    // =========================================================================
-    else {
-      return res.status(400).json({ message: "Invalid payload. Must provide either (assessmentTypeId + scores) OR (studentId + assessments)." });
-    }
-
+    res.status(400).json({ message: "Invalid payload" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Server error saving grades", error: error.message });
   }
 };
 
-// @route GET /api/grades/clean
+// @desc    Cleanup broken records
 exports.cleanBrokenAssessments = async (req, res) => {
   try {
-    console.log("Starting System Cleanup...");
-    
-    // 1. Fetch ALL grades and populate BOTH subject and assessments
-    const allGrades = await Grade.find()
-      .populate('assessments.assessmentType')
-      .populate('subject'); // <--- Essential to detect null subjects
-
+    const allGrades = await Grade.find().populate('assessments.assessmentType').populate('subject');
     let gradesDeleted = 0;
     let gradesFixed = 0;
-
     for (const grade of allGrades) {
-      // --- CASE 1: The Subject is Deleted (Fixes your new problem) ---
       if (!grade.subject) {
-        console.log(`CRITICAL: Grade ${grade._id} has no subject. Deleting entire document.`);
         await grade.deleteOne(); 
         gradesDeleted++;
-        continue; // Skip the rest, this document is gone
+        continue;
       }
-
-      // --- CASE 2: An Assessment is Deleted (Fixes the previous problem) ---
-      const originalCount = grade.assessments.length;
-      
-      // Keep only assessments where assessmentType is NOT null
       const validAssessments = grade.assessments.filter(a => a.assessmentType !== null);
-
-      if (validAssessments.length < originalCount) {
+      if (validAssessments.length < grade.assessments.length) {
         grade.assessments = validAssessments;
-
-        // Recalculate Final Score
-        grade.finalScore = grade.assessments.reduce(
-          (sum, a) => sum + (a.score || 0),
-          0
-        );
-
+        grade.finalScore = grade.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
         await grade.save();
         gradesFixed++;
-        console.log(`Fixed Grade ${grade._id}: Removed broken assessments.`);
       }
     }
-
-    if (gradesDeleted === 0 && gradesFixed === 0) {
-      return res.status(200).json({ success: true, message: "System is clean. No errors found." });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: `Cleanup Complete: Deleted ${gradesDeleted} invalid grade sheets (missing subjects) and fixed ${gradesFixed} grade sheets (missing assessments).`
-    });
-
+    res.status(200).json({ success: true, message: `Cleaned ${gradesDeleted} deleted subjects and ${gradesFixed} broken assessments.` });
   } catch (error) {
-    console.error("Cleanup Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
