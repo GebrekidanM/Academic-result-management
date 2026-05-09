@@ -193,6 +193,12 @@ const Navbar = ({ isOpen, setIsOpen }) => {
                     <NavLink to="/admin/upload-pdf" className={dropdownLinkClass} onClick={closeMenu}>
                         📄 {t('upload_pdf_marks') || 'PDF Marks Upload'}
                     </NavLink>
+                    <NavLink to="/admin/grading-scales" className={dropdownLinkClass} onClick={closeMenu}>
+                        📊 Grading Scales
+                    </NavLink>
+                    <NavLink to="/admin/divisions" className={dropdownLinkClass} onClick={closeMenu}>
+                        🏆 Divisions
+                    </NavLink>
                   </NavDropdown>
                 )}
               </>

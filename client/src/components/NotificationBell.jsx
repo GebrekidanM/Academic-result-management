@@ -26,7 +26,7 @@ const NotificationBell = () => {
 
     // --- FETCH DATA ---
     const fetchNotifs = async () => {
-        if (!navigator.onLine) return;
+        if (!navigator.onLine || !currentUser) return;
         try {
             const res = await notificationService.getMyNotifications();
             const data = res.data.data;
@@ -53,7 +53,10 @@ const NotificationBell = () => {
                 lastNotifIdRef.current = latest._id;
             }
         } catch (err) {
-            console.warn("Notification poll failed");
+            // Silently handle 401 errors as they're expected when not authenticated
+            if (err.response?.status !== 401) {
+                console.warn("Notification poll failed");
+            }
         }
     };
 

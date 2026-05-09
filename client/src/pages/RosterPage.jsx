@@ -24,7 +24,7 @@ const RosterPage = () => {
     const [currentUser] = useState(authService.getCurrentUser());
     const [classId, setClassId] = useState(currentUser.homeroomClass?._id || currentUser.homeroomClass || ''); 
     const [streamId, setStreamId] = useState(currentUser.homeroomStream?._id || currentUser.homeroomStream || '');
-    const [academicYear, setAcademicYear] = useState('2018');
+    const [academicYear, setAcademicYear] = useState('2026');
     const [rosterData, setRosterData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);

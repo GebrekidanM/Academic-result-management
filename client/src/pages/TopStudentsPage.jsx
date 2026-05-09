@@ -4,7 +4,7 @@ import reportCardService from '../services/reportCardService';
 const TopStudentsPage = () => {
     const [highScorers, setHighScorers] = useState({});
     const [loading, setLoading] = useState(false);
-    const [academicYear, setAcademicYear] = useState('2018');
+    const [academicYear, setAcademicYear] = useState('2026');
     const [viewMode, setViewMode] = useState('overall'); // 'sem1', 'sem2', 'overall'
 
     useEffect(() => {

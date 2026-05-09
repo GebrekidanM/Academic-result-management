@@ -67,7 +67,17 @@ const AnalyticsPage = () => {
     }
     setLoadingAssessments(true);
     assessmentTypeService.getBySubject(selectedSubject)
-      .then(res => setAssessmentTypes(res.data.data))
+      .then(res => {
+        // Deduplicate by name, month, and semester
+        const uniqueMap = new Map();
+        res.data.data.forEach(at => {
+          const key = `${at.name}-${at.month}-${at.semester}`;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, at);
+          }
+        });
+        setAssessmentTypes(Array.from(uniqueMap.values()));
+      })
       .catch(() => setError(t('error')))
       .finally(() => setLoadingAssessments(false));
     setSelectedAssessment('');

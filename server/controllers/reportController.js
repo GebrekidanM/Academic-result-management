@@ -4,6 +4,28 @@ const BehavioralReport = require('../models/BehavioralReport');
 const SupportiveGrade = require('../models/SupportiveGrade');
 const calculateAge = require("../utils/calculateAge")
 const Subject = require("../models/Subject")
+const GradingScale = require('../models/GradingScale')
+
+const getGradeFromScore = async (score, className) => {
+    const ranges = [
+        { grade: '1', minScore: 90, maxScore: 100 },
+        { grade: 'D2', minScore: 80, maxScore: 89 },
+        { grade: 'C3', minScore: 70, maxScore: 79 },
+        { grade: 'C4', minScore: 60, maxScore: 69 },
+        { grade: 'C5', minScore: 50, maxScore: 59 },
+        { grade: 'C6', minScore: 45, maxScore: 49 },
+        { grade: 'P7', minScore: 40, maxScore: 44 },
+        { grade: 'P8', minScore: 35, maxScore: 39 },
+        { grade: 'F9', minScore: 0, maxScore: 34 }
+    ];
+    
+    for (const range of ranges) {
+        if (score >= range.minScore && score <= range.maxScore) {
+            return range.grade;
+        }
+    }
+    return '-';
+};
 
 /**
  * HELPER 1: CLEAN & MERGE ACADEMIC GRADES (Numeric)
@@ -280,7 +302,7 @@ exports.generateStudentReport = async (req, res) => {
                         studentId: student.studentId,
                         classId: student.class,
                         streamId: student.stream,
-                        academicYear: cleanedGrades[0]?.academicYear || academicYear || '2018',
+                        academicYear: cleanedGrades[0]?.academicYear || academicYear || '2026',
                         photoUrl: student.imageUrl,
                         sex: student.gender,
                         age: calculateAge(student.dateOfBirth),

@@ -79,8 +79,8 @@ const sendSystemNotification = async (title, message, targetRoles, targetClassId
                         .catch(err => {
                             if (err.statusCode === 410 || err.statusCode === 404) {
                                 // Clean up dead subscriptions
-                                if (user.role) User.updateOne({ _id: user._id }, { $unset: { pushSubscription: 1 } }).exec();
-                                else Student.updateOne({ _id: user._id }, { $unset: { pushSubscription: 1 } }).exec();
+                                if (user && user.role) User.updateOne({ _id: user._id }, { $unset: { pushSubscription: 1 } }).exec();
+                                else if (user) Student.updateOne({ _id: user._id }, { $unset: { pushSubscription: 1 } }).exec();
                             }
                         });
                 }

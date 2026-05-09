@@ -36,7 +36,7 @@ exports.getUsersBySchoolLevel = async (req, res) => {
     const user = req.user;
     try {
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(401).json({ message: 'Not authorized' });
         }
 
         if(user.role === 'staff'){
@@ -50,7 +50,8 @@ exports.getUsersBySchoolLevel = async (req, res) => {
         }
 
     } catch (error) {
-        return res.status(500).json({ message: 'Server Error' });
+        console.error('Error in getUsersBySchoolLevel:', error);
+        return res.status(500).json({ message: 'Server Error', error: error.message });
     }
     
 

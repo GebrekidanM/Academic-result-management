@@ -9,7 +9,13 @@ exports.protect = async (req, res, next) => {
         try {
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-             req.user = await User.findById(decoded.id).select('-password').populate('subjectsTaught.subject');
+            const user = await User.findById(decoded.id).select('-password').populate('subjectsTaught.subject');
+            
+            if (!user) {
+                return res.status(401).json({ message: 'Not authorized, user not found' });
+            }
+            
+            req.user = user;
             next();
         } catch (error) {
             res.status(401).json({ message: 'Not authorized, token failed' });
@@ -23,6 +29,10 @@ exports.protect = async (req, res, next) => {
 
 exports.authorize = (...roles) => {
     return (req, res, next) => {
+        if (!req.user || !req.user.role) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+        
         if (!roles.includes(req.user.role)) {
             return res.status(403).json({ 
                 message: `User role '${req.user.role}' is not authorized to access this route` 
@@ -35,6 +45,10 @@ exports.authorize = (...roles) => {
 
 // It checks if a user is an admin OR a teacher assigned to the requested subject.
 exports.isTeacherForSubject = (req, res, next) => {
+    if (!req.user || !req.user.role) {
+        return res.status(401).json({ message: 'Not authorized' });
+    }
+
     if (req.user.role === 'admin' || req.user.role === 'staff') {
         return next();
     }
@@ -59,6 +73,10 @@ exports.isTeacherForSubject = (req, res, next) => {
 };
 
 exports.isHomeroomTeacherOrAdmin = (req, res, next) => {
+    if (!req.user || !req.user.role) {
+        return res.status(401).json({ message: 'Not authorized' });
+    }
+
     const requestedClassId = req.query.classId;
     if (!requestedClassId) {
         return res.status(400).json({ message: 'Class is required.' });
@@ -74,10 +92,14 @@ exports.isHomeroomTeacherOrAdmin = (req, res, next) => {
         return next();
     }
 
-    return res.status(403).json({ message: 'Forbidden: You are not the homeroom teacher for this class.' });
+    return res.status(403).json({ message: 'Forbidden: You are not homeroom teacher for this class.' });
 };
 
 exports.isHomeroomTeacherForStudent = async (req, res, next) => {
+    if (!req.user || !req.user.role) {
+        return res.status(401).json({ message: 'Not authorized' });
+    }
+
     if (req.user.role === 'admin' || req.user.role === 'staff') {
         return next();
     }
@@ -157,6 +179,10 @@ exports.canViewStudentData = async (req, res, next) => {
                 }
                 req.user = user;
 
+                if (!user || !user.role) {
+                    return res.status(401).json({ message: 'Not authorized' });
+                }
+
                 if (user.role === 'admin'|| user.role === 'staff') {
                     return next();
                 }
@@ -210,6 +236,10 @@ exports.authorizeAnalytics = async (req, res, next) => {
 
         // Step 2: Check the user's role and permissions
         const user = req.user; // Get the user from the 'protect' middleware
+        
+        if (!user || !user.role) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
         
         if (user.role === 'admin'||user.role === 'staff') {
             return next();

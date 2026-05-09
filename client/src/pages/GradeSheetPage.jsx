@@ -88,9 +88,16 @@ const GradeSheetPage = () => {
             }
 
             const local = offlineAssessmentService.getLocalAssessments().filter(a => a.subject === selectedSubject);
-            // Merge & unique by ID
+            // Merge & unique by name, month, and semester
             const combined = [...assessments, ...local];
-            const unique = Array.from(new Map(combined.map(item => [item._id, item])).values());
+            const uniqueMap = new Map();
+            combined.forEach(item => {
+                const key = `${item.name}-${item.month}-${item.semester}`;
+                if (!uniqueMap.has(key)) {
+                    uniqueMap.set(key, item);
+                }
+            });
+            const unique = Array.from(uniqueMap.values());
             
             setAssessmentTypes(unique);
         };

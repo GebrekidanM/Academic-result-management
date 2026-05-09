@@ -16,7 +16,7 @@ const ScheduleManager = () => {
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedStream, setSelectedStream] = useState('');
     const [scheduleData, setScheduleData] = useState([]); 
-    const [academicYear, setAcademicYear] = useState('2018'); 
+    const [academicYear, setAcademicYear] = useState('2026'); 
     
     // Resources for Dropdowns
     const [allSubjects, setAllSubjects] = useState([]);

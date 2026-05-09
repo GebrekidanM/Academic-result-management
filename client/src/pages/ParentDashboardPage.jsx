@@ -68,7 +68,7 @@ const ParentDashboardPage = () => {
                 const fetchedReports = reportsRes.status === 'fulfilled' ? reportsRes.value.data.data :[];
                 setReports(fetchedReports);
 
-                const academicYear = fetchedGrades.length > 0 ? fetchedGrades[0].academicYear : '2018';
+                const academicYear = fetchedGrades.length > 0 ? fetchedGrades[0].academicYear : '2026';
 
                  try {
                     const quizRes = await quizService.getAvailableQuizzes(studentData.gradeLevel, academicYear);

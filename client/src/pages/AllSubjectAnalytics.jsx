@@ -16,7 +16,7 @@ const AllSubjectAnalytics = () => {
     streamId: 'all',
     assessmentName: '',
     semester: 'First Semester',
-    academicYear: '2018'
+    academicYear: '2026'
   });
 
   const [data, setData] = useState([]);

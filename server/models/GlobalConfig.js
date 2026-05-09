@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const globalConfigSchema = new mongoose.Schema({
     currentAcademicYear: {
         type: String,
-        default: '2017'
+        default: '2026'
     },
     currentSemester: {
         type: String,

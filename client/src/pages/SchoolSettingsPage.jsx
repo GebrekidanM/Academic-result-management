@@ -61,7 +61,11 @@ const SchoolSettingsPage = () => {
         <div className="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-lg mt-10">
             <h2 className="text-3xl font-bold text-gray-800 mb-6 flex justify-between items-center">
                 <span>⚙️ {t('school_settings') || 'School Settings'}</span>
-                <Link to="/admin/semesters" className="text-sm text-blue-500 hover:underline font-normal">Manage Semesters &rarr;</Link>
+                <div className="flex gap-4">
+                    <Link to="/admin/semesters" className="text-sm text-blue-500 hover:underline font-normal">Manage Semesters &rarr;</Link>
+                    <Link to="/admin/grading-scales" className="text-sm text-blue-500 hover:underline font-normal">Manage Grading Scales &rarr;</Link>
+                    <Link to="/admin/divisions" className="text-sm text-blue-500 hover:underline font-normal">Manage Divisions &rarr;</Link>
+                </div>
             </h2>
 
             {message.text && (

@@ -20,7 +20,7 @@ const TeacherCreateQuiz = () => {
         subject: '',
         gradeLevel: '',
         durationInMinutes: 30,
-        academicYear: '2018',
+        academicYear: '2026',
         startDate: '',
         endDate: '',
         questions: [{ questionText: '', points: 1, options: [{ text: '', isCorrect: false }] }]

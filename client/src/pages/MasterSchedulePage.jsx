@@ -5,7 +5,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 
 const MasterSchedulePage = () => {
-    const [academicYear, setAcademicYear] = useState('2018');
+    const [academicYear, setAcademicYear] = useState('2026');
     const [masterData, setMasterData] = useState({}); // { "Grade 4A": [...], "Grade 4B": [...] }
     const [loading, setLoading] = useState(false);
 

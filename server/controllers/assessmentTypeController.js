@@ -21,7 +21,16 @@ exports.getAssessmentTypesBySubject = async (req, res) => {
 
     try {
         const assessmentTypes = await AssessmentType.find(filter).sort({ createdAt: 1 });
-        res.status(200).json({ success: true, data: assessmentTypes });
+        // Deduplicate by name, month, and semester
+        const uniqueMap = new Map();
+        assessmentTypes.forEach(at => {
+            const key = `${at.name}-${at.month}-${at.semester}`;
+            if (!uniqueMap.has(key)) {
+                uniqueMap.set(key, at);
+            }
+        });
+        const uniqueAssessmentTypes = Array.from(uniqueMap.values());
+        res.status(200).json({ success: true, data: uniqueAssessmentTypes });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }

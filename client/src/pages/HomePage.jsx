@@ -99,7 +99,12 @@ const HomePage = ({currentUser}) => {
     }
 
 
-    const { role, schoolLevel } = profileData;
+    const { role, schoolLevel } = profileData || {};
+
+    // --- Role-based Views ---
+    if (!role) {
+        return <div className="text-center mt-10">{t('loading')}</div>;
+    }
 
     // --- Admin View ---
     if (role === 'admin') {

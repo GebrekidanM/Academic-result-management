@@ -18,7 +18,7 @@ const AddReportPage = () => {
 
     // --- State Management ---
     const [semester, setSemester] = useState('First Semester');
-    const [academicYear, setAcademicYear] = useState('2018');
+    const [academicYear, setAcademicYear] = useState('2026');
     const [conduct, setConduct] = useState('A');
     const [evaluations, setEvaluations] = useState(
         EVALUATION_AREAS.map(area => ({ area, result: 'G' }))

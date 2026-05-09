@@ -82,6 +82,8 @@ import TeacherQuizzesPage from './pages/TeacherQuizzesPage';
 import QuizResultPage from './pages/QuizResultPage';
 import TeacherQuizResults from './pages/TeacherQuizResults';
 import TeacherEditQuiz from './pages/TeacherEditQuiz';
+import GradingScaleManagementPage from './pages/GradingScaleManagementPage';
+import DivisionManagementPage from './pages/DivisionManagementPage';
 
 
 function App() {
@@ -185,6 +187,8 @@ function App() {
               <Route path='/settings' element={<SchoolSettingsPage />} />
               <Route path='/admin/semesters' element={<SemesterManagementPage />} />
               <Route path='/admin/upload-pdf' element={<PdfUploadPage />} />
+              <Route path='/admin/grading-scales' element={<GradingScaleManagementPage />} />
+              <Route path='/admin/divisions' element={<DivisionManagementPage />} />
             </Route>
           </Route>
           

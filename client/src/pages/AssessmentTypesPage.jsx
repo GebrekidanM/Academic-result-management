@@ -130,9 +130,16 @@ const AssessmentTypesPage = () => {
     const allLocal = offlineAssessmentService.getLocalAssessments();
     offlineData = allLocal.filter(a => a.subject === selectedSubject._id);
 
-    // 3. Merge & Sort
-    // Filter out duplicates if any (though local items have TEMP_ IDs so unlikely)
-    const merged = [...onlineData, ...offlineData].sort(
+    // 3. Merge & Sort with deduplication by name, month, and semester
+    const combined = [...onlineData, ...offlineData];
+    const uniqueMap = new Map();
+    combined.forEach(item => {
+        const key = `${item.name}-${item.month}-${item.semester}`;
+        if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, item);
+        }
+    });
+    const merged = Array.from(uniqueMap.values()).sort(
         (a, b) => MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month)
     );
     

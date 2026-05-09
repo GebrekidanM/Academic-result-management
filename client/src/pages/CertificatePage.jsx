@@ -28,7 +28,7 @@ const CertificatePage = () => {
     const [formData, setFormData] = useState({
         grade: '',
         semester: 'First Semester',
-        academicYear: '2018',
+        academicYear: '2026',
         awardDate: new Date().toLocaleDateString('en-GB'),
         designType: 'standard'
     });

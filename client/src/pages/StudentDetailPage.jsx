@@ -63,7 +63,7 @@ const StudentDetailPage = () => {
                     const currentYearFallback = new Date().getFullYear().toString(); // Simple fallback
                     const academicYear = fetchedGrades.length > 0 ? fetchedGrades[0].academicYear 
                                      : reports.length > 0 ? reports[0].academicYear 
-                                     : '2017'; // Or calculate based on Ethiopian calendar logic if needed
+                                     : '2026'; // Or calculate based on Ethiopian calendar logic if needed
 
                     // Call the Service Helper
                     const rankResult = await rankService.getRankByStudent(id, gradeLevel, academicYear);
