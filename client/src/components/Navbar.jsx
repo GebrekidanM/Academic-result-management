@@ -1,222 +1,230 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; 
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  BookOpen,
+  LayoutDashboard,
+  Users,
+  BarChart3,
+  Settings,
+  ChevronDown,
+  GraduationCap,
+  ClipboardList,
+  Bell
+} from 'lucide-react';
+
 import authService from '../services/authService';
 import studentAuthService from '../services/studentAuthService';
 import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
+import MobileSidebar from './MobileSideBar'; // Ensure this path is correct
 
-// --- Helper Component for Dropdowns ---
-const NavDropdown = ({ title, children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+// --- Premium SaaS Mega Dropdown ---
+const MegaMenu = ({ title, items }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef();
 
-  // Close dropdown if clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
+    const close = (e) => {
+      if (!ref.current?.contains(e.target)) setOpen(false);
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  },[]);
 
   return (
-    <div className="relative block md:inline-block" ref={dropdownRef}>
+    <div ref={ref} className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="text-white font-bold py-2 px-3 rounded-md hover:bg-gray-700 flex items-center gap-1 w-full md:w-auto justify-between"
+        onClick={() => setOpen(!open)}
+        className={`flex items-center font-extrabold gap-1.5 px-3 py-2 text-sm rounded-lg transition-colors focus:outline-none ${
+            open ? 'bg-slate-100 text-pink-600' : 'text-slate-600 hover:bg-slate-50 hover:text-pink-600'
+        }`}
       >
         {title}
-        <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"></path></svg>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
-      
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div 
-            className="md:absolute right-0 mt-2 w-full md:w-56 bg-white rounded-md shadow-lg z-50 overflow-hidden py-1 text-gray-800"
-            onClick={() => setIsOpen(false)} // Close menu when a link inside is clicked
-        >
-          {children}
+
+      {open && (
+        <div className="absolute left-1/2 -translate-x-1/2 mt-3 w-[520px] 
+                      bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 
+                        p-3 grid grid-cols-2 gap-2 z-50 animate-fade-in">
+          {items.map((item, i) => (
+            <NavLink
+              key={i}
+              to={item.to}
+              onClick={() => setOpen(false)}
+              className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors group"
+            >
+              <div className="mt-0.5 bg-slate-100 text-slate-500 p-1.5 rounded-lg group-hover:bg-blue-50 group-hover:text-pink-600 transition-colors">
+                <item.icon className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-sm font-extrabold text-slate-900">{item.label}</div>
+                <div className="text-xs text-slate-500 mt-0.5 leading-snug">{item.desc}</div>
+              </div>
+            </NavLink>
+          ))}
         </div>
       )}
     </div>
   );
 };
 
-// --- Main Navbar Component ---
-const Navbar = ({ isOpen, setIsOpen }) => {
-  const { t } = useTranslation(); 
-  const [currentUser, setCurrentUser] = useState(null);
-  const [currentStudent, setCurrentStudent] = useState(null);
+const Navbar = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [student, setStudent] = useState(null);
 
   useEffect(() => {
-    const user = authService.getCurrentUser();
-    const student = studentAuthService.getCurrentStudent();
-    if (user) setCurrentUser(user);
-    else if (student) setCurrentStudent(student);
-  }, []);
+    setUser(authService.getCurrentUser());
+    setStudent(studentAuthService.getCurrentStudent());
+  },[]);
 
-  const handleLogout = () => {
+  const logout = () => {
     authService.logout();
     studentAuthService.logout();
-    setCurrentUser(null);
-    setCurrentStudent(null);
     navigate('/');
     window.location.reload();
   };
 
-  const closeMenu = () => setIsOpen(false);
-
-  // Styles
-  const dropdownLinkClass = "block px-4 py-2 text-sm hover:bg-pink-100 hover:text-pink-600 transition-colors border-b md:border-none border-gray-100";
-  const navLinkClass = ({ isActive }) => 
-    `block md:inline-block text-white font-bold py-2 px-3 rounded-md transition-colors whitespace-nowrap ${isActive ? 'bg-pink-600' : 'hover:bg-gray-700'}`;
+  const navLink = ({ isActive }) =>
+    `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+      isActive
+        ? 'bg-blue-50 text-blue-700'
+        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+    }`;
 
   return (
-    <nav className="bg-gray-900 min-h-16 p-2 shadow-lg sticky top-0 z-50 font-sans print:hidden">
-      <div className="container mx-auto flex items-center justify-between flex-wrap">
-        
-        {/* Logo */}
-        <div className="flex items-center shrink-0 text-white mr-6">
-          <Link to={"/"} onClick={closeMenu} className="font-bold text-xl tracking-tight flex items-center gap-2">
-            {t('app_name')}
+    <>
+      <div className="sticky top-0 z-40 bg-zinc-150 backdrop-blur-md shadow-sm">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5  text-pink-600 font-bold text-lg tracking-tight hover:opacity-80 transition-opacity">
+            <div className="bg-pink-600 text-white p-1.5 rounded-lg">
+                <LayoutDashboard className="w-6 h-6" />
+            </div>
+            <span className='hidden min-[1000px]:block'>{t('app_name')}</span>
           </Link>
-        </div>
 
-        {/* Mobile Toggle Button */}
-        <div className="block md:hidden">
-          <button onClick={() => setIsOpen(!isOpen)} className="flex items-center px-3 py-2 border rounded text-gray-400 border-gray-600 hover:text-white hover:border-white">
-            <svg className="fill-current h-3 w-3" viewBox="0 0 20 20"><path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"/></svg>
-          </button>
-        </div>
+          {/* Center Nav (Desktop) */}
+          {user && (
+            <div className="hidden md:flex items-center gap-1">
+              
+              {user.role === 'teacher' && (
+                  <NavLink to="/students" className={navLink}>
+                    Students
+                  </NavLink>
+              )}
 
-        {/* Navigation Links */}
-        <div className={`w-full md:flex md:items-center md:w-auto ${isOpen ? 'block' : 'hidden'}`}>
-          <div className="text-sm md:grow md:flex md:items-center md:gap-2 mt-4 md:mt-0">
-            
-            {currentUser && (
-              <>
-                {/* 1. STUDENTS DROPDOWN (For Admin & Teachers) */}
-                {(currentUser.role === 'admin' || currentUser.role === 'staff') && <NavDropdown title={`🎓 ${t('students')}`}>
-                    <NavLink to="/students" className={dropdownLinkClass} onClick={closeMenu}>
-                        {t('students_list')}
-                    </NavLink>
-                    <NavLink to="/events/generator" className={dropdownLinkClass} onClick={closeMenu}>
-                        🎉 {t('event_cards')}
-                    </NavLink>
-                    {<NavLink to={'/high-scorers'} className={dropdownLinkClass} onClick={closeMenu}>
-                        High scorer
-                    </NavLink>}
-                    <NavLink to="/reports/batch" className={dropdownLinkClass} onClick={closeMenu}>Report Card</NavLink>
-                    <NavLink to="/id-cards" className={dropdownLinkClass} onClick={closeMenu}>
-                        🪪 ID Cards
-                    </NavLink>
-                    <NavLink to="/certificates" className={dropdownLinkClass} onClick={closeMenu}>
-                        🏆 Certificates
-                    </NavLink>
-                </NavDropdown>}
+              {/* Students */}
+              {(user.role === 'admin' || user.role === 'staff') && (
+                <MegaMenu
+                  title="Students"
+                  items={[
+                    { to: '/students', label: 'Student List', desc: 'Manage enrolled students', icon: Users },
+                    { to: '/reports/batch', label: 'Report Cards', desc: 'Generate terminal reports', icon: ClipboardList },
+                    { to: '/id-cards', label: 'ID Cards', desc: 'Print student ID badges', icon: GraduationCap },
+                    { to: '/high-scorers', label: 'High Scorers', desc: 'Top performing students', icon: GraduationCap },
+                    { to: '/certificates', label: 'Certificates', desc: 'Issue official certificates', icon: GraduationCap },
+                    { to: '/events/generator', label: 'Event Cards', desc: 'Design invitation cards', icon: GraduationCap },
+                  ]}
+                />
+              )}
 
-                {currentUser.role === "teacher" && <NavLink to="/students" className={navLinkClass} onClick={closeMenu}>
-                        {t('students_list')}
-                    </NavLink>}
+              {/* Academics */}
+              <MegaMenu
+                title="Academics"
+                items={[
+                  { to: '/grade-sheet', label: 'Enter Grades', desc: 'Manage student scores', icon: ClipboardList },
+                  { to: '/manage-assessments', label: 'Assessments', desc: 'Control exam types', icon: ClipboardList },
+                  { to: '/grade-sheet', label: 'Supportive Subjects', desc: 'Manage A/B scores', icon: ClipboardList },
+                  { to: '/roster', label: 'Class Roster', desc: 'View students by class', icon: Users },
+                  { to: '/master', label: 'Schedule', desc: 'View master timetable', icon: LayoutDashboard },
+                ]}
+              />
 
-                {/* 2. ACADEMICS Dropdown */}
-                <NavDropdown title={`📝 ${t('academics')}`}>
-                  <NavLink to="/grade-sheet" className={dropdownLinkClass} onClick={closeMenu}>
-                    {t('enter_grades')}
-                  </NavLink>
-                  <NavLink to="/manage-assessments" className={dropdownLinkClass} onClick={closeMenu}>
-                    {t('manage_assessments')}
-                  </NavLink>
-                  <NavLink to={'/supportivesub'} className={dropdownLinkClass} onClick={closeMenu}>
-                        Supportive Subjects Grade
-                  </NavLink>
-                  
-                  {(currentUser.role === 'admin' || currentUser.homeroomGrade) && (
-                    <NavLink to="/roster" className={dropdownLinkClass} onClick={closeMenu}>
-                        {t('class_roster')}
-                    </NavLink>
-                  )}
-                  {(currentUser.role === 'admin') && (
-                    <NavLink to="/schedule" className={dropdownLinkClass} onClick={closeMenu}>
-                        {t('Schedule')}
-                    </NavLink>
-                  )}
-                  <NavLink to="/master" className={dropdownLinkClass} onClick={closeMenu}>
-                        {t('All Class Schedule')}
-                    </NavLink>
-                </NavDropdown>
+              {/* Analytics */}
+              <MegaMenu
+                title="Analytics"
+                items={[
+                  { to: '/analytics', label: 'Overview', desc: 'General performance insights', icon: BarChart3 },
+                  { to: '/subject-performance', label: 'Subjects', desc: 'Track subject metrics', icon: BarChart3 },
+                  { to: '/at-risk', label: 'At Risk', desc: 'Identify struggling students', icon: BarChart3 },
+                ]}
+              />
 
-                {/* 3. ANALYTICS Dropdown */}
-                <NavDropdown title={`📊 ${t('analytics')}`}>
-                  <NavLink to="/allsubjectAnalysis" className={dropdownLinkClass} onClick={closeMenu}>
-                    {t('class_matrix')}
-                  </NavLink>
-                  <NavLink to="/subject-performance" className={dropdownLinkClass} onClick={closeMenu}>
-                    {t('subject_performance')}
-                  </NavLink>
-                  <NavLink to="/analytics" className={dropdownLinkClass} onClick={closeMenu}>
-                    {t('subject_detail')}
-                  </NavLink>
-                  <NavLink to="/at-risk" className={dropdownLinkClass} onClick={closeMenu}>
-                    ⚠️ {t('at_risk')}
-                  </NavLink>
-                </NavDropdown>
+              {/* Admin */}
+              {user.role === 'admin' && (
+                <MegaMenu
+                  title="Admin"
+                  items={[
+                    { to: '/schedule', label: 'Schedule', desc: 'Manage timetable', icon: LayoutDashboard },
+                    { to: '/subjects', label: 'Subjects', desc: 'Manage curriculum', icon: Settings },
+                    { to: '/admin/users', label: 'Staff', desc: 'Manage system users', icon: Users },
+                    { to: '/send_notification', label: 'Notifications', desc: 'Send mass alerts', icon: Bell },
+                  ]}
+                />
+              )}
+            </div>
+          )}
 
-                {/* 4. ADMIN Dropdown */}
-                {currentUser.role === 'admin' && (
-                  <NavDropdown title={`⚙️ ${t('admin')}`}>
-                    <NavLink to="/subjects" className={dropdownLinkClass} onClick={closeMenu}>
-                        {t('manage_subjects')}
-                    </NavLink>
-                    <NavLink to="/admin/users" className={dropdownLinkClass} onClick={closeMenu}>
-                        {t('manage_staff')}
-                    </NavLink>
-                    <NavLink to={'/supportivelist'} className={dropdownLinkClass} onClick={closeMenu}>
-                        Supportive Subjects
-                    </NavLink>
-                    <NavLink to="/send_notification" className={dropdownLinkClass} onClick={closeMenu}>
-                        📢 Send Notification
-                    </NavLink>
-                  </NavDropdown>
-                )}
-              </>
-            )}
-          </div>
-          
-          {/* Right Side Icons (Library, Bell, Language, Logout) */}
-          <div className="mt-4 md:mt-0 flex items-center gap-4 position-relative">
-            
-            {(currentUser || currentStudent) && (
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            {/* Desktop Icons */}
+            <div className="hidden md:flex items-center gap-3">
+              {(user || student) && (
                 <>
-                    <NavLink to="/library"  className={navLinkClass} onClick={closeMenu}>
-                        📚
-                    </NavLink>
+                  <NavLink to="/library" className="text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-slate-50">
+                    <BookOpen className="w-5 h-5" />
+                  </NavLink>
+                  <div className="text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-slate-50">
                     <NotificationBell />
+                  </div>
                 </>
-            )}
-            
-            <LanguageSwitcher />
+              )}
 
-            {(currentUser || currentStudent) ? (
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white font-bold py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm"
-              >
-                {t('logout')}
-              </button>
-            ) : (
-              <NavLink to="/login" className={navLinkClass} onClick={closeMenu}>
-                {t('login')}
-              </NavLink>
-            )}
+              <div className="pl-2 border-l border-slate-200 flex items-center gap-3">
+                  <LanguageSwitcher />
+
+                  {(user || student) ? (
+                    <button
+                      onClick={logout}
+                      className="px-4 py-2 rounded-sm text-sm font-bold bg-red-600 border border-slate-200 text-neutral-100 hover:bg-slate-50 hover:text-red-600 transition-colors duration-150 focus:ring-2 focus:ring-slate-200"
+                    >
+                      Logout
+                    </button>
+                  ) : (
+                    <NavLink to="/login" className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm">
+                      Login
+                    </NavLink>
+                  )}
+              </div>
+            </div>
+
+            {/* Mobile Hamburger Button */}
+            <button
+                onClick={() => setMobileOpen(true)}
+                className="md:hidden p-2 -mr-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
           </div>
-        </div>
+        </nav>
       </div>
-    </nav>
+
+      {/* Render the Sidebar component directly in the Navbar layout */}
+      <MobileSidebar 
+         open={mobileOpen} 
+         setOpen={setMobileOpen} 
+         user={user} 
+         student={student} 
+         logout={logout} 
+      />
+    </>
   );
 };
 

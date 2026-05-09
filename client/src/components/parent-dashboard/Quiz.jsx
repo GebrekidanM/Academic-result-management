@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
-import { useEffect, useState } from "react";
+import React,{ useEffect, useState } from "react";
 
 const Quiz = ({ quiz, status }) => {
     const { t } = useTranslation();
@@ -82,4 +82,4 @@ const Quiz = ({ quiz, status }) => {
     );
 };
 
-export default Quiz;
+export default React.memo(Quiz);

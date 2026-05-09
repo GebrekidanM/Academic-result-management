@@ -115,7 +115,7 @@ function App() {
 
 
   return (
-    <div className="bg-gray-100 min-h-screen relative"> {/* Added relative for positioning */}
+    <div className="bg-surface-muted min-h-screen relative">
       
       {/* --- 3. ADD OFFLINE UI HERE --- */}
       <SyncStatus /> 
@@ -124,7 +124,7 @@ function App() {
           <Navbar isOpen={isOpen} setIsOpen={setIsOpen} /> 
       )}
 
-      <main className={"container mx-auto p-4"} onClick={()=> setIsOpen(false)}>
+      <main className={"container  mx-auto p-4"} onClick={()=> setIsOpen(false)}>
         <Routes>
           {/* ======= 1. PUBLIC ROUTES ======== */}
           <Route path="/login" element={<LoginPage />} />
@@ -158,13 +158,15 @@ function App() {
             <Route path="/teacher/quizzes/create" element={<TeacherCreateQuiz />} />
             <Route path='/teacher/quizzes/:id/results' element={<TeacherQuizResults />} />
             <Route path="/teacher/quizzes/edit/:id" element={<TeacherEditQuiz />} />
+            <Route path='/master' element={<MasterSchedulePage/>}/>
+            <Route path="/certificates" element={<CertificatePage />} />
+            <Route path="/id-cards" element={<StudentIDPage />} />
+            <Route path="/events/generator" element={<EventCardGenerator />} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
               <Route path="/reports/batch" element={<ClassReportGenerator />} />
               <Route path='send_notification' element={<SendNotificationPage/>}/>
-              <Route path="/certificates" element={<CertificatePage />} />
-              <Route path="/id-cards" element={<StudentIDPage />} />
-              <Route path="/events/generator" element={<EventCardGenerator />} />
+              
               <Route path='/otherprofile' element={<UserProfileEditPage/>}/>
               <Route path="/subjects" element={<SubjectListPage />} />
               <Route path="/subjects/add" element={<AddSubjectPage />} />
@@ -176,7 +178,6 @@ function App() {
               <Route path="/admin/users/:id" element={<UserEditPage />} />
               <Route path="/admin/users/import" element={<ImportUsersPage />} />
               <Route path='/schedule' element={<ScheduleManager/>}/>
-              <Route path='/master' element={<MasterSchedulePage/>}/>
             </Route>
           </Route>
           

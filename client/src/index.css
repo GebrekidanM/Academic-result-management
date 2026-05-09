@@ -2,9 +2,17 @@
 
 body {
   font-family: 'Lato', 'Noto Sans Ethiopic', 'Menbere',sans-serif;
+  background-color: rgb(238, 238, 240) !important;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease forwards;
+}

@@ -135,13 +135,13 @@ const AddStudentPage = () => {
                 <div className="flex bg-gray-100 p-1 rounded-xl">
                     <button 
                         onClick={() => { setRegMode('new'); setSuccess(null); setError(null); }}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${regMode === 'new' ? 'bg-white shadow text-pink-600' : 'text-gray-500'}`}
+                        className={` hover:bg-primary-hover px-4 py-2 rounded-lg text-sm font-bold transition-all ${regMode === 'new' ? 'bg-primary shadow text-pink-600' : 'text-gray-500'}`}
                     >
                         New Student
                     </button>
                     <button 
                         onClick={() => { setRegMode('returning'); setSuccess(null); setError(null); }}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${regMode === 'returning' ? 'bg-white shadow text-pink-600' : 'text-gray-500'}`}
+                        className={`hover:bg-primary-hover px-4 py-2 rounded-lg text-sm font-bold transition-all ${regMode === 'returning' ? 'bg-primary shadow text-pink-600' : 'text-gray-500'}`}
                     >
                         Returning Student
                     </button>
