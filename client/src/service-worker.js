@@ -45,7 +45,7 @@ self.addEventListener('push', function(event) {
     data = event.data.json();
   }
 
-  const title = data.title || "Freedom SMS V6";
+  const title = data.title || "Freedom SMS V7";
   const options = {
     body: data.body || "New notification",
     icon: "/er-192.png",
