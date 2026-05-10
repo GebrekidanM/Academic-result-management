@@ -1,5 +1,6 @@
 import React from "react";
 import SubjectCard from "./SubjectCard";
+import AskAIChat from "./AskAIChat"; 
 
 const SemesterDetails = ({ semesterName, subjects, semesterRank,onGenerateAI, aiInsight,aiLoading}) => {
   const semesterAverage = subjects.length > 0 ? (subjects.reduce((sum, s) => sum + s.percentage, 0) / subjects.length) : 0;
@@ -23,10 +24,10 @@ const SemesterDetails = ({ semesterName, subjects, semesterRank,onGenerateAI, ai
               </h3>
             </div>
 
-            <div className="bg-indigo-50 border border-indigo-100 px-5 py-3 rounded-xl">
+            {semesterRank.length < 1  && <div className="bg-indigo-50 border border-indigo-100 px-5 py-3 rounded-xl">
               <p className="text-xs uppercase tracking-wider text-indigo-600 font-black"> Semester Rank </p>
               <h3 className="text-xl font-black text-indigo-700 mt-1"> {semesterRank || "-"} </h3>
-            </div>
+            </div>}
           </div>
         </div>
       </div>
@@ -136,6 +137,10 @@ const SemesterDetails = ({ semesterName, subjects, semesterRank,onGenerateAI, ai
               <p className="text-sm text-purple-700 leading-relaxed">
                 {aiInsight.parentGuidance}
               </p>
+            </div>
+
+            <div className="mt-8 border-t border-slate-100 pt-6">
+                <AskAIChat semesterName={semesterName} subjects={subjects} />
             </div>
           </div>
         )}

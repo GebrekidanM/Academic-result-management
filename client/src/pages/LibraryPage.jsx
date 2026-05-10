@@ -6,19 +6,21 @@ import authService from '../services/authService';
 const LibraryPage = () => {
     const { t } = useTranslation();
     const [currentUser] = useState(authService.getCurrentUser());
+    
     // --- Data State ---
     const [resources, setResources] = useState([]);
     const [filteredResources, setFilteredResources] = useState([]);
     const [loading, setLoading] = useState(true);
     
     // --- Filter State ---
-    const [filterGrade, setFilterGrade] = useState('');
+    const[filterGrade, setFilterGrade] = useState('');
     const [filterSubject, setFilterSubject] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
+    const[searchTerm, setSearchTerm] = useState('');
 
-    // --- Upload Form State ---
+    // --- Form & UI State ---
     const [showUpload, setShowUpload] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const[uploadError, setUploadError] = useState(''); // Added to replace alerts
     const [uploadData, setUploadData] = useState({ 
         title: '', 
         type: 'Book', 
@@ -28,102 +30,96 @@ const LibraryPage = () => {
         cover: null    
     });
 
-    // --- 1. LOAD DATA ---
+    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB Limit
+
     useEffect(() => {
         const fetchLib = async () => {
             try {
                 const res = await libraryService.getAll();
-                setResources(res.data.data);
-                setFilteredResources(res.data.data);
+                setResources(res.data.data ||[]);
             } catch (err) { 
                 console.error("Error loading library:", err); 
-            } 
-            finally { 
+            } finally { 
                 setLoading(false); 
             }
         };
         fetchLib();
-    }, []);
+    },[]);
 
-    // --- 2. FILTER LOGIC ---
     useEffect(() => {
         let result = resources;
-
-        // Filter by Grade
-        if (filterGrade) {
-            result = result.filter(r => r.gradeLevel === filterGrade);
-        }
-        
-        // Filter by Subject
-        if (filterSubject) {
-            result = result.filter(r => r.subject.toLowerCase().includes(filterSubject.toLowerCase()));
-        }
-        
-        // Filter by Search Title
-        if (searchTerm) {
-            result = result.filter(r => r.title.toLowerCase().includes(searchTerm.toLowerCase()));
-        }
-
+        if (filterGrade) result = result.filter(r => r.gradeLevel === filterGrade);
+        if (filterSubject) result = result.filter(r => r.subject.toLowerCase().includes(filterSubject.toLowerCase()));
+        if (searchTerm) result = result.filter(r => r.title.toLowerCase().includes(searchTerm.toLowerCase()));
         setFilteredResources(result);
     }, [filterGrade, filterSubject, searchTerm, resources]);
 
-    // --- 3. UPLOAD HANDLER ---
+    // --- UPLOAD HANDLER ---
     const handleUpload = async (e) => {
         e.preventDefault();
+        setUploadError(''); // Clear previous errors
         
-        // Validation
+        // 1. Safe Validation
         if (!uploadData.file) {
-            alert("Please select a main document file (PDF).");
+            setUploadError("Please select a main document file (PDF).");
+            return;
+        }
+
+        if (uploadData.file.size > MAX_FILE_SIZE) {
+            setUploadError(`File is too large. Maximum size is 15MB.`);
+            return;
+        }
+
+        if (uploadData.cover && uploadData.cover.size > 5 * 1024 * 1024) {
+            setUploadError(`Cover image must be under 5MB.`);
             return;
         }
 
         const formData = new FormData();
-        
-        // Append Text Fields
         formData.append('title', uploadData.title);
         formData.append('type', uploadData.type);
         formData.append('gradeLevel', uploadData.gradeLevel);
         formData.append('subject', uploadData.subject);
-        
-        // Append Files (Must match backend: .fields([{name: 'file'}, {name: 'cover'}]))
         formData.append('file', uploadData.file);
         
-        if (uploadData.cover) {
-            formData.append('cover', uploadData.cover);
-        }
+        if (uploadData.cover) formData.append('cover', uploadData.cover);
 
         setUploading(true);
         try {
             const res = await libraryService.upload(formData);
-            // Add new item to top of list
-            const newResource = res.data.data;
-            setResources([newResource, ...resources]);
+            setResources([res.data.data, ...resources]);
             
-            // Reset Form
+            // Reset Form smoothly
             setShowUpload(false);
             setUploadData({ title: '', type: 'Book', gradeLevel: '', subject: '', file: null, cover: null });
-            alert(t('success_save'));
         } catch (err) {
             console.error(err);
-            alert(t('error') || "Upload failed.");
+            setUploadError(t('error') || "Upload failed. Please check your network.");
         } finally {
             setUploading(false);
         }
     };
 
-    // --- 4. DELETE HANDLER ---
+    // --- SAFE FILE SELECTION ---
+    const handleFileChange = (e, fieldName) => {
+        const file = e.target.files[0];
+        if (file) {
+            setUploadData({ ...uploadData, [fieldName]: file });
+            setUploadError(''); // Clear error if they pick a new file
+        }
+    };
+
+    // --- DELETE HANDLER ---
     const handleDelete = async (id) => {
-        if(!window.confirm(t('delete_confirm') || "Delete this file?")) return;
+        if(!window.confirm(t('delete_confirm') || "Are you sure you want to delete this resource?")) return;
         try {
             await libraryService.remove(id);
             setResources(resources.filter(r => r._id !== id));
         } catch(err) { 
-            alert(t('error')); 
+            alert(t('error') || "Failed to delete."); 
         }
     };
 
-    // --- HELPER: Resolve URL ---
-    // Handles if the URL is absolute (Cloudinary) or relative (Local)
     const getFileUrl = (path) => {
         if (!path) return '#';
         if (path.startsWith('http')) return path; 
@@ -239,6 +235,11 @@ const LibraryPage = () => {
                             </div>
                         </div>
 
+                        {uploadError && (
+                            <div className="md:col-span-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm border border-red-200">
+                                ⚠️ {uploadError}
+                            </div>
+                            )}    
                         <button type="submit" disabled={uploading} className="md:col-span-2 w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-md transition-all disabled:opacity-50">
                             {uploading ? t('uploading') : t('submit_upload')}
                         </button>

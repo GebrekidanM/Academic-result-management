@@ -147,4 +147,60 @@ const getSavedSemesterInsight = async (req, res) => {
   }
 };
 
-module.exports = { generateSemesterInsight, getSavedSemesterInsight };
+// Add this below your existing functions
+const askSemesterQuestion = async (req, res) => {
+  try {
+    const { semester, analytics, question, language } = req.body;
+
+    if (!analytics || !question) {
+      return res.status(400).json({ success: false, message: "Missing data or question" });
+    }
+
+    // Language Map
+    const languageMap = {
+      en: "English",
+      am: "Amharic",
+      om: "Afaan Oromo",
+      ti: "Tigrinya",
+      so: "Somali",
+      af: "Afar"
+    };
+    const selectedLanguage = languageMap[language] || "English";
+
+    // Dynamic Prompt
+    const prompt = `
+      You are an expert, encouraging educational counselor talking directly to a parent.
+      You have access to the student's data for ${semester}:
+      ${JSON.stringify(analytics)}
+
+      The parent is asking you this question:
+      "${question}"
+
+      Rules:
+      - Answer clearly, briefly, and professionally.
+      - Base your answer ONLY on the provided data.
+      - Be empathetic and supportive.
+      - Respond in ${selectedLanguage}.
+      - Do not use markdown backticks or complex formatting, just standard text formatting.
+    `;
+
+    // Normal text generation (No JSON mode needed for a chat response)
+    const result = await model.generateContent(prompt);
+    const answer = result.response.text();
+
+    res.status(200).json({
+      success: true,
+      answer: answer.trim()
+    });
+
+  } catch (err) {
+    console.error("Ask AI Error:", err);
+    res.status(500).json({ success: false, message: "Failed to process question" });
+  }
+};
+
+module.exports = { 
+  generateSemesterInsight, 
+  getSavedSemesterInsight, 
+  askSemesterQuestion 
+};
