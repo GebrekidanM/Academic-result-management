@@ -18,7 +18,7 @@ const TeacherCreateQuiz = () => {
         title: '',
         description: '',
         subject: '',
-        gradeLevel: '',
+        gradeLevel: [],
         durationInMinutes: 30,
         academicYear: '2018',
         startDate: '',
@@ -41,10 +41,12 @@ const TeacherCreateQuiz = () => {
     }, [currentUser]);
 
     useEffect(() => {
-        if (quizData.gradeLevel) {
-            subjectService.getSubjectsByGrade(quizData.gradeLevel).then(res => {
+        if (quizData.gradeLevels.length > 0) {
+            subjectService.getSubjectsByGrade(quizData.gradeLevel[0]).then(res => {
                 setAvailableSubjects(res);
             });
+        } else {
+            setAvailableSubjects([]);
         }
     }, [quizData.gradeLevel]);
 
@@ -59,10 +61,10 @@ const TeacherCreateQuiz = () => {
     };
 
     const handleSave = async () => {
-        if (!quizData.subject || !quizData.gradeLevel) {
+        if (!quizData.subject || !quizData.gradeLevel.length === 0) {
             return alert("Please fill in Subject and Grade Level!");
         }
-        if (!quizData.subject || !quizData.gradeLevel || !quizData.title) {
+        if (!quizData.subject || !quizData.gradeLevel.length === 0 || !quizData.title) {
             return alert("Please fill in Title, Subject, and Grade Level!");
         }
 
@@ -96,10 +98,30 @@ const TeacherCreateQuiz = () => {
                     <input placeholder="Quiz Title" className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" onChange={e => setQuizData({...quizData, title: e.target.value})} />
                     <input type="number" placeholder="Duration (minutes)" className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none" onChange={e => setQuizData({...quizData, durationInMinutes: e.target.value})} />
                     
-                    <select className="bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none" value={quizData.gradeLevel} onChange={e => setQuizData({...quizData, gradeLevel: e.target.value})}>
-                        <option value="">Select Grade</option>
-                        {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
+                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none">
+                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Select Grade Levels</p>
+                        <div className="flex flex-wrap gap-3">
+                            {availableGrades.map(g => (
+                                <label key={g} className="flex items-center gap-2">
+                                    <input 
+                                        type="checkbox" 
+                                        value={g}
+                                        checked={quizData.gradeLevel.includes(g)}
+                                        onChange={(e) => {
+                                            const { value, checked } = e.target;
+                                            setQuizData(prev => ({
+                                                ...prev,
+                                                gradeLevel: checked 
+                                                    ?[...prev.gradeLevel, value] 
+                                                    : prev.gradeLevel.filter(item => item !== value)
+                                            }));
+                                        }}
+                                    />
+                                    {g}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
 
                     <select className="bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none" value={quizData.subject} onChange={e => setQuizData({...quizData, subject: e.target.value})}>
                         <option value="">Select Subject</option>
