@@ -24,9 +24,9 @@ const TeacherEditQuiz = () => {
             if (id) {
                 const res = await quizService.getQuizForEdit(id);
                 const data = res.data.data;
-                // Format dates to YYYY-MM-DDThh:mm for input compatibility
                 setQuizData({
                     ...data,
+                    gradeLevel: Array.isArray(data.gradeLevel) ? data.gradeLevel : (data.gradeLevel ? [data.gradeLevel] :[]),
                     startDate: data.startDate ? new Date(data.startDate).toISOString().substring(0, 16) : '',
                     endDate: data.endDate ? new Date(data.endDate).toISOString().substring(0, 16) : ''
                 });
@@ -36,10 +36,12 @@ const TeacherEditQuiz = () => {
     }, [id, currentUser]);
 
     useEffect(() => {
-        if (quizData?.gradeLevel) {
-            subjectService.getSubjectsByGrade(quizData.gradeLevel).then(res => {
-                setAvailableSubjects(res.data?.data || []);
+        if (quizData?.gradeLevel?.length > 0) {
+            subjectService.getSubjectsByGrade(quizData.gradeLevel[0]).then(res => {
+                setAvailableSubjects(res.data?.data ||[]);
             });
+        } else {
+            setAvailableSubjects([]);
         }
     }, [quizData?.gradeLevel]);
 
@@ -54,7 +56,7 @@ const TeacherEditQuiz = () => {
     };
 
     const handleSave = async () => {
-        if (!quizData.title || !quizData.subject || !quizData.gradeLevel) {
+         if (!quizData.title || !quizData.subject || !quizData.gradeLevel || quizData.gradeLevel.length === 0) {
             return alert("Please fill in Title, Subject, and Grade Level!");
         }
         const isInvalid = quizData.questions.some(q => !q.options.some(o => o.isCorrect));
@@ -86,10 +88,31 @@ const TeacherEditQuiz = () => {
                     <input value={quizData.title} placeholder="Quiz Title" className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none" onChange={e => setQuizData({...quizData, title: e.target.value})} />
                     <input type="number" value={quizData.durationInMinutes} placeholder="Duration (min)" className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none" onChange={e => setQuizData({...quizData, durationInMinutes: e.target.value})} />
                     
-                    <select className="bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none" value={quizData.gradeLevel} onChange={e => setQuizData({...quizData, gradeLevel: e.target.value})}>
-                        <option value="">Select Grade</option>
-                        {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
+                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                        <label className="block text-xs font-black uppercase text-slate-400 mb-2">Select Grade Levels</label>
+                        <div className="flex flex-wrap gap-4">
+                            {availableGrades.map(g => (
+                                <label key={g} className="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        value={g}
+                                        checked={quizData.gradeLevel?.includes(g)}
+                                        onChange={(e) => {
+                                            const { value, checked } = e.target;
+                                            setQuizData(prev => ({
+                                                ...prev,
+                                                gradeLevel: checked 
+                                                    ?[...prev.gradeLevel, value] 
+                                                    : prev.gradeLevel.filter(item => item !== value)
+                                            }));
+                                        }}
+                                        className="w-4 h-4 text-indigo-600 rounded"
+                                    />
+                                    <span className="text-sm text-slate-700">{g}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
 
                     <select className="bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none" value={quizData.subject} onChange={e => setQuizData({...quizData, subject: e.target.value})}>
                         <option value="">Select Subject</option>
