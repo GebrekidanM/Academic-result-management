@@ -41,7 +41,7 @@ const TeacherCreateQuiz = () => {
     }, [currentUser]);
 
     useEffect(() => {
-        if (quizData.gradeLevels.length > 0) {
+        if (quizData.gradeLevel.length > 0) {
             subjectService.getSubjectsByGrade(quizData.gradeLevel[0]).then(res => {
                 setAvailableSubjects(res);
             });
