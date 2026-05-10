@@ -6,42 +6,35 @@ import quizService from "../../services/quizService";
 
 const QuizCenter = ({ quizzes, quizStatuses }) => {
   const navigate = useNavigate();
-
   const[showCompleted, setShowCompleted] = useState(false);
   const [serverTimeOffset, setServerTimeOffset] = useState(0);
 
 
-    useEffect(() => {
-        const syncServerTime = async () => {
-          try {
-            const start = Date.now();
-            const response = await quizService.getTime(); 
-            const data = response.data; 
+   useEffect(() => {
+    const syncServerTime = async () => {
+      try {
+        const startReq = Date.now();
+        const response = await quizService.getTime();
+        const endReq = Date.now();
 
-            if (data && data.success) {
-              const end = Date.now();
-              const serverTime = new Date(data.serverTime).getTime();
-              const latency = (end - start) / 2;
-              
-              const offset = (serverTime + latency) - end;
-              setServerTimeOffset(offset);
-            }
-          } catch (err) {
-            console.warn("Time sync failed", err);
-            setServerTimeOffset(0);
-          }
-        };
+        // data is from your verified JSON: {"success":true,"serverTime":"..."}
+        const serverTime = new Date(response.data.serverTime).getTime();
         
-        syncServerTime();
-    }, []);
+        // Calculate network latency
+        const latency = (endReq - startReq) / 2;
+        
+        // Offset = (Actual Server Time) - (Device Time)
+        const offset = (serverTime + latency) - endReq;
+        setServerTimeOffset(offset);
+      } catch (err) {
+        console.error("Time sync failed:", err);
+      }
+    };
+    syncServerTime();
+  }, []);
 
-  const pendingQuizzes = quizzes.filter(
-    (quiz) => quizStatuses[quiz._id] && !quizStatuses[quiz._id].hasTaken
-  );
-
-  const completedQuizzes = quizzes.filter(
-    (quiz) => quizStatuses[quiz._id] && quizStatuses[quiz._id].hasTaken
-  );
+  const pendingQuizzes = quizzes.filter(q => quizStatuses[q._id] && !quizStatuses[q._id].hasTaken);
+  const completedQuizzes = quizzes.filter(q => quizStatuses[q._id] && quizStatuses[q._id].hasTaken);
 
   return (
     <div className="space-y-8">
@@ -75,15 +68,15 @@ const QuizCenter = ({ quizzes, quizStatuses }) => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {pendingQuizzes.map((quiz) => (
-              <Quiz
-                key={quiz._id}
-                quiz={quiz}
-                status={quizStatuses[quiz._id]}
-                serverTimeOffset={serverTimeOffset}
-              />
-            ))}
-          </div>
-        )}
+                <Quiz
+                  key={quiz._id}
+                  quiz={quiz}
+                  status={quizStatuses[quiz._id]}
+                  serverTimeOffset={serverTimeOffset}
+                />
+              ))}
+            </div>
+          )}
       </section>
 
       {/* COMPLETED */}

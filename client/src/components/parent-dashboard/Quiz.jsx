@@ -6,7 +6,6 @@ const Quiz = ({ quiz, status, serverTimeOffset }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     
-    // Timer synchronized with the Server Time Offset
     const [now, setNow] = useState(Date.now() + serverTimeOffset);
 
     useEffect(() => {
@@ -16,70 +15,47 @@ const Quiz = ({ quiz, status, serverTimeOffset }) => {
         return () => clearInterval(interval);
     }, [serverTimeOffset]);
 
-    if (!status) return <div className="text-xs p-2 text-slate-400 italic">{t('loading')}...</div>;
-
-    const getAbsoluteTime = (dateString) => {
-        if (!dateString) return 0;
-        const str = dateString.toString();
-        const safeStr = (str.includes('Z') || str.includes('+')) ? str : `${str}Z`;
-        return new Date(safeStr).getTime();
+    const getSafeTime = (dateStr) => {
+        if (!dateStr) return 0;
+        const iso = dateStr.endsWith('Z') ? dateStr : `${dateStr}Z`;
+        return new Date(iso).getTime();
     };
 
-    const start = getAbsoluteTime(quiz.startDate);
-    const end = getAbsoluteTime(quiz.endDate);
+    const start = getSafeTime(quiz.startDate);
+    const end = getSafeTime(quiz.endDate);
 
-    // Use synchronized 'now' to determine state
     const isNotStarted = now < start;
     const isExpired = now > end;
     const isActive = !isNotStarted && !isExpired;
 
-    const formatStartDate = (dateStr) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString(undefined, { 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
+    const getStatusText = () => {
+        if (isNotStarted) return `${t('starts')}: ${new Date(start).toLocaleString()}`;
+        if (isExpired) return t('expired');
+        
+        const diff = end - now;
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        return `${h}h ${m}m ${s}s`;
     };
 
-    let statusText = "";
-    if (isNotStarted) {
-        statusText = `${t('starts')}: ${formatStartDate(quiz.startDate)}`;
-    } else if (isExpired) {
-        statusText = t('expired');
-    } else {
-        const diff = end - now;
-        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
-        statusText = `${d > 0 ? d + 'd ' : ''}${h}h ${m}m ${s}s`;
-    }
-
     return (
-        <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
             <div>
                 <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-slate-800 text-md">{quiz.title}</h3>
+                    <h3 className="font-bold text-slate-800">{quiz.title}</h3>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        isExpired ? 'bg-red-100 text-red-600' : 
-                        isNotStarted ? 'bg-blue-100 text-blue-600' : 
-                        'bg-amber-50 text-amber-600'
+                        isExpired ? 'bg-red-100 text-red-600' : 'bg-amber-50 text-amber-600'
                     }`}>
-                        {statusText}
+                        {getStatusText()}
                     </span>
                 </div>
-                <p className="text-slate-500 text-xs mb-4">{quiz.description}</p>
             </div>
-            
             <button 
                 onClick={() => navigate(`/quiz/take/${quiz._id}`)}
                 disabled={!isActive}
-                className={`w-full py-2 rounded-lg font-bold text-sm transition-colors ${
-                    !isActive 
-                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
-                    : 'bg-slate-800 text-white hover:bg-slate-900'
+                className={`w-full py-2 mt-4 rounded-lg font-bold ${
+                    isActive ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-400'
                 }`}
             >
                 {isNotStarted ? t('upcoming') : isExpired ? t('expired') : t('start_quiz')}
