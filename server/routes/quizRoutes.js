@@ -8,6 +8,7 @@ router.post('/', protect, authorize('teacher'), quizController.createQuiz);
 router.get('/teacher', protect, authorize('teacher'), quizController.getTeacherQuizzes);
 
 // STUDENT ROUTES
+router.get('/time', quizController.getServerTime);
 router.get('/available', protectStudent, quizController.getAvailableQuizzes);
 router.get('/:id/status', protectStudent, quizController.getQuizStatus);
 router.get('/:id/take', protectStudent, quizController.getQuizToTake);
@@ -18,7 +19,6 @@ router.get('/:id/analytics',protect,authorize('teacher'),quizController.getQuizA
 router.put('/:id',protect,authorize('teacher'),quizController.updateQuiz)
 router.get('/:id/edit',protect,authorize('teacher'),quizController.getQuizForEdit)
 router.delete('/:id/delete',protect,authorize('teacher'),quizController.deleteQuiz)
-router.get('/time', quizController.getServerTime);
 
 
 module.exports = router;

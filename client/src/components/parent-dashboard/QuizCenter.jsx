@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Quiz from "./Quiz";
-import {api} from '../../services/api'
+import quizService from "../../services/quizService";
+
 
 const QuizCenter = ({ quizzes, quizStatuses }) => {
   const navigate = useNavigate();
@@ -9,39 +10,30 @@ const QuizCenter = ({ quizzes, quizStatuses }) => {
   const[showCompleted, setShowCompleted] = useState(false);
   const [serverTimeOffset, setServerTimeOffset] = useState(0);
 
-  // Synchronize server time once when the component mounts
-  useEffect(() => {
-    const syncServerTime = async () => {
-      try {
-        const start = Date.now();
-        
-        const res = await fetch(`${api}/api/quizzes/time?t=${Date.now()}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache'
+
+    useEffect(() => {
+        const syncServerTime = async () => {
+          try {
+            const start = Date.now();
+            const response = await quizService.getTime(); 
+            const data = response.data; 
+
+            if (data && data.success) {
+              const end = Date.now();
+              const serverTime = new Date(data.serverTime).getTime();
+              const latency = (end - start) / 2;
+              
+              const offset = (serverTime + latency) - end;
+              setServerTimeOffset(offset);
+            }
+          } catch (err) {
+            console.warn("Time sync failed", err);
+            setServerTimeOffset(0);
           }
-        }); 
+        };
         
-        if (res.ok) {
-          const data = await res.json();
-          const end = Date.now();
-          
-          // Parse the ISO string sent from the backend
-          const serverTime = new Date(data.serverTime).getTime();
-          const latency = (end - start) / 2;
-          
-          // Calculate how far off the local clock is from the server clock
-          const offset = (serverTime + latency) - end;
-          setServerTimeOffset(offset);
-        }
-      } catch (err) {
-        console.warn("Time sync failed, falling back to local time.", err);
-        setServerTimeOffset(0);
-      }
-    };
-    
-    syncServerTime();
-  },[]);
+        syncServerTime();
+    }, []);
 
   const pendingQuizzes = quizzes.filter(
     (quiz) => quizStatuses[quiz._id] && !quizStatuses[quiz._id].hasTaken

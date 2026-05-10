@@ -53,6 +53,10 @@ const remove = (id)=>{
     return api.delete(`${API_URL}${id}/delete`)
 }
 
+const getTime = ()=>{
+     return api.get(`/quizzes/time?t=${Date.now()}`); 
+}
+
 const quizService = {
     getQuizForEdit,
     updateQuiz,
@@ -65,7 +69,8 @@ const quizService = {
     getQuizAnalytics,
     getQuizStatus,
     getQuizAttempts,
-    remove
+    remove,
+    getTime
 };
 
 export default quizService;
