@@ -118,13 +118,17 @@ const TeacherEditQuiz = () => {
                         <option value="">Select Subject</option>
                         {availableSubjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                     </select>
-                    <div className='flex flxe-col gap-1'>
-                        <label>Start time:</label>
-                        <input type="datetime" value={quizData.startDate} className="bg-slate-50 border border-slate-200 p-3 rounded-xl" onChange={e => setQuizData({...quizData, startDate: e.target.value})} />
+                    <div className='flex flex-col gap-1'>
+                        <label className="text-xs font-bold text-slate-500 uppercase ml-1">
+                            Start Time
+                        </label>
+                        <input type="datetime-local" value={quizData.startDate} className="bg-slate-50 border border-slate-200 p-3 rounded-xl" onChange={e => setQuizData({...quizData, startDate: e.target.value})} />
                     </div>
-                    <div className='flex flxe-col gap-1'>
-                        <label>End time:</label>
-                        <input type="datetime" value={quizData.endDate} className="bg-slate-50 border border-slate-200 p-3 rounded-xl" onChange={e => setQuizData({...quizData, endDate: e.target.value})} />
+                    <div className='flex flex-col gap-1'>
+                        <label className="text-xs font-bold text-slate-500 uppercase ml-1">
+                            End Time
+                        </label>
+                        <input type="datetime-local" value={quizData.endDate} className="bg-slate-50 border border-slate-200 p-3 rounded-xl" onChange={e => setQuizData({...quizData, endDate: e.target.value})} />
                     </div>
                 </div>
             </div>
