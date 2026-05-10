@@ -15,6 +15,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 // ... existing requires
 const {performBackup} = require('./utils/backup');
+
 // --- Routes ---
 app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
@@ -55,6 +56,13 @@ const seedAdminUser = async () => {
     console.error('❌ Error during admin user seeding:', error);
   }
 };
+
+// Add this route in your Express app
+app.get('/api/time', (req, res) => {
+    res.json({ 
+        serverTime: new Date().toISOString() 
+    });
+});
 
 
 // --- STARTUP SEQUENCE ---

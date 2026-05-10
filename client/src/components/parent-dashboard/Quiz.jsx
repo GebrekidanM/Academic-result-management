@@ -1,31 +1,33 @@
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
-import React,{ useEffect, useState } from "react";
 
-const Quiz = ({ quiz, status }) => {
+const Quiz = ({ quiz, status, serverTimeOffset }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const [now, setNow] = useState(new Date());
+    
+    // Timer synchronized with the Server Time Offset
+    const [now, setNow] = useState(Date.now() + serverTimeOffset);
 
-    // This makes the timer tick every second
     useEffect(() => {
-        const interval = setInterval(() => setNow(new Date()), 1000);
+        const interval = setInterval(() => {
+            setNow(Date.now() + serverTimeOffset);
+        }, 1000);
         return () => clearInterval(interval);
-    }, []);
+    }, [serverTimeOffset]);
 
     if (!status) return <div className="text-xs p-2 text-slate-400 italic">{t('loading')}...</div>;
 
-    // ... inside Quiz component
+    const start = new Date(quiz.startDate).getTime();
+    const end = new Date(quiz.endDate).getTime();
 
-    const start = new Date(quiz.startDate);
-    const end = new Date(quiz.endDate);
-
+    // Use synchronized 'now' to determine state
     const isNotStarted = now < start;
     const isExpired = now > end;
     const isActive = !isNotStarted && !isExpired;
 
-    // Helper to format the future date nicely
-    const formatStartDate = (date) => {
+    const formatStartDate = (dateStr) => {
+        const date = new Date(dateStr);
         return date.toLocaleDateString(undefined, { 
             month: 'short', 
             day: 'numeric', 
@@ -34,10 +36,9 @@ const Quiz = ({ quiz, status }) => {
         });
     };
 
-    // Determine status text/label
     let statusText = "";
     if (isNotStarted) {
-        statusText = `${t('starts')}: ${formatStartDate(start)}`;
+        statusText = `${t('starts')}: ${formatStartDate(quiz.startDate)}`;
     } else if (isExpired) {
         statusText = t('expired');
     } else {
@@ -61,14 +62,12 @@ const Quiz = ({ quiz, status }) => {
                     }`}>
                         {statusText}
                     </span>
-                    
                 </div>
                 <p className="text-slate-500 text-xs mb-4">{quiz.description}</p>
             </div>
             
             <button 
                 onClick={() => navigate(`/quiz/take/${quiz._id}`)}
-                // Disabled if not active
                 disabled={!isActive}
                 className={`w-full py-2 rounded-lg font-bold text-sm transition-colors ${
                     !isActive 
