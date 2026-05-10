@@ -8,15 +8,16 @@ const QuizCenter = ({ quizzes, quizStatuses }) => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [serverTimeOffset, setServerTimeOffset] = useState(0);
 
-  // Synchronize server time once when the component mounts
   useEffect(() => {
     const syncServerTime = async () => {
       try {
         const start = Date.now();
-        
-        // ⚠️ Replace '/api/time' with your actual backend endpoint that returns server time.
-        // Example response: { "serverTime": "2026-05-10T10:25:00Z" }
-        const res = await fetch('/api/time'); 
+        const res = await fetch(`/api/time?t=${Date.now()}`, { 
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache'
+            }
+        });
         
         if (res.ok) {
           const data = await res.json();
@@ -24,7 +25,6 @@ const QuizCenter = ({ quizzes, quizStatuses }) => {
           const serverTime = new Date(data.serverTime).getTime();
           const latency = (end - start) / 2;
           
-          // Calculate how far off the local clock is from the server clock
           const offset = (serverTime + latency) - end;
           setServerTimeOffset(offset);
         }

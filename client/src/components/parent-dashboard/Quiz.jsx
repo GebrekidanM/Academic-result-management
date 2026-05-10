@@ -18,8 +18,15 @@ const Quiz = ({ quiz, status, serverTimeOffset }) => {
 
     if (!status) return <div className="text-xs p-2 text-slate-400 italic">{t('loading')}...</div>;
 
-    const start = new Date(quiz.startDate).getTime();
-    const end = new Date(quiz.endDate).getTime();
+    const getAbsoluteTime = (dateString) => {
+        if (!dateString) return 0;
+        const str = dateString.toString();
+        const safeStr = (str.includes('Z') || str.includes('+')) ? str : `${str}Z`;
+        return new Date(safeStr).getTime();
+    };
+
+    const start = getAbsoluteTime(quiz.startDate);
+    const end = getAbsoluteTime(quiz.endDate);
 
     // Use synchronized 'now' to determine state
     const isNotStarted = now < start;

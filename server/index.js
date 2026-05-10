@@ -36,6 +36,11 @@ app.use('/api/supportive-grades',require('./routes/supportiveGradeRoutes'));
 app.use('/api/schedule',require('./routes/scheduleRoutes'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
+app.get('/api/time', (req, res) => {
+    res.json({ 
+        serverTime: new Date().toISOString() 
+    });
+});
 
 // --- Default admin seeding ---
 const seedAdminUser = async () => {
@@ -56,14 +61,6 @@ const seedAdminUser = async () => {
     console.error('❌ Error during admin user seeding:', error);
   }
 };
-
-// Add this route in your Express app
-app.get('/api/time', (req, res) => {
-    res.json({ 
-        serverTime: new Date().toISOString() 
-    });
-});
-
 
 // --- STARTUP SEQUENCE ---
 const startServer = async () => {
