@@ -63,9 +63,14 @@ const TeacherEditQuiz = () => {
         if (isInvalid) {
             return alert("Please ensure every question has a 'Correct' answer selected.");
         }
+        const finalData = {
+            ...quizData,
+            startDate: new Date(quizData.startDate).toISOString(),
+            endDate: new Date(quizData.endDate).toISOString()
+        };
 
         try {
-            await quizService.updateQuiz(id, quizData);
+            await quizService.updateQuiz(id, finalData);
             alert("Quiz updated successfully!");
             navigate('/teacher/quizzes');
         } catch (err) {

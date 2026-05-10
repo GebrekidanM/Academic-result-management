@@ -74,8 +74,13 @@ const TeacherCreateQuiz = () => {
             return alert("Please ensure every question has a 'Correct' answer selected.");
         }
 
+        const finalData = {
+            ...quizData,
+            startDate: new Date(quizData.startDate).toISOString(),
+            endDate: new Date(quizData.endDate).toISOString()
+        };
         try {
-            await quizService.createQuiz(quizData);
+            await quizService.createQuiz(finalData);
             alert("Quiz created successfully!");
             navigate('/teacher/quizzes');
         } catch (err) {
