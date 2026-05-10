@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Quiz from "./Quiz";
+import {api} from '../../services/api'
 
 const QuizCenter = ({ quizzes, quizStatuses }) => {
   const navigate = useNavigate();
@@ -14,9 +15,7 @@ const QuizCenter = ({ quizzes, quizStatuses }) => {
       try {
         const start = Date.now();
         
-        // 🔥 Use ?t=${Date.now()} to prevent mobile browsers from caching the time!
-        // NOTE: Adjust the URL if your backend runs on a different port (e.g., http://localhost:5000/api/quizzes/time)
-        const res = await fetch(`/api/quizzes/time?t=${Date.now()}`, {
+        const res = await fetch(`${api}/api/quizzes/time?t=${Date.now()}`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache'
