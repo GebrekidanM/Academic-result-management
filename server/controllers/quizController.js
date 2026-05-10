@@ -69,7 +69,7 @@ exports.getAvailableQuizzes = async (req, res) => {
             gradeLevel, 
             academicYear, 
             isActive: true 
-        }).populate('subject', 'name').select('-questions'); // Don't send questions in the list view
+        }).populate('subject', 'name').select('-questions');
 
         res.status(200).json({ success: true, data: quizzes });
     } catch (error) {
@@ -297,3 +297,12 @@ exports.deleteQuiz = async (req,res) => {
         res.status(500).json({message: "Server Error"})
     }
 }
+
+// @desc    Get exact server time for frontend countdown synchronization
+// @route   GET /api/quizzes/time  (or /api/time)
+exports.getServerTime = (req, res) => {
+    res.status(200).json({ 
+        success: true,
+        serverTime: new Date().toISOString() 
+    });
+};

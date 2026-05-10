@@ -36,11 +36,6 @@ app.use('/api/supportive-grades',require('./routes/supportiveGradeRoutes'));
 app.use('/api/schedule',require('./routes/scheduleRoutes'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
-app.get('/api/time', (req, res) => {
-    res.json({ 
-        serverTime: new Date().toISOString() 
-    });
-});
 
 // --- Default admin seeding ---
 const seedAdminUser = async () => {

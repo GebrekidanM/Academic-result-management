@@ -18,6 +18,7 @@ router.get('/:id/analytics',protect,authorize('teacher'),quizController.getQuizA
 router.put('/:id',protect,authorize('teacher'),quizController.updateQuiz)
 router.get('/:id/edit',protect,authorize('teacher'),quizController.getQuizForEdit)
 router.delete('/:id/delete',protect,authorize('teacher'),quizController.deleteQuiz)
+router.get('/time', quizController.getServerTime);
 
 
 module.exports = router;
