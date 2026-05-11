@@ -2,6 +2,11 @@ import React from "react";
 
 const DashboardHeader = ({ student, ranks, overallAvg }) => {
   if (!student) return null;
+ 
+  const isKindergarten = (gradeLevel) => {
+      if (!gradeLevel) return false;
+      return /^(kg|nursery|pre)/i.test(gradeLevel);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-gray-200 transition-all duration-200">
@@ -17,7 +22,7 @@ const DashboardHeader = ({ student, ranks, overallAvg }) => {
       {/* RIGHT: Key Metrics */}
       <div className="flex gap-3 flex-wrap justify-center md:justify-end">
         {/* Rank */}
-        {ranks.length < 1 && <div className="bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl text-center">
+        {!isKindergarten(student.gradeLevel) && <div className="bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl text-center">
           <p className="text-[10px] uppercase text-indigo-600 font-bold">Rank</p>
           <p className="text-lg font-black text-indigo-700">{ranks?.overall ?? "-"}</p>
         </div>}

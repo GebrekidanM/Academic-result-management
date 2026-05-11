@@ -228,6 +228,11 @@ const ParentDashboardPage = () => {
     </FadeContainer>
   );
 
+  const isKindergarten = (gradeLevel) => {
+      if (!gradeLevel) return false;
+      return /^(kg|nursery|pre)/i.test(gradeLevel);
+  };
+
   // =========================================
   // MAIN UI
   // =========================================
