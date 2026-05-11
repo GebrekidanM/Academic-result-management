@@ -9,11 +9,13 @@ const getSavedSemesterInsight = (params) => {
 };
 
 const askSemesterQuestion = (data) => api.post("/ai/ask-question", data);
+const askBookQuestion = (data) => api.post("/ai/ask-book", data);
 
 const aiService = {
   generateSemesterInsight,
   getSavedSemesterInsight,
-  askSemesterQuestion
+  askSemesterQuestion,
+  askBookQuestion
 };
 
 export default aiService;

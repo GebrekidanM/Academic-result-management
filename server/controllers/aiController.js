@@ -199,6 +199,51 @@ const askSemesterQuestion = async (req, res) => {
   }
 };
 
+const askBookQuestion = async (req, res) => {
+  try {
+    const { title, subject, gradeLevel, question, language } = req.body;
+
+    if (!question) {
+      return res.status(400).json({ success: false, message: "Question is required." });
+    }
+
+    // Language Map
+    const languageMap = {
+      en: "English", am: "Amharic", om: "Afaan Oromo",
+      ti: "Tigrinya", so: "Somali", af: "Afar"
+    };
+    const selectedLanguage = languageMap[language] || "English";
+
+    // AI Prompt specifically designed for teaching students
+    const prompt = `
+      You are a friendly, encouraging, and highly knowledgeable AI Study Tutor. 
+      A student in ${gradeLevel} is currently reading a ${subject} resource titled "${title}".
+      
+      The student has asked you this question: 
+      "${question}"
+
+      RULES:
+      1. Explain the concept clearly and simply, matching a ${gradeLevel} reading level.
+      2. Base your explanation on general educational concepts related to "${title}" and ${subject}.
+      3. Be highly encouraging and use emojis to make learning fun.
+      4. If the question is entirely off-topic (not related to school or the book), gently guide them back to studying.
+      5. Respond in ${selectedLanguage}.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const answer = result.response.text();
+
+    res.status(200).json({
+      success: true,
+      answer: answer.trim()
+    });
+
+  } catch (err) {
+    console.error("AI Tutor Error:", err);
+    res.status(500).json({ success: false, message: "The AI Tutor is resting. Please try again later." });
+  }
+};
+
 module.exports = { 
   generateSemesterInsight, 
   getSavedSemesterInsight, 

@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import libraryService from '../services/libraryService';
 import authService from '../services/authService';
+import AITutorModal from '../components/library/AITutorModal';
 
 const LibraryPage = () => {
     const { t } = useTranslation();
     const [currentUser] = useState(authService.getCurrentUser());
-    
+    const [activeTutorBook, setActiveTutorBook] = useState(null);
     // --- Data State ---
     const [resources, setResources] = useState([]);
     const [filteredResources, setFilteredResources] = useState([]);
@@ -297,21 +298,30 @@ const LibraryPage = () => {
                                         <span>{new Date(item.createdAt).toLocaleDateString()}</span>
                                     </div>
                                     
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 mt-auto border-t border-gray-100 pt-3 flex-wrap">
+                                        {/* Read Button */}
                                         <a 
                                             href={getFileUrl(item.fileUrl)} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-sm transition-colors flex items-center justify-center gap-2"
+                                            className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
                                         >
-                                            <span>👀</span> {t('read')}
+                                            <span>📖</span> {t('read')}
                                         </a>
                                         
+                                        {/* NEW: Ask AI Button */}
+                                        <button 
+                                            onClick={() => setActiveTutorBook(item)}
+                                            className="flex-1 bg-indigo-50 text-indigo-700 border border-indigo-100 text-center py-2 rounded-lg font-bold text-sm hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1"
+                                        >
+                                            <span>🤖</span> Ask AI
+                                        </button>
+                                        
+                                        {/* Delete Button (keep existing logic) */}
                                         {(currentUser?.role === 'admin' || currentUser?._id === item.uploadedBy?._id) && (
                                             <button 
                                                 onClick={() => handleDelete(item._id)} 
-                                                className="px-3 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 border border-red-200 transition-colors"
-                                                title="Delete"
+                                                className="px-3 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"
                                             >
                                                 🗑️
                                             </button>
@@ -331,6 +341,12 @@ const LibraryPage = () => {
                     <p className="text-gray-500 text-lg font-medium">No resources found.</p>
                     <p className="text-gray-400 text-sm">Try adjusting your filters or upload a new book.</p>
                 </div>
+            )}
+            {activeTutorBook && (
+                <AITutorModal 
+                    book={activeTutorBook} 
+                    onClose={() => setActiveTutorBook(null)} 
+                />
             )}
         </div>
     );
