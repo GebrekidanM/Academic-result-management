@@ -265,7 +265,7 @@ const askBookQuestion = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("AI Tutor Error:", err);
+    console.error("AI Tutor Error:", err.statusText);
     res.status(500).json({ success: false, message: "Failed to process question." });
   }
 };
