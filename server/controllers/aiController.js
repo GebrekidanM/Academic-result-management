@@ -1,7 +1,7 @@
 const AISemesterInsight = require("../models/AISemesterInsight");
 const model = require("../services/geminiService");
 const axios = require('axios');
-const pdfParse = require('pdf-parse');
+const pdfParse = require('pdf-extraction');
 
 const generateSemesterInsight = async (req, res) => {
   try {
@@ -213,15 +213,19 @@ const askBookQuestion = async (req, res) => {
 
     let documentText = "";
 
-    if (fileUrl && fileUrl.endsWith('.pdf')) {
+   if (fileUrl && fileUrl.endsWith('.pdf')) {
       try {
-        const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
-        const data = await pdfParse(response.data);
-        documentText = data.text.substring(0, 15000); 
-      } catch (pdfError) {
-        console.error("Could not parse PDF:", pdfError);
+          const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+          const dataBuffer = Buffer.from(response.data);
+          const data = await pdfParse(dataBuffer);
+          documentText = data.text.substring(0, 15000); 
+
+        } catch (pdfError) {
+          console.error("❌ Could not parse PDF:", pdfError.message);
+        }
+      } else {
+          console.log("⚠️ No valid fileUrl provided or not a .pdf");
       }
-    }
 
     // Language Map
      const languageMap = {

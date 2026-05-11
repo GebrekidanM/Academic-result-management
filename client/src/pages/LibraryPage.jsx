@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import libraryService from '../services/libraryService';
 import authService from '../services/authService';
 import AITutorModal from '../components/library/AITutorModal';
+import FullScreenReader from '../components/library/FullScreenReader';
 
 const LibraryPage = () => {
     const { t } = useTranslation();
     const [currentUser] = useState(authService.getCurrentUser());
-    const [activeTutorBook, setActiveTutorBook] = useState(null);
     // --- Data State ---
     const [resources, setResources] = useState([]);
     const [filteredResources, setFilteredResources] = useState([]);
@@ -17,7 +17,7 @@ const LibraryPage = () => {
     const[filterGrade, setFilterGrade] = useState('');
     const [filterSubject, setFilterSubject] = useState('');
     const[searchTerm, setSearchTerm] = useState('');
-
+    const [readingBook, setReadingBook] = useState(null); 
     // --- Form & UI State ---
     const [showUpload, setShowUpload] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -300,23 +300,13 @@ const LibraryPage = () => {
                                     
                                     <div className="flex gap-2 mt-auto border-t border-gray-100 pt-3 flex-wrap">
                                         {/* Read Button */}
-                                        <a 
-                                            href={getFileUrl(item.fileUrl)} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
-                                        >
-                                            <span>📖</span> {t('read')}
-                                        </a>
-                                        
-                                        {/* NEW: Ask AI Button */}
                                         <button 
-                                            onClick={() => setActiveTutorBook(item)}
-                                            className="flex-1 bg-indigo-50 text-indigo-700 border border-indigo-100 text-center py-2 rounded-lg font-bold text-sm hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1"
+                                            onClick={() => setReadingBook(item)}
+                                            className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-sm transition-colors flex items-center justify-center gap-2"
                                         >
-                                            <span>🤖</span> Ask AI
+                                            <span>📖</span> Read Now
                                         </button>
-                                        
+
                                         {/* Delete Button (keep existing logic) */}
                                         {(currentUser?.role === 'admin' || currentUser?._id === item.uploadedBy?._id) && (
                                             <button 
@@ -342,10 +332,11 @@ const LibraryPage = () => {
                     <p className="text-gray-400 text-sm">Try adjusting your filters or upload a new book.</p>
                 </div>
             )}
-            {activeTutorBook && (
-                <AITutorModal 
-                    book={activeTutorBook} 
-                    onClose={() => setActiveTutorBook(null)} 
+           
+             {readingBook && (
+                <FullScreenReader 
+                    book={readingBook} 
+                    onClose={() => setReadingBook(null)} 
                 />
             )}
         </div>

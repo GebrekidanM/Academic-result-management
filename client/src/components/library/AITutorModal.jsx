@@ -37,6 +37,7 @@ const AITutorModal = ({ book, onClose }) => {
         }
     };
 
+    
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
             <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col h-[600px] overflow-hidden">
