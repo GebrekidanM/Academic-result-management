@@ -9,15 +9,15 @@ const PdfUploadPage = () => {
     const [streams, setStreams] = useState([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedStream, setSelectedStream] = useState('');
-    const [testPeriod, setTestPeriod] = useState('MID Term-MT');
+    const [testPeriod, setTestPeriod] = useState('Mid Term');
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ text: '', type: '' });
 
     const testPeriods = [
-        { label: 'Beginning of Term (BOT)', value: 'Beginning of Term -BOT' },
-        { label: 'Mid Term (MT)', value: 'MID Term-MT' },
-        { label: 'End of Term (EOT)', value: 'End of Term-EOT' }
+        { label: 'Beginning of Term (BOT)', value: 'Beginning of Term' },
+        { label: 'Mid Term (MT)',            value: 'Mid Term'          },
+        { label: 'End of Term (EOT)',        value: 'End of Term'       },
     ];
 
     useEffect(() => {
@@ -70,7 +70,11 @@ const PdfUploadPage = () => {
 
         try {
             const res = await gradeService.uploadPdfGrades(formData);
-            setMessage({ text: res.data.message, type: 'success' });
+            const { successCount, skipCount, totalExtracted } = res.data.data || {};
+            const detail = (successCount !== undefined)
+                ? ` (${successCount} saved, ${skipCount} skipped out of ${totalExtracted} extracted)`
+                : '';
+            setMessage({ text: res.data.message + detail, type: 'success' });
         } catch (err) {
             setMessage({ 
                 text: err.response?.data?.message || 'Error uploading PDF. Please check the file format.', 

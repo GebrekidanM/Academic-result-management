@@ -25,8 +25,10 @@ const updateGrade = (gradeId, gradeData) => {
     return api.put(`${API_URL}/${gradeId}`, gradeData); 
 };
 
-const getGradeSheet = (assessmentTypeId) => {
-    return api.get('/grades/sheet', { params: { assessmentTypeId } });
+const getGradeSheet = (assessmentTypeId, streamId) => {
+    const params = { assessmentTypeId };
+    if (streamId) params.streamId = streamId;
+    return api.get('/grades/sheet', { params });
 };
 
 const saveGradeSheet = (data) => {

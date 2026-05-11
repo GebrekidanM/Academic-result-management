@@ -1,281 +1,539 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import classService from '../services/classService';
 import subjectService from '../services/subjectService';
 import assessmentTypeService from '../services/assessmentTypeService';
 import gradeService from '../services/gradeService';
-import authService from '../services/authService';
-import userService from '../services/userService';
-import studentService from '../services/studentService';
-import offlineGradeService from '../services/offlineGradeService';
-import offlineAssessmentService from '../services/offlineAssessmentService';
 import configService from '../services/configService';
-import ScoreInput from '../components/ScoreInput';
+import authService from '../services/authService';
 
 const GradeSheetPage = () => {
     const { t } = useTranslation();
-    const location = useLocation();
-    
-    // --- State ---
-    const [saveDisabled, setSaveDisabled] = useState(false);
-    const [academicYear, setAcademicYear] = useState('');
     const [currentUser] = useState(authService.getCurrentUser());
-    const [subjects, setSubjects] = useState([]);
-    const [assessmentTypes, setAssessmentTypes] = useState([]);
-    const [selectedSubject, setSelectedSubject] = useState(location.state?.subject?.id || '');
-    const [selectedAssessment, setSelectedAssessment] = useState(location.state?.assessmentType?._id || '');
-    const [sheetData, setSheetData] = useState(null);
+
+    // ── Selectors ──────────────────────────────────────────────────────────────
+    const [classes, setClasses] = useState([]);
+    const [streams, setStreams] = useState([]);
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedStream, setSelectedStream] = useState('');
+    const [testPeriod, setTestPeriod] = useState('');
+    const [academicYear, setAcademicYear] = useState('');
+    const [currentSemester, setCurrentSemester] = useState('');
+
+    // ── Sheet data ─────────────────────────────────────────────────────────────
+    const [subjects, setSubjects] = useState([]);       // subjects for selected class
+    const [students, setStudents] = useState([]);       // students in selected stream
+    // scores[studentId][subjectId] = score value
     const [scores, setScores] = useState({});
+    const [assessmentMap, setAssessmentMap] = useState({}); // subjectId -> assessmentType
 
+    // ── UI state ───────────────────────────────────────────────────────────────
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [pdfLoading, setPdfLoading] = useState(false);
+    const [sheetLoaded, setSheetLoaded] = useState(false);
+    const [message, setMessage] = useState({ text: '', type: '' });
+    const pdfInputRef = useRef(null);
 
-    // --- Load Config Defaults ---
+    const testPeriods = [
+        { label: 'Beginning of Term (BOT)', value: 'Beginning of Term' },
+        { label: 'Mid Term (MT)',            value: 'MID Term'          },
+        { label: 'End of Term (EOT)',        value: 'End of Term'       },
+    ];
+
+    // ── Load config ────────────────────────────────────────────────────────────
     useEffect(() => {
-        const fetchDefaults = async () => {
-            try {
-                const res = await configService.getConfig();
-                if (res.data.data) {
-                    setAcademicYear(res.data.data.currentAcademicYear);
-                }
-            } catch (err) {
-                console.error("Error fetching defaults:", err);
+        configService.getConfig().then(res => {
+            if (res.data.data) {
+                setAcademicYear(res.data.data.currentAcademicYear);
+                setCurrentSemester(res.data.data.currentSemester);
             }
-        };
-        fetchDefaults();
+        }).catch(() => {});
     }, []);
 
-    // --- Derived State (Performance Optimization) ---
-    const currentSubjectObj = useMemo(() => 
-        subjects.find(s => s._id === selectedSubject), 
-    [subjects, selectedSubject]);
-
-    // --- 1. Load Subjects ---
+    // ── Load classes ───────────────────────────────────────────────────────────
     useEffect(() => {
-        const loadSubjects = async () => {
-            try {
-                let subjectsToDisplay = [];
-                if (currentUser.role === 'admin') {
-                    const res = await subjectService.getAllSubjects();
-                    subjectsToDisplay = res.data.data;
-                } else {
-                    const res = await userService.getProfile();
-                    subjectsToDisplay = res.data.subjectsTaught.map(a => a.subject).filter(Boolean);
-                }
-                
-                setSubjects(subjectsToDisplay);
-            } catch (err) {
-                setError(t('error_loading_subjects'));
-            }
-        };
-        loadSubjects();
-    }, [currentUser.role, t]);
+        classService.getClasses().then(res => setClasses(res.data.data || [])).catch(() => {});
+    }, []);
 
-    // --- 2. Load Assessment Types when Subject changes ---
+    // ── Load streams when class changes ───────────────────────────────────────
     useEffect(() => {
-        const fetchAssessments = async () => {
-            if (!selectedSubject) {
-                setAssessmentTypes([]);
+        setSelectedStream('');
+        setStreams([]);
+        setSheetLoaded(false);
+        if (!selectedClass) return;
+        classService.getStreamsByClass(selectedClass)
+            .then(res => setStreams(res.data.data || []))
+            .catch(() => {});
+    }, [selectedClass]);
+
+    // ── Reset sheet when selectors change ─────────────────────────────────────
+    useEffect(() => {
+        setSheetLoaded(false);
+        setStudents([]);
+        setSubjects([]);
+        setScores({});
+        setAssessmentMap({});
+        setMessage({ text: '', type: '' });
+    }, [selectedClass, selectedStream, testPeriod]);
+
+    // ── Load sheet ─────────────────────────────────────────────────────────────
+    const handleLoadSheet = async () => {
+        if (!selectedClass || !selectedStream || !testPeriod) {
+            setMessage({ text: 'Please select class, stream and test period.', type: 'error' });
+            return;
+        }
+        setLoading(true);
+        setMessage({ text: '', type: '' });
+        try {
+            // 1. Load subjects for this class
+            const subRes = await subjectService.getAllSubjects();
+            const allSubjects = subRes.data.data || [];
+            const classSubjects = allSubjects.filter(s =>
+                (s.class?._id || s.class) === selectedClass
+            );
+            setSubjects(classSubjects);
+
+            if (classSubjects.length === 0) {
+                setMessage({ text: 'No subjects found for this class.', type: 'error' });
+                setLoading(false);
                 return;
             }
-            
-            let assessments = [];
-            if (navigator.onLine) {
+
+            // 2. For each subject, find the matching assessment type for this period
+            const atMapBuilt = {};
+            const studentsSet = new Map(); // studentId -> student obj
+
+            await Promise.all(classSubjects.map(async (subj) => {
                 try {
-                    const res = await assessmentTypeService.getBySubject(selectedSubject);
-                    assessments = res.data.data;
-                } catch (err) { console.error("Offline mode: using local assessments"); }
-            }
+                    const atRes = await assessmentTypeService.getBySubject(subj._id);
+                    const ats = atRes.data.data || [];
+                    // Match by test period name (case-insensitive)
+                    const matched = ats.find(at =>
+                        at.name.toLowerCase().includes(testPeriod.toLowerCase()) ||
+                        testPeriod.toLowerCase().includes(at.name.toLowerCase().split(' ')[0])
+                    );
+                    if (matched) {
+                        atMapBuilt[subj._id] = matched;
 
-            const local = offlineAssessmentService.getLocalAssessments().filter(a => a.subject === selectedSubject);
-            // Merge & unique by name, month, and semester
-            const combined = [...assessments, ...local];
-            const uniqueMap = new Map();
-            combined.forEach(item => {
-                const key = `${item.name}-${item.month}-${item.semester}`;
-                if (!uniqueMap.has(key)) {
-                    uniqueMap.set(key, item);
+                        // 3. Load grade sheet for this assessment (filtered by stream)
+                        const sheetRes = await gradeService.getGradeSheet(matched._id, selectedStream);
+                        const sheetStudents = sheetRes.data.students || [];
+
+                        sheetStudents.forEach(st => {
+                            if (!studentsSet.has(st._id)) {
+                                studentsSet.set(st._id, { _id: st._id, fullName: st.fullName });
+                            }
+                        });
+
+                        // Populate scores for this subject
+                        setScores(prev => {
+                            const updated = { ...prev };
+                            sheetStudents.forEach(st => {
+                                if (!updated[st._id]) updated[st._id] = {};
+                                updated[st._id][subj._id] = st.score ?? '';
+                            });
+                            return updated;
+                        });
+                    }
+                } catch (e) {
+                    console.error(`Error loading sheet for subject ${subj.name}:`, e.message);
                 }
-            });
-            const unique = Array.from(uniqueMap.values());
-            
-            setAssessmentTypes(unique);
-        };
-        fetchAssessments();
-    }, [selectedSubject]);
+            }));
 
-    // --- 3. Load Grade Sheet ---
-    const handleLoadSheet = async () => {
-        if (!selectedAssessment) return;
-        setLoading(true);
-        setError(null);
+            setAssessmentMap(atMapBuilt);
 
-        try {
-            // Handle Offline/Local Assessments
-            if (selectedAssessment.toString().startsWith('TEMP_')) {
-                const currentAssessment = assessmentTypes.find(a => a._id === selectedAssessment);
-                const studentRes = await studentService.getAllStudents();
-                const allStudents = studentRes.data.data;
-                
-                const classStudents = allStudents
-                    .filter(s => (s.class?._id || s.class) === (currentSubjectObj.class?._id || currentSubjectObj.class))
-                    .sort((a, b) => a.fullName.localeCompare(b.fullName));
+            // Sort students alphabetically
+            const sortedStudents = Array.from(studentsSet.values())
+                .sort((a, b) => a.fullName.localeCompare(b.fullName));
+            setStudents(sortedStudents);
 
-                setSheetData({
-                    assessmentType: currentAssessment,
-                    students: classStudents
-                });
-                
-                const initialScores = {};
-                classStudents.forEach(s => initialScores[s._id] = '');
-                setScores(initialScores);
+            if (sortedStudents.length === 0) {
+                setMessage({ text: 'No students found for this stream.', type: 'error' });
             } else {
-                // Online Load
-                const res = await gradeService.getGradeSheet(selectedAssessment);
-                setSheetData(res.data);
-                const initialScores = {};
-                res.data.students.forEach(s => initialScores[s._id] = s.score ?? '');
-                setScores(initialScores);
+                setSheetLoaded(true);
             }
         } catch (err) {
-            setError(err.message || t('error'));
+            setMessage({ text: err.message || 'Error loading sheet.', type: 'error' });
         } finally {
             setLoading(false);
         }
     };
 
-    // --- 4. Score Logic ---
-    const handleScoreChange = (studentId, value) => {
-        if (currentSubjectObj?.gradingType !== 'descriptive') {
-            if (Number(value) > (sheetData?.assessmentType?.totalMarks || 100)) return;
-        }
-        setScores(prev => ({ ...prev, [studentId]: value }));
+    // ── Score change ───────────────────────────────────────────────────────────
+    const handleScoreChange = (studentId, subjectId, value) => {
+        const at = assessmentMap[subjectId];
+        const max = at?.totalMarks || 100;
+        if (value !== '' && Number(value) > max) return;
+        setScores(prev => ({
+            ...prev,
+            [studentId]: { ...(prev[studentId] || {}), [subjectId]: value }
+        }));
     };
 
-    // --- 5. Save Logic (Sync/Offline) ---
-    const handleSave = async () => {
-        if (saveDisabled || !sheetData) return;
-        setSaveDisabled(true);
+    // ── Save all ───────────────────────────────────────────────────────────────
+    const handleSaveAll = async () => {
+        if (!sheetLoaded) return;
+        setSaving(true);
+        setMessage({ text: '', type: '' });
+        try {
+            // Save each subject's scores as a batch
+            const savePromises = subjects.map(async (subj) => {
+                const at = assessmentMap[subj._id];
+                if (!at) return;
 
-        const scoresPayload = Object.keys(scores)
-            .filter(id => scores[id] !== '' && scores[id] !== null)
-            .map(id => ({ 
-                studentId: id, 
-                score: currentSubjectObj?.gradingType === 'descriptive' ? scores[id] : Number(scores[id]) 
-            }));
+                const scoresPayload = students
+                    .filter(st => scores[st._id]?.[subj._id] !== '' && scores[st._id]?.[subj._id] != null)
+                    .map(st => ({
+                        studentId: st._id,
+                        score: Number(scores[st._id][subj._id])
+                    }));
 
-        const payload = {
-            assessmentTypeId: selectedAssessment,
-            subjectId: selectedSubject,
-            semester: sheetData.assessmentType.semester,
-            academicYear,
-            scores: scoresPayload,
-        };
+                if (scoresPayload.length === 0) return;
+
+                await gradeService.saveGradeSheet({
+                    assessmentTypeId: at._id,
+                    subjectId: subj._id,
+                    semester: at.semester || currentSemester,
+                    academicYear: at.year?.toString() || academicYear,
+                    scores: scoresPayload,
+                });
+            });
+
+            await Promise.all(savePromises);
+            setMessage({ text: `✅ All grades saved successfully for ${students.length} students.`, type: 'success' });
+        } catch (err) {
+            setMessage({ text: err.response?.data?.message || err.message || 'Error saving grades.', type: 'error' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // ── PDF Upload → saves directly to DB ─────────────────────────────────────
+    const handlePdfUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.type !== 'application/pdf') {
+            setMessage({ text: 'Only PDF files are allowed.', type: 'error' });
+            return;
+        }
+        if (!selectedClass || !selectedStream || !testPeriod) {
+            setMessage({ text: 'Please select class, stream and test period before uploading.', type: 'error' });
+            return;
+        }
+
+        setPdfLoading(true);
+        setMessage({ text: '', type: '' });
+
+        const formData = new FormData();
+        formData.append('pdf', file);
+        formData.append('classId', selectedClass);
+        formData.append('streamId', selectedStream);
+        formData.append('testPeriod', testPeriod);
 
         try {
-            if (!navigator.onLine || selectedAssessment.toString().startsWith('TEMP_')) {
-                offlineGradeService.addToQueue(payload);
-                alert(`✅ ${t('saved_offline_msg')}`);
-            } else {
-                await gradeService.saveGradeSheet(payload);
-                alert(`🚀 ${t('saved_online_msg')}`);
-                setScores({})
+            const res = await gradeService.uploadPdfGrades(formData);
+            const { successCount, skipCount, totalExtracted } = res.data.data || {};
+            const detail = successCount !== undefined
+                ? ` (${successCount} saved, ${skipCount} skipped out of ${totalExtracted} extracted)`
+                : '';
+            setMessage({ text: `✅ ${res.data.message}${detail}`, type: 'success' });
+
+            // Reload the sheet to show updated scores
+            if (successCount > 0 && sheetLoaded) {
+                await handleLoadSheet();
             }
         } catch (err) {
-            offlineGradeService.addToQueue(payload);
-            alert(t('saved_offline_msg'));
+            setMessage({
+                text: err.response?.data?.message || err.message || 'PDF upload failed.',
+                type: 'error'
+            });
         } finally {
-            setSaveDisabled(false);
+            setPdfLoading(false);
+            if (pdfInputRef.current) pdfInputRef.current.value = '';
         }
     };
 
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    const getScore = (studentId, subjectId) => scores[studentId]?.[subjectId] ?? '';
+
+    const getRowTotal = (studentId) =>
+        subjects.reduce((sum, subj) => {
+            const v = scores[studentId]?.[subj._id];
+            return sum + (v !== '' && v != null ? Number(v) : 0);
+        }, 0);
+
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'staff';
+
     return (
-        <div className="max-w-6xl mx-auto p-4 animate-fade-in">
-            <div className="bg-white rounded-sm shadow-xl border border-slate-100 overflow-hidden">
-                {/* Header Section */}
-                <div className="bg-slate-800 p-4 text-white flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div>
-                        <h1 className="text-3xl font-black uppercase tracking-tight">{t('grade_entry_title')}</h1>
-                        <p className="opacity-70 text-sm font-mono mt-1">{currentSubjectObj?.name || '---'} | {t('academic_year')}: {academicYear}</p>
-                    </div>
-                    <Link to="/subject-roster" state={{subjectId: selectedSubject}} className="bg-indigo-500 hover:bg-indigo-600 px-6 py-2 rounded-xl font-bold transition-all text-sm">
-                        📋 {t('class_roster')}
-                    </Link>
+        <div className="max-w-full mx-auto p-4 animate-fade-in">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+
+                {/* ── Header ── */}
+                <div className="bg-slate-800 p-6 text-white">
+                    <h1 className="text-2xl font-black uppercase tracking-tight">
+                        📋 {t('grade_entry_title') || 'Grade Entry Sheet'}
+                    </h1>
+                    <p className="opacity-60 text-sm mt-1">
+                        All subjects per stream — view, edit and upload marks
+                    </p>
                 </div>
 
-                {/* Filter Controls */}
-                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 border-b border-slate-100">
+                {/* ── Selectors ── */}
+                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 border-b border-slate-100">
+                    {/* Class */}
                     <div className="space-y-1">
-                        <label className="text-xs font-black text-slate-400 uppercase ml-1">{t('subject')}</label>
-                        <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 outline-none bg-white font-bold text-slate-700">
-                            <option value="">-- {t('select_subject')} --</option>
-                            {subjects.map(s => (
-                                <option key={s._id} value={s._id}>{s.name} ({s.class?.className || 'N/A'}) {s.gradingType === 'descriptive' ? '✍️' : '🔢'}</option>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                            {t('select_class') || 'Class'}
+                        </label>
+                        <select
+                            value={selectedClass}
+                            onChange={e => setSelectedClass(e.target.value)}
+                            className="w-full p-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 outline-none bg-white font-bold text-slate-700"
+                        >
+                            <option value="">-- Select Class --</option>
+                            {classes.map(c => (
+                                <option key={c._id} value={c._id}>{c.className}</option>
                             ))}
                         </select>
                     </div>
 
+                    {/* Stream */}
                     <div className="space-y-1">
-                        <label className="text-xs font-black text-slate-400 uppercase ml-1">{t('assessment')}</label>
-                        <select value={selectedAssessment} onChange={(e) => setSelectedAssessment(e.target.value)} disabled={!selectedSubject} className="w-full p-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 outline-none bg-white font-bold text-slate-700 disabled:opacity-50">
-                            <option value="">-- {t('select_assessment')} --</option>
-                            {assessmentTypes.map(at => (
-                                <option key={at._id} value={at._id}>{at._id.startsWith('TEMP_') ? '☁️ ' : ''}{at.month} - {at.name}</option>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                            {t('select_stream') || 'Stream'}
+                        </label>
+                        <select
+                            value={selectedStream}
+                            onChange={e => setSelectedStream(e.target.value)}
+                            disabled={!selectedClass}
+                            className="w-full p-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 outline-none bg-white font-bold text-slate-700 disabled:opacity-50"
+                        >
+                            <option value="">-- Select Stream --</option>
+                            {streams.map(s => (
+                                <option key={s._id} value={s._id}>{s.streamName}</option>
                             ))}
                         </select>
                     </div>
 
+                    {/* Test Period */}
+                    <div className="space-y-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                            {t('test_period') || 'Test Period'}
+                        </label>
+                        <select
+                            value={testPeriod}
+                            onChange={e => setTestPeriod(e.target.value)}
+                            className="w-full p-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 outline-none bg-white font-bold text-slate-700"
+                        >
+                            <option value="">-- Select Period --</option>
+                            {testPeriods.map(tp => (
+                                <option key={tp.value} value={tp.value}>{tp.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Load button */}
                     <div className="flex items-end">
-                        <button onClick={handleLoadSheet} disabled={!selectedAssessment || loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl shadow-lg shadow-indigo-100 transition-all disabled:bg-slate-300">
-                            {loading ? t('loading') : t('load_sheet')}
+                        <button
+                            onClick={handleLoadSheet}
+                            disabled={!selectedClass || !selectedStream || !testPeriod || loading}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 rounded-xl shadow-lg shadow-indigo-100 transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Loading...
+                                </span>
+                            ) : '📂 Load Sheet'}
                         </button>
                     </div>
                 </div>
 
-                {/* Score Entry Table */}
-                {sheetData && (
-                    <div className="p-4">
-                        <div className="flex justify-between items-center mb-8 bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-                            <div>
-                                <h3 className="text-lg font-black text-indigo-900 uppercase">{sheetData.assessmentType.name}</h3>
-                                {currentSubjectObj?.gradingType !== 'descriptive' && (
-                                    <p className="text-xs font-bold text-indigo-500">{t('total_marks')}: {sheetData.assessmentType.totalMarks}</p>
+                {/* ── Message ── */}
+                {message.text && (
+                    <div className={`mx-5 mt-4 p-4 rounded-xl border font-bold text-sm flex items-start gap-2 ${
+                        message.type === 'success'
+                            ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                            : 'bg-rose-50 border-rose-100 text-rose-700'
+                    }`}>
+                        <span>{message.type === 'success' ? '✅' : '⚠️'}</span>
+                        <span>{message.text}</span>
+                    </div>
+                )}
+
+                {/* ── PDF Upload + Save bar ── */}
+                {sheetLoaded && (
+                    <div className="px-5 py-4 flex flex-wrap items-center gap-3 bg-indigo-50 border-b border-indigo-100">
+                        {/* PDF Upload */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                ref={pdfInputRef}
+                                type="file"
+                                accept=".pdf"
+                                onChange={handlePdfUpload}
+                                className="hidden"
+                                id="pdf-grade-upload"
+                                disabled={pdfLoading}
+                            />
+                            <label
+                                htmlFor="pdf-grade-upload"
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-sm cursor-pointer transition-all shadow-sm ${
+                                    pdfLoading
+                                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
+                                }`}
+                            >
+                                {pdfLoading ? (
+                                    <>
+                                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Uploading PDF...
+                                    </>
+                                ) : (
+                                    <>📄 Upload PDF Marks</>
                                 )}
-                            </div>
-                            <button onClick={handleSave} disabled={saveDisabled} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-black shadow-lg shadow-emerald-100 transition-all disabled:opacity-50">
-                                {saveDisabled ? '...' : t('save_all')}
-                            </button>
+                            </label>
+                            <span className="text-xs text-indigo-500 font-medium">
+                                Saves all subjects to DB automatically
+                            </span>
                         </div>
 
-                        {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 font-bold text-center">⚠️ {error}</div>}
+                        {/* Spacer */}
+                        <div className="flex-1" />
 
-                        <div className="overflow-x-auto rounded-2xl border border-slate-100">
-                            <table className="min-w-full divide-y divide-slate-100">
-                                <thead className="bg-slate-50">
-                                    <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest">{t('full_name')}</th>
-                                        <th className="px-6 py-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest w-48">{t('score')}</th>
+                        {/* Save All button */}
+                        <button
+                            onClick={handleSaveAll}
+                            disabled={saving}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-100 transition-all disabled:opacity-50"
+                        >
+                            {saving ? (
+                                <>
+                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Saving...
+                                </>
+                            ) : '💾 Save All Grades'}
+                        </button>
+                    </div>
+                )}
+
+                {/* ── Grade Table ── */}
+                {sheetLoaded && students.length > 0 && (
+                    <div className="p-5">
+                        <div className="overflow-x-auto rounded-2xl border border-slate-100 shadow-sm">
+                            <table className="min-w-full text-sm">
+                                <thead>
+                                    <tr className="bg-slate-800 text-white">
+                                        <th className="px-4 py-3 text-left font-black text-xs uppercase tracking-widest sticky left-0 bg-slate-800 z-10 min-w-[180px]">
+                                            Student Name
+                                        </th>
+                                        {subjects.map(subj => (
+                                            <th key={subj._id} className="px-3 py-3 text-center font-black text-xs uppercase tracking-widest min-w-[110px]">
+                                                <div>{subj.name}</div>
+                                                {assessmentMap[subj._id] && (
+                                                    <div className="text-slate-400 font-normal normal-case text-[10px] mt-0.5">
+                                                        /{assessmentMap[subj._id].totalMarks}
+                                                    </div>
+                                                )}
+                                            </th>
+                                        ))}
+                                        <th className="px-3 py-3 text-center font-black text-xs uppercase tracking-widest min-w-[80px] bg-slate-700">
+                                            Total
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {sheetData.students.map(student => (
-                                        <tr key={student._id} className="hover:bg-indigo-50/30 transition-colors group">
-                                            <td className="px-6 py-4 whitespace-nowrap font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                                <tbody className="divide-y divide-slate-100">
+                                    {students.map((student, idx) => (
+                                        <tr
+                                            key={student._id}
+                                            className={`${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-indigo-50/40 transition-colors`}
+                                        >
+                                            {/* Name */}
+                                            <td className={`px-4 py-2 font-bold text-slate-700 sticky left-0 z-10 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-indigo-50/40`}>
+                                                <span className="text-slate-400 text-xs mr-2">{idx + 1}.</span>
                                                 {student.fullName}
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <ScoreInput 
-                                                    gradingType={currentSubjectObj?.gradingType}
-                                                    maxMarks={sheetData.assessmentType.totalMarks}
-                                                    value={scores[student._id]}
-                                                    onChange={(val) => handleScoreChange(student._id, val)}
-                                                />
+
+                                            {/* Score per subject */}
+                                            {subjects.map(subj => {
+                                                const at = assessmentMap[subj._id];
+                                                const hasAt = !!at;
+                                                return (
+                                                    <td key={subj._id} className="px-2 py-2 text-center">
+                                                        {hasAt ? (
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max={at.totalMarks}
+                                                                value={getScore(student._id, subj._id)}
+                                                                onChange={e => handleScoreChange(student._id, subj._id, e.target.value)}
+                                                                className="w-20 text-center border-2 border-slate-200 rounded-lg py-1.5 px-2 font-bold text-slate-700 focus:border-indigo-400 focus:outline-none transition-colors"
+                                                                placeholder="—"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-slate-300 text-xs">N/A</span>
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+
+                                            {/* Row total */}
+                                            <td className="px-3 py-2 text-center font-black text-indigo-700 bg-indigo-50">
+                                                {getRowTotal(student._id) || '—'}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
+
+                                {/* Column totals / averages */}
+                                <tfoot>
+                                    <tr className="bg-slate-100 border-t-2 border-slate-200">
+                                        <td className="px-4 py-2 font-black text-slate-500 text-xs uppercase sticky left-0 bg-slate-100">
+                                            Avg
+                                        </td>
+                                        {subjects.map(subj => {
+                                            const vals = students
+                                                .map(st => scores[st._id]?.[subj._id])
+                                                .filter(v => v !== '' && v != null)
+                                                .map(Number);
+                                            const avg = vals.length
+                                                ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)
+                                                : '—';
+                                            return (
+                                                <td key={subj._id} className="px-3 py-2 text-center font-black text-slate-600 text-xs">
+                                                    {avg}
+                                                </td>
+                                            );
+                                        })}
+                                        <td className="px-3 py-2 text-center font-black text-indigo-600 text-xs bg-indigo-50">
+                                            {(() => {
+                                                const totals = students.map(st => getRowTotal(st._id)).filter(v => v > 0);
+                                                return totals.length
+                                                    ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1)
+                                                    : '—';
+                                            })()}
+                                        </td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
+
+                        {/* Summary bar */}
+                        <div className="mt-4 flex flex-wrap gap-4 text-xs font-bold text-slate-500">
+                            <span>👥 {students.length} students</span>
+                            <span>📚 {subjects.length} subjects</span>
+                            <span>📅 {testPeriod}</span>
+                            {academicYear && <span>🗓 {academicYear}</span>}
+                        </div>
+                    </div>
+                )}
+
+                {/* Empty state */}
+                {!sheetLoaded && !loading && (
+                    <div className="p-16 text-center text-slate-400">
+                        <div className="text-5xl mb-4">📋</div>
+                        <p className="font-bold text-lg">Select class, stream and test period, then click Load Sheet</p>
+                        <p className="text-sm mt-1">All subjects and existing grades will appear here</p>
                     </div>
                 )}
             </div>

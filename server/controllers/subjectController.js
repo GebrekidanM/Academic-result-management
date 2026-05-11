@@ -24,7 +24,8 @@ exports.getSubjects = async (req, res) => {
         const subjects = await Subject.find(filter).populate('class', 'className').sort({ name: 1 });
         res.status(200).json({ success: true, count: subjects.length, data: subjects });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Subjects fetch error:', error);
+        res.status(500).json({ success: false, message: 'Database connection error', details: error.message });
     }
 };
 

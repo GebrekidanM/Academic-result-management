@@ -38,6 +38,10 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   const { username, password } = req.body;
   try {
+    if (!username || !password) {
+      return res.status(400).json({ message: 'Username and password are required' });
+    }
+
     // Convert input to lowercase before querying
     const user = await User.findOne({ username: username.toLowerCase() }).select('+password');
     if (!user) return res.status(401).json({ message: 'Invalid username or password' });
@@ -56,7 +60,7 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Admin/Teacher Login Error:", error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("Admin/Teacher Login Error:", error.name, error.message, error.stack);
+    res.status(500).json({ message: 'Server Error', detail: error.message });
   }
 };

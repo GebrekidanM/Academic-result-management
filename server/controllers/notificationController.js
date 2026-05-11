@@ -144,14 +144,14 @@ exports.getMyNotifications = async (req, res) => {
         if (userRole === 'parent' || userRole === 'student') {
             const student = await Student.findById(userId).populate('class');
             
-            if (student) {
-                if (student.class) {
+            if (student && student.class) {
+                if (student.class._id) {
                     gradeFilters.push(student.class._id.toString());
                     if (student.class.schoolLevel === 'primary') gradeFilters.push("Primary");
                     if (student.class.schoolLevel === 'high') gradeFilters.push("High School");
                     if (student.class.schoolLevel === 'kg') gradeFilters.push("KG");
                 }
-                if (student.stream) gradeFilters.push(student.stream.toString());
+                if (student.stream && student.stream._id) gradeFilters.push(student.stream.toString());
             }
         }
 
@@ -178,7 +178,7 @@ exports.getMyNotifications = async (req, res) => {
     } catch (error) {
         console.error("Get Notification Error:", error);
         if (!res.headersSent) {
-            return res.status(500).json({ message: 'Server Error' });
+            return res.status(500).json({ message: 'Database connection error', details: error.message });
         }
     }
 };

@@ -45,6 +45,14 @@ exports.uploadPdfGrades = async (req, res) => {
 
         // Parse PDF using the improved parser
         const extractedData = await parseGradesPdf(req.file.buffer);
+        console.log(`PDF extraction complete. Found ${extractedData.length} student rows.`);
+
+        if (extractedData.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No student data could be extracted from the PDF. Please check the file format.' 
+            });
+        }
 
         // Fetch subjects for this class to create a mapping
         const subjects = await Subject.find({ class: classId });
@@ -58,40 +66,60 @@ exports.uploadPdfGrades = async (req, res) => {
             if (s.code) subjectMap[s.code.toLowerCase()] = s._id;
         });
 
+        // Normalize testPeriod: strip suffixes like "-BOT", "-MT", "-EOT"
+        const normalizedPeriod = testPeriod.replace(/\s*[-–]\s*(BOT|MT|EOT)$/i, '').trim();
+
         // Fetch assessment types for this period
+        // semester stored as "Term 1"/"Term 2" but config may say "First Semester" — match flexibly
         const assessmentTypes = await AssessmentType.find({
             class: classId,
-            semester: { $regex: new RegExp(currentSemester.split(' ')[0], 'i') },
-            year: currentAcademicYear,
-            name: { $regex: new RegExp(testPeriod, 'i') }
+            year: { $in: [currentAcademicYear, Number(currentAcademicYear)] },
+            name: { $regex: new RegExp(normalizedPeriod.split(' ')[0], 'i') }
         });
 
         const atMap = {}; // subjectId -> assessmentTypeId
         assessmentTypes.forEach(at => {
             atMap[at.subject.toString()] = at._id;
         });
+        console.log(`Found ${assessmentTypes.length} assessment types for period "${testPeriod}", semester "${currentSemester}", year ${currentAcademicYear}`);
+        console.log(`Subject map keys:`, Object.keys(subjectMap));
+        console.log(`AT map entries:`, assessmentTypes.map(at => ({ name: at.name, subject: at.subject })));
 
-        // Helper: check if all words in pdfName are present in dbName (any order)
+        // Helper: bidirectional word-subset match (handles reversed names, middle names, etc.)
         const nameWordsMatch = (pdfName, dbName) => {
             const pdfWords = pdfName.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+            const dbWords = dbName.toLowerCase().split(/\s+/).filter(w => w.length > 1);
             const dbLower = dbName.toLowerCase();
-            return pdfWords.every(w => dbLower.includes(w));
+            const pdfLower = pdfName.toLowerCase();
+            // All PDF words found in DB name
+            if (pdfWords.every(w => dbLower.includes(w))) return true;
+            // All DB words found in PDF name (handles extra middle names in DB)
+            if (dbWords.every(w => pdfLower.includes(w))) return true;
+            // At least 2 words match (handles partial name differences)
+            const matchCount = pdfWords.filter(w => dbLower.includes(w)).length;
+            return matchCount >= 2 && matchCount >= pdfWords.length - 1;
         };
 
         // Pre-load all students in the class/stream for fast in-memory matching
         const classStudents = await Student.find({ class: classId, stream: streamId });
         console.log(`Found ${classStudents.length} students in class/stream for matching.`);
+        if (classStudents.length > 0) {
+            console.log('DB names sample:', classStudents.slice(0, 3).map(s => s.fullName));
+        }
+        if (extractedData.length > 0) {
+            console.log('PDF names sample:', extractedData.slice(0, 3).map(d => d.studentName));
+        }
 
         let successCount = 0;
         let skipCount = 0;
+        const skippedNames = [];
 
         for (const data of extractedData) {
-            // Find student by word-subset match (handles any name order)
             const pdfName = data.studentName.trim();
             let student = classStudents.find(s => nameWordsMatch(pdfName, s.fullName));
 
             if (!student) {
-                console.log(`Student not found: "${pdfName}"`);
+                skippedNames.push(pdfName);
                 skipCount++;
                 continue;
             }
@@ -146,10 +174,14 @@ exports.uploadPdfGrades = async (req, res) => {
             successCount++;
         }
 
+        if (skippedNames.length > 0) {
+            console.log(`Skipped ${skippedNames.length} unmatched PDF names:`, skippedNames);
+        }
+
         res.status(200).json({
             success: true,
             message: `Processed ${successCount} students. Skipped ${skipCount} students not found in this class/stream.`,
-            data: { successCount, skipCount }
+            data: { successCount, skipCount, totalExtracted: extractedData.length }
         });
 
     } catch (error) {

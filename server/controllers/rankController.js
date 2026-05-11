@@ -32,6 +32,10 @@ const findRankInList = (sortedList, targetStudentId, scoreField) => {
 exports.getSemesterRank = async (req, res) => {
     const { studentId } = req.params;
     const { academicYear, semester, classId } = req.query;
+    
+    // Handle URL-encoded parameters
+    const decodedSemester = semester ? semester.replace(/\+/g, ' ') : '';
+    const decodedClassId = classId ? classId.replace(/\+/g, ' ') : '';
 
     if (!academicYear || !semester || !classId) {
         return res.status(400).json({ message: 'Missing fields' });
@@ -45,10 +49,10 @@ exports.getSemesterRank = async (req, res) => {
             { $unwind: '$studentInfo' },
             {
                 $match: {
-                    'studentInfo.class': new mongoose.Types.ObjectId(classId),
+                    'studentInfo.class': new mongoose.Types.ObjectId(decodedClassId),
                     'studentInfo.status': 'Active',
                     academicYear: academicYear,
-                    semester: semester
+                    semester: decodedSemester
                 }
             },
             {
@@ -73,6 +77,9 @@ exports.getSemesterRank = async (req, res) => {
 exports.getOverallRank = async (req, res) => {
     const { studentId } = req.params;
     const { academicYear, classId } = req.query;
+    
+    // Handle URL-encoded parameters
+    const decodedClassId = classId ? classId.replace(/\+/g, ' ') : '';
 
     if (!academicYear || !classId) {
         return res.status(400).json({ message: 'Missing fields' });
@@ -86,7 +93,7 @@ exports.getOverallRank = async (req, res) => {
             { $unwind: '$studentInfo' },
             {
                 $match: {
-                    'studentInfo.class': new mongoose.Types.ObjectId(classId),
+                    'studentInfo.class': new mongoose.Types.ObjectId(decodedClassId),
                     'studentInfo.status': 'Active',
                     academicYear: academicYear,
                 }

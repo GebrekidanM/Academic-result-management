@@ -9,6 +9,7 @@ const Division = require('./models/Division');
 const Class = require('./models/Class');
 const Stream = require('./models/Stream');
 const Subject = require('./models/Subject');
+const AssessmentType = require('./models/AssessmentType');
 const cron = require('node-cron');
 
 
@@ -26,6 +27,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/subjects', require('./routes/subjectRoutes'));
 app.use('/api/grades', require('./routes/gradeRoutes'));
 app.use('/api/reports', require('./routes/behavioralReportRoutes'));
+app.use('/api/pdf', require('./routes/pdfRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/ranks', require('./routes/rankRoutes'));
 app.use('/api/rosters', require('./routes/rosterRoutes'));
@@ -306,6 +308,47 @@ const seedSubjects = async () => {
   }
 };
 
+// --- Assessment Types seeding ---
+const seedAssessmentTypes = async () => {
+  try {
+    // Define assessment types
+    const assessmentTypes = [
+      { name: 'Beginning of Term', totalMarks: 100 },
+      { name: 'Mid Term', totalMarks: 100 },
+      { name: 'End of Term', totalMarks: 100 }
+    ];
+
+    // Get all subjects to create assessment types for
+    const subjects = await Subject.find();
+    
+    for (const subject of subjects) {
+      for (const assessmentType of assessmentTypes) {
+        const existingAssessmentType = await AssessmentType.findOne({ 
+          name: assessmentType.name, 
+          subject: subject._id,
+          class: subject.class
+        });
+        
+        if (!existingAssessmentType) {
+          console.log(`⚙️ No ${assessmentType.name} assessment type found for ${subject.name}. Creating...`);
+          await AssessmentType.create({
+            name: assessmentType.name,
+            totalMarks: assessmentType.totalMarks,
+            subject: subject._id,
+            class: subject.class,
+            month: 'September', // Default month
+            semester: 'Term 1', // Default semester
+            year: new Date().getFullYear()
+          });
+          console.log(`✅ ${subject.name} - ${assessmentType.name} assessment type created!`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error seeding assessment types:', error);
+  }
+};
+
 
 // --- STARTUP SEQUENCE ---
 const startServer = async () => {
@@ -319,6 +362,7 @@ const startServer = async () => {
         await seedDivision();
         await seedClassesAndStreams();
         await seedSubjects();
+        await seedAssessmentTypes();
 
         const PORT = process.env.PORT || 5000;
         app.listen(PORT, () => {

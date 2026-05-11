@@ -10,7 +10,8 @@ exports.getConfig = async (req, res) => {
         }
         res.status(200).json({ success: true, data: config });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Config fetch error:', error);
+        res.status(500).json({ success: false, message: 'Database connection error', details: error.message });
     }
 };
 
