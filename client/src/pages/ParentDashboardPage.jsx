@@ -78,7 +78,8 @@ const ParentDashboardPage = () => {
                 }
 
                 try {
-                    const rankData = await rankService.getRankByStudent(studentData._id, studentData.gradeLevel, academicYear);
+                    const classId = studentData.class?._id || studentData.class;
+                    const rankData = await rankService.getRankByStudent(studentData._id, classId, academicYear);
                     setRanks(rankData);
                 } catch (e) {
                     console.warn("Rank fetch failed", e);

@@ -579,10 +579,10 @@ exports.getHighScorers = async (req, res) => {
                 return results;
             };
 
-            finalResult[grade] = {
-                sem1: getTop3('s1Sum'),       // Rank by Sem 1 Total
-                sem2: getTop3('s2Sum'),       // Rank by Sem 2 Total
-                overall: getTop3('overallTotal') // Rank by Annual Total
+            finalResult[classId] = {
+                sem1: getTop3('s1Sum'),
+                sem2: getTop3('s2Sum'),
+                overall: getTop3('overallTotal')
             };
         });
 

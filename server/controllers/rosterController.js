@@ -14,6 +14,20 @@ const SUBJECT_ORDER = [
     "Art", "ስነጥበብ", "Spoken", "Grammar", "Affan Oromo"
 ];
 
+// Canonical test period names as stored in AssessmentType.name
+const TEST_PERIODS = [
+    { key: 'BOT', label: 'BOT', match: /beginning/i },
+    { key: 'MT',  label: 'MT',  match: /mid/i        },
+    { key: 'EOT', label: 'EOT', match: /end/i        },
+];
+
+const matchPeriod = (atName) => {
+    for (const p of TEST_PERIODS) {
+        if (p.match.test(atName)) return p.key;
+    }
+    return null;
+};
+
 exports.generateRoster = async (req, res) => {
     const { classId, streamId, academicYear } = req.query;
 
@@ -22,10 +36,12 @@ exports.generateRoster = async (req, res) => {
     }
 
     try {
+        // ── Homeroom teacher ──────────────────────────────────────────────────
         const homeroomQuery = { homeroomClass: classId };
         if (streamId && streamId !== 'all') homeroomQuery.homeroomStream = streamId;
         const homeroomTeacher = await User.findOne(homeroomQuery).select('fullName');
-        
+
+        // ── Subjects ──────────────────────────────────────────────────────────
         const academicSubjects = await Subject.find({ class: classId }).sort({ name: 1 }).lean();
         const supportiveSubjects = await SupportiveSubject.find({ class: classId }).sort({ name: 1 }).lean();
 
@@ -33,145 +49,130 @@ exports.generateRoster = async (req, res) => {
             return res.status(404).json({ message: 'No subjects found.' });
         }
 
+        // ── Students ──────────────────────────────────────────────────────────
         const studentQuery = { class: classId, status: 'Active' };
         if (streamId && streamId !== 'all') studentQuery.stream = streamId;
-        
+
         const students = await Student.find(studentQuery)
             .select('studentId fullName gender dateOfBirth _id')
             .sort({ fullName: 1 });
-        
+
         if (students.length === 0) return res.status(404).json({ message: 'No active students found.' });
-        
+
         const studentIds = students.map(s => s._id);
 
+        // ── Grades (all semesters/terms) ──────────────────────────────────────
         const [academicGrades, supportiveGrades] = await Promise.all([
-            Grade.find({ student: { $in: studentIds }, academicYear }).populate('subject', 'name'),
-            SupportiveGrade.find({ student: { $in: studentIds }, academicYear }).populate('subject', 'name')
+            Grade.find({ student: { $in: studentIds }, academicYear })
+                .populate('subject', 'name')
+                .populate('assessments.assessmentType', 'name totalMarks'),
+            SupportiveGrade.find({ student: { $in: studentIds }, academicYear })
+                .populate('subject', 'name')
         ]);
 
+        // ── Build roster ──────────────────────────────────────────────────────
         let rosterData = students.map(student => {
-            const firstSemester = { scores: {}, total: 0, count: 0 };
-            const secondSemester = { scores: {}, total: 0, count: 0 };
+            // subjectScores[subjectName][periodKey] = score | null
+            const subjectScores = {};
             const subjectAverages = {};
 
-            // A. Process ACADEMIC (Fix: Keep numbers as numbers)
+            // Period totals: { BOT: {total, count}, MT: ..., EOT: ... }
+            const periodTotals = { BOT: { total: 0, count: 0 }, MT: { total: 0, count: 0 }, EOT: { total: 0, count: 0 } };
+
             academicSubjects.forEach(subject => {
-                const grade1st = academicGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'First Semester');
-                const grade2nd = academicGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'Second Semester');
-                
-                // Get Raw Numbers (or null)
-                const val1 = grade1st ? grade1st.finalScore : null;
-                const val2 = grade2nd ? grade2nd.finalScore : null;
+                subjectScores[subject.name] = { BOT: null, MT: null, EOT: null };
 
-                // --- CALCULATION LOGIC ---
-                if (val1 !== null) {
-                    firstSemester.total += val1; // Math addition (not string)
-                    firstSemester.count++;
-                    firstSemester.scores[subject.name] = parseFloat(val1.toFixed(2)); // Store pretty value
-                } else {
-                    firstSemester.scores[subject.name] = '-';
-                }
+                // Find all grade docs for this student + subject (may span multiple semesters)
+                const gradeDocsForSubject = academicGrades.filter(g =>
+                    g.student.equals(student._id) &&
+                    g.subject?._id.equals(subject._id)
+                );
 
-                if (val2 !== null) {
-                    secondSemester.total += val2;
-                    secondSemester.count++;
-                    secondSemester.scores[subject.name] = parseFloat(val2.toFixed(2));
-                } else {
-                    secondSemester.scores[subject.name] = '-';
-                }
-                
-                // Calculate Subject Average
-                const validScores = [val1, val2].filter(s => s !== null);
-                const avg = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : null;
-                subjectAverages[subject.name] = avg !== null ? parseFloat(avg.toFixed(2)) : '-';
+                gradeDocsForSubject.forEach(gradeDoc => {
+                    (gradeDoc.assessments || []).forEach(assessment => {
+                        const atName = assessment.assessmentType?.name || '';
+                        const periodKey = matchPeriod(atName);
+                        if (!periodKey) return;
+                        const score = assessment.score;
+                        if (score !== null && score !== undefined) {
+                            subjectScores[subject.name][periodKey] = score;
+                        }
+                    });
+                });
+
+                // Subject average across BOT, MT, EOT
+                const vals = Object.values(subjectScores[subject.name]).filter(v => v !== null);
+                subjectAverages[subject.name] = vals.length > 0
+                    ? parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2))
+                    : '-';
+
+                // Accumulate period totals
+                TEST_PERIODS.forEach(({ key }) => {
+                    const v = subjectScores[subject.name][key];
+                    if (v !== null) {
+                        periodTotals[key].total += v;
+                        periodTotals[key].count++;
+                    }
+                });
             });
 
-            // B. Process SUPPORTIVE
+            // Supportive subjects — just show score (no period breakdown)
             supportiveSubjects.forEach(subject => {
-                const grade1st = supportiveGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'First Semester');
-                const grade2nd = supportiveGrades.find(g => g.student.equals(student._id) && g.subject?._id.equals(subject._id) && g.semester === 'Second Semester');
-
-                firstSemester.scores[subject.name] = grade1st ? grade1st.score : '-';
-                secondSemester.scores[subject.name] = grade2nd ? grade2nd.score : '-';
-                subjectAverages[subject.name] = '-';
+                const g = supportiveGrades.find(sg =>
+                    sg.student.equals(student._id) && sg.subject?._id.equals(subject._id)
+                );
+                subjectScores[subject.name] = { BOT: null, MT: null, EOT: null };
+                subjectAverages[subject.name] = g ? g.score : '-';
             });
-            
-            // C. Averages Calculation
-            firstSemester.average = firstSemester.count > 0 ? firstSemester.total / firstSemester.count : 0;
-            secondSemester.average = secondSemester.count > 0 ? secondSemester.total / secondSemester.count : 0;
 
-            let overallAvgCalc = 0;
-            let divisor = 0;
-            if (firstSemester.count > 0) { overallAvgCalc += firstSemester.average; divisor++; }
-            if (secondSemester.count > 0) { overallAvgCalc += secondSemester.average; divisor++; }
-            const overallAverage = divisor > 0 ? overallAvgCalc / divisor : 0;
-            
-            // Sum of sums
-            const overallTotalSum = firstSemester.total + secondSemester.total;
-            const overallTotalSumAvg = divisor > 0 ? overallTotalSum / divisor : overallTotalSum
+            // Period averages (across all subjects)
+            const periodAverages = {};
+            TEST_PERIODS.forEach(({ key }) => {
+                const { total, count } = periodTotals[key];
+                periodAverages[key] = count > 0 ? parseFloat((total / count).toFixed(2)) : '-';
+            });
+
+            // Overall average = average of subject averages
+            const numericSubjectAvgs = Object.values(subjectAverages).filter(v => typeof v === 'number');
+            const overallAverage = numericSubjectAvgs.length > 0
+                ? parseFloat((numericSubjectAvgs.reduce((a, b) => a + b, 0) / numericSubjectAvgs.length).toFixed(2))
+                : 0;
+
+            // Overall total = sum of subject averages
+            const overallTotal = parseFloat(numericSubjectAvgs.reduce((a, b) => a + b, 0).toFixed(2));
 
             return {
                 _id: student._id,
-                studentId: student.studentId, 
+                studentId: student.studentId,
                 fullName: student.fullName,
                 gender: student.gender,
                 age: calculateAge(student.dateOfBirth),
-                
-                firstSemester: {
-                    scores: firstSemester.scores,
-                    total: parseFloat(firstSemester.total.toFixed(2)),
-                    count: firstSemester.count,
-                    average: parseFloat(firstSemester.average.toFixed(2)),
-                },
-
-                secondSemester: {
-                    scores: secondSemester.scores,
-                    total: parseFloat(secondSemester.total.toFixed(2)),
-                    count: secondSemester.count,
-                    average: parseFloat(secondSemester.average.toFixed(2)),
-                },
-
-                subjectAverages: subjectAverages,
-
-                overallTotal: parseFloat(overallTotalSumAvg.toFixed(2)), 
-                overallAverage: parseFloat(overallAverage.toFixed(2)),
-                rank1st: '-', rank2nd: '-', overallRank: '-',
+                subjectScores,       // [subjectName][BOT|MT|EOT]
+                subjectAverages,     // [subjectName] = avg
+                periodAverages,      // [BOT|MT|EOT] = avg across subjects
+                overallAverage,
+                overallTotal,
+                overallRank: '-',
             };
         });
-        
-        // --- RANKING LOGIC ---
-        rosterData.sort((a, b) => b.firstSemester.average - a.firstSemester.average);
+
+        // ── Ranking by overall average ────────────────────────────────────────
+        rosterData.sort((a, b) => b.overallAverage - a.overallAverage);
         let currentRank = 1;
         for (let i = 0; i < rosterData.length; i++) {
-            if (i > 0 && rosterData[i].firstSemester.average < rosterData[i - 1].firstSemester.average) { currentRank = i + 1; }
-            rosterData[i].rank1st = rosterData[i].firstSemester.count > 0 ? currentRank : '-';
+            if (i > 0 && rosterData[i].overallAverage < rosterData[i - 1].overallAverage) currentRank = i + 1;
+            rosterData[i].overallRank = rosterData[i].overallAverage > 0 ? currentRank : '-';
         }
 
-        rosterData.sort((a, b) => b.secondSemester.average - a.secondSemester.average);
-        currentRank = 1;
-        for (let i = 0; i < rosterData.length; i++) {
-            if (i > 0 && rosterData[i].secondSemester.average < rosterData[i - 1].secondSemester.average) { currentRank = i + 1; }
-            rosterData[i].rank2nd = rosterData[i].secondSemester.count > 0 ? currentRank : '-';
-        }
-
-        rosterData.sort((a, b) => b.overallAverage - a.overallAverage);
-        currentRank = 1;
-        for (let i = 0; i < rosterData.length; i++) {
-            if (i > 0 && rosterData[i].overallAverage < rosterData[i - 1].overallAverage) { currentRank = i + 1; }
-            const hasAnyGrades = (rosterData[i].firstSemester.count + rosterData[i].secondSemester.count) > 0;
-            rosterData[i].overallRank = hasAnyGrades ? currentRank : '-';
-        }
-        
-        // --- SORT SUBJECT COLUMNS ---
+        // ── Sort subjects ─────────────────────────────────────────────────────
         academicSubjects.sort((a, b) => {
-            const indexA = SUBJECT_ORDER.indexOf(a.name);
-            const indexB = SUBJECT_ORDER.indexOf(b.name);
-            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
+            const iA = SUBJECT_ORDER.indexOf(a.name);
+            const iB = SUBJECT_ORDER.indexOf(b.name);
+            if (iA !== -1 && iB !== -1) return iA - iB;
+            if (iA !== -1) return -1;
+            if (iB !== -1) return 1;
             return a.name.localeCompare(b.name);
         });
-
         supportiveSubjects.sort((a, b) => a.name.localeCompare(b.name));
 
         const allSubjects = [...academicSubjects, ...supportiveSubjects];
@@ -179,14 +180,25 @@ exports.generateRoster = async (req, res) => {
 
         rosterData.sort((a, b) => a.fullName.localeCompare(b.fullName));
 
-        res.status(200).json({ 
-            subjects: subjectNames, 
+        // Fetch class and stream names for the header
+        const Class = require('../models/Class');
+        const Stream = require('../models/Stream');
+        const classDoc  = await Class.findById(classId).select('className').lean();
+        const streamDoc = streamId && streamId !== 'all'
+            ? await Stream.findById(streamId).select('streamName').lean()
+            : null;
+
+        res.status(200).json({
+            subjects: subjectNames,
+            testPeriods: TEST_PERIODS.map(p => ({ key: p.key, label: p.label })),
             roster: rosterData,
-            homeroomTeacherName: homeroomTeacher ? homeroomTeacher.fullName : 'Not Assigned'
+            homeroomTeacherName: homeroomTeacher ? homeroomTeacher.fullName : 'Not Assigned',
+            className:  classDoc?.className  || '',
+            streamName: streamDoc?.streamName || '',
         });
 
     } catch (error) {
-        console.error("Roster generation error:", error);
+        console.error('Roster generation error:', error);
         res.status(500).json({ message: 'Server error while generating roster' });
     }
 };

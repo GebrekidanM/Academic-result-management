@@ -3,17 +3,17 @@ const API_URL = '/ranks';
 
 const rankService = {
     // 1. Get Summary Rank (S1, S2, Overall) - The function you were missing
-    getRankByStudent: async (studentId, gradeLevel, academicYear) => {
+    getRankByStudent: async (studentId, classId, academicYear) => {
         try {
             const [s1, s2, overall] = await Promise.allSettled([
                 api.get(`${API_URL}/class-rank/${studentId}`, { 
-                    params: { gradeLevel, academicYear, semester: 'First Semester' } 
+                    params: { classId, academicYear, semester: 'First Semester' } 
                 }),
                 api.get(`${API_URL}/class-rank/${studentId}`, { 
-                    params: { gradeLevel, academicYear, semester: 'Second Semester' } 
+                    params: { classId, academicYear, semester: 'Second Semester' } 
                 }),
                 api.get(`${API_URL}/overall-rank/${studentId}`, { 
-                    params: { gradeLevel, academicYear } 
+                    params: { classId, academicYear } 
                 })
             ]);
 
