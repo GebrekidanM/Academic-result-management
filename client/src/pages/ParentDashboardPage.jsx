@@ -212,13 +212,14 @@ const ParentDashboardPage = () => {
     );
   };
 
-  const renderSemester = (semesterName, subjects, semesterRank) => (
+  const renderSemester = (semesterName, subjects, semesterRank,gradeLevel) => (
     <FadeContainer>
       <Suspense fallback={<div className="h-64 bg-slate-100 animate-pulse rounded-xl" />}>
         <SemesterDetails 
            semesterName={semesterName} 
            subjects={subjects} 
            semesterRank={semesterRank} 
+           gradeLevel={gradeLevel}
            reports={reports} 
            onGenerateAI={(force) => fetchSemesterAI(semesterName, subjects, force)}
            aiInsight={aiInsights[semesterName]}
@@ -227,11 +228,6 @@ const ParentDashboardPage = () => {
       </Suspense>
     </FadeContainer>
   );
-
-  const isKindergarten = (gradeLevel) => {
-      if (!gradeLevel) return false;
-      return /^(kg|nursery|pre)/i.test(gradeLevel);
-  };
 
   // =========================================
   // MAIN UI
@@ -253,8 +249,8 @@ const ParentDashboardPage = () => {
         {activeTab === "analytics-overall" && renderAnalytics("overall")}
         {activeTab === "analytics-sem1" && renderAnalytics("sem1")}
         {activeTab === "analytics-sem2" && renderAnalytics("sem2")}
-        {activeTab === "semester-1" && renderSemester("First Semester", firstSemester, ranks.sem1)}
-        {activeTab === "semester-2" && renderSemester("Second Semester", secondSemester, ranks.sem2)}
+        {activeTab === "semester-1" && renderSemester("First Semester", firstSemester, ranks.sem1,student.gradeLevel)}
+        {activeTab === "semester-2" && renderSemester("Second Semester", secondSemester, ranks.sem2,student.gradeLevel)}
 
         {activeTab === "quizzes" && (
           <FadeContainer>

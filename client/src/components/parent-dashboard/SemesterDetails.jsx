@@ -2,8 +2,13 @@ import React from "react";
 import SubjectCard from "./SubjectCard";
 import AskAIChat from "./AskAIChat"; 
 
-const SemesterDetails = ({ semesterName, subjects, semesterRank,onGenerateAI, aiInsight,aiLoading}) => {
+const SemesterDetails = ({ semesterName, subjects, semesterRank,onGenerateAI, aiInsight,aiLoading,gradeLevel}) => {
   const semesterAverage = subjects.length > 0 ? (subjects.reduce((sum, s) => sum + s.percentage, 0) / subjects.length) : 0;
+ 
+  const isKindergarten = (gradeLevel) => {
+    if (!gradeLevel) return false;
+      return /^(kg|nursery|pre)/i.test(gradeLevel);
+  };
 
   return (
     <section className="space-y-6">
@@ -24,7 +29,7 @@ const SemesterDetails = ({ semesterName, subjects, semesterRank,onGenerateAI, ai
               </h3>
             </div>
 
-            {semesterRank.length < 1  && <div className="bg-indigo-50 border border-indigo-100 px-5 py-3 rounded-xl">
+            {!isKindergarten(gradeLevel)  && <div className="bg-indigo-50 border border-indigo-100 px-5 py-3 rounded-xl">
               <p className="text-xs uppercase tracking-wider text-indigo-600 font-black"> Semester Rank </p>
               <h3 className="text-xl font-black text-indigo-700 mt-1"> {semesterRank || "-"} </h3>
             </div>}
