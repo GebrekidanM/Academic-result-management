@@ -25,7 +25,8 @@ const AITutorModal = ({ book, onClose }) => {
                 subject: book.subject,
                 gradeLevel: book.gradeLevel,
                 question: userMessage,
-                language: i18n.language
+                language: i18n.language,
+                fileUrl: book.fileUrl
             });
 
             setMessages(prev => [...prev, { text: response.data.answer, sender: "ai" }]);

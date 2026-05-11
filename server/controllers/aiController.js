@@ -1,5 +1,7 @@
 const AISemesterInsight = require("../models/AISemesterInsight");
 const model = require("../services/geminiService");
+const axios = require('axios');
+const pdfParse = require('pdf-parse');
 
 const generateSemesterInsight = async (req, res) => {
   try {
@@ -199,35 +201,55 @@ const askSemesterQuestion = async (req, res) => {
   }
 };
 
+
+
 const askBookQuestion = async (req, res) => {
   try {
-    const { title, subject, gradeLevel, question, language } = req.body;
+    const { title, subject, gradeLevel, question, language, fileUrl } = req.body;
 
     if (!question) {
       return res.status(400).json({ success: false, message: "Question is required." });
     }
 
+    let documentText = "";
+
+    if (fileUrl && fileUrl.endsWith('.pdf')) {
+      try {
+        const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+        const data = await pdfParse(response.data);
+        documentText = data.text.substring(0, 15000); 
+      } catch (pdfError) {
+        console.error("Could not parse PDF:", pdfError);
+      }
+    }
+
     // Language Map
-    const languageMap = {
-      en: "English", am: "Amharic", om: "Afaan Oromo",
-      ti: "Tigrinya", so: "Somali", af: "Afar"
+     const languageMap = {
+      en: "English",
+      am: "Amharic",
+      om: "Afaan Oromo",
+      ti: "Tigrinya",
+      so: "Somali",
+      af: "Afar"
     };
     const selectedLanguage = languageMap[language] || "English";
 
-    // AI Prompt specifically designed for teaching students
     const prompt = `
-      You are a friendly, encouraging, and highly knowledgeable AI Study Tutor. 
-      A student in ${gradeLevel} is currently reading a ${subject} resource titled "${title}".
+      You are a friendly, encouraging AI Study Tutor. 
+      A ${gradeLevel} student is reading a ${subject} resource titled "${title}".
       
-      The student has asked you this question: 
-      "${question}"
+      Here is an excerpt from the book/document they are reading:
+      """
+      ${documentText ? documentText : "(Document text unavailable, rely on general knowledge about " + title + ")"}
+      """
+
+      The student asked: "${question}"
 
       RULES:
-      1. Explain the concept clearly and simply, matching a ${gradeLevel} reading level.
-      2. Base your explanation on general educational concepts related to "${title}" and ${subject}.
-      3. Be highly encouraging and use emojis to make learning fun.
-      4. If the question is entirely off-topic (not related to school or the book), gently guide them back to studying.
-      5. Respond in ${selectedLanguage}.
+      1. Use the excerpt provided to answer the question if the answer is in the text.
+      2. Keep it simple for a ${gradeLevel} reading level.
+      3. Use emojis to make learning fun.
+      4. Respond in ${selectedLanguage}.
     `;
 
     const result = await model.generateContent(prompt);
@@ -240,7 +262,7 @@ const askBookQuestion = async (req, res) => {
 
   } catch (err) {
     console.error("AI Tutor Error:", err);
-    res.status(500).json({ success: false, message: "The AI Tutor is resting. Please try again later." });
+    res.status(500).json({ success: false, message: "Failed to process question." });
   }
 };
 

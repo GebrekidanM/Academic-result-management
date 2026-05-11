@@ -21,7 +21,7 @@ const LibraryPage = () => {
     // --- Form & UI State ---
     const [showUpload, setShowUpload] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const[uploadError, setUploadError] = useState(''); // Added to replace alerts
+    const[uploadError, setUploadError] = useState('');
     const [uploadData, setUploadData] = useState({ 
         title: '', 
         type: 'Book', 
@@ -31,7 +31,7 @@ const LibraryPage = () => {
         cover: null    
     });
 
-    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB Limit
+    const MAX_FILE_SIZE = 15 * 1024 * 1024;
 
     useEffect(() => {
         const fetchLib = async () => {
@@ -106,10 +106,10 @@ const LibraryPage = () => {
         const file = e.target.files[0];
         if (file) {
             setUploadData({ ...uploadData, [fieldName]: file });
-            setUploadError(''); // Clear error if they pick a new file
+            setUploadError('');
         }
     };
-
+ 
     // --- DELETE HANDLER ---
     const handleDelete = async (id) => {
         if(!window.confirm(t('delete_confirm') || "Are you sure you want to delete this resource?")) return;
