@@ -247,5 +247,6 @@ const askBookQuestion = async (req, res) => {
 module.exports = { 
   generateSemesterInsight, 
   getSavedSemesterInsight, 
-  askSemesterQuestion 
+  askSemesterQuestion ,
+  askBookQuestion
 };
