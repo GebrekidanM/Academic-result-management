@@ -52,6 +52,7 @@ const LandingPage = () => {
 
    const loginDemo = async (role) => {
           try {
+            setLoading(true)
               if (role === "admin") {
                   const response = await axios.post(`https://academic-result-management.onrender.com/api/auth/login`,{
                       username:'admin',
@@ -66,7 +67,7 @@ const LandingPage = () => {
               } 
               else if (role === "parent") {
                   const response = await axios.post(`https://academic-result-management.onrender.com/api/student-auth/login`,{
-                      username:'FKS-2018-008',
+                      studentId:'FKS-2018-008',
                       password:'123456'
                   });
                   if (response.data.token) {
@@ -95,6 +96,7 @@ const LandingPage = () => {
           } catch (err) {
               console.error(err);
               const msg = err.response?.data?.message || t('error') || 'Login failed.';
+          }finally{
               setLoading(false);
           }
       };
@@ -388,8 +390,13 @@ const LandingPage = () => {
                 <h3 className="text-3xl font-black text-slate-900"> {demo.title} </h3>
                 <p className="mt-4 text-slate-500 leading-relaxed font-medium"> {demo.desc} </p>
                 
-                <button onClick={() => loginDemo(demo.route)} className=" bg-gradient-to-r from-blue-600 to-slate-900 mt-3 hover:bg-slate-700 flex items-center justify-center  text-white font-bold py-2 px-4 rounded transition-colors duration-200">
-                        Enter Demo
+                <button onClick={() => loginDemo(demo.route)}
+                        className=" bg-gradient-to-r from-blue-600 to-slate-900 mt-3 hover:bg-slate-700 flex items-center justify-center  text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+                        disabled={loading}
+                >
+                  {
+                    loading ? 'Loging ...' : <span>
+                      Enter Demo
                     <svg 
                         className="w-4 h-4 ml-1.5 transform transition-transform duration-300 ease-out group-hover:translate-x-1.5" 
                         fill="none" 
@@ -399,6 +406,9 @@ const LandingPage = () => {
                     >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
+                    </span>
+                  }
+                       
                 </button>
                 
               </div>
