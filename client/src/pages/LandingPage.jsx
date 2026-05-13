@@ -391,7 +391,7 @@ const LandingPage = () => {
                 <p className="mt-4 text-slate-500 leading-relaxed font-medium"> {demo.desc} </p>
                 
                 <button onClick={() => loginDemo(demo.route)}
-                        className=" bg-gradient-to-r from-blue-600 to-slate-900 mt-3 hover:bg-slate-700 flex items-center justify-center  text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+                        className="bg-gradient-to-r from-blue-600 to-slate-900 mt-3 hover:bg-slate-700 flex flex-row items-center  justify-center w-full  text-white font-bold py-2 px-2 rounded transition-colors duration-200"
                         disabled={loading}
                 >
                   {
