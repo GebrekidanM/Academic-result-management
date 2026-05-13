@@ -67,7 +67,7 @@ const LandingPage = () => {
               else if (role === "parent") {
                   const response = await axios.post(`https://academic-result-management.onrender.com/api/student-auth/login`,{
                       username:'FKS-2018-008',
-                      password:'admin@'
+                      password:'123456'
                   });
                   if (response.data.token) {
                       localStorage.setItem('student-user', JSON.stringify(response.data));
