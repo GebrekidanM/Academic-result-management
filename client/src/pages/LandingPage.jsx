@@ -249,7 +249,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {trustItems.map((item, index) => (
-              <div key={index} className="bg-white rounded-3xl border border-slate-200 p-6 text-center hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+              <div key={index} className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-6 text-center hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                 <div className="flex justify-center mb-4">
                   {item.icon}
                 </div>
@@ -319,7 +319,7 @@ const LandingPage = () => {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <div key={index} className="bg-[#F8FAFC] rounded-[2rem] border border-slate-200 p-8 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+              <div key={index} className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                 <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
                   {feature.icon}
                 </div>
@@ -352,18 +352,18 @@ const LandingPage = () => {
           </p>
 
           <div className="mt-16 grid md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
+            <div className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
               <Brain className="text-blue-600" size={42} />
               <h3 className="mt-6 text-2xl font-black text-slate-900">Semester AI Insights</h3>
               <p className="mt-4 text-slate-500 leading-relaxed">Automatic strengths, weaknesses and recommendations generated per semester.</p>
             </div>
-            <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
+            <div className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
               <BarChart3 className="text-blue-600" size={42} />
               <h3 className="mt-6 text-2xl font-black text-slate-900">Risk Prediction</h3>
               <p className="mt-4 text-slate-500 leading-relaxed">Identify struggling students before academic performance declines.</p>
             </div>
 
-            <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
+            <div className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
               <Globe2 className="text-blue-600" size={42} />
               <h3 className="mt-6 text-2xl font-black text-slate-900">Multilingual AI</h3>
               <p className="mt-4 text-slate-500 leading-relaxed">AI-generated academic communication in English, Amharic, Oromo, Somali, Afar and Tigrinya.</p>
@@ -381,19 +381,26 @@ const LandingPage = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {demos.map((demo, index) => (
-              <div key={index} className="bg-[#F8FAFC] rounded-[2rem] border border-slate-200 p-8 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+              <div key={index} className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                 <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
                   {demo.icon}
                 </div>
                 <h3 className="text-3xl font-black text-slate-900"> {demo.title} </h3>
                 <p className="mt-4 text-slate-500 leading-relaxed font-medium"> {demo.desc} </p>
-                <button
-                   onClick={() => loginDemo(demo.route)}
-                   className="mt-8 inline-flex items-center gap-2 text-blue-600 font-black hover:gap-3 transition-all"
-                >
-                  Enter Demo
-                  <ChevronRight size={18} />
+                
+                <button onClick={() => loginDemo(demo.route)} className=" bg-gradient-to-r from-blue-600 to-slate-900 mt-3 hover:bg-slate-700 flex items-center justify-center  text-white font-bold py-2 px-4 rounded transition-colors duration-200">
+                        Enter Demo
+                    <svg 
+                        className="w-4 h-4 ml-1.5 transform transition-transform duration-300 ease-out group-hover:translate-x-1.5" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor" 
+                        strokeWidth="2"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
                 </button>
+                
               </div>
             ))}
           </div>
@@ -402,7 +409,7 @@ const LandingPage = () => {
 
       {/* CTA */}
       <section className="py-24 px-6">
-        <div className="max-w-6xl mx-auto bg-gradient-to-r from-blue-600 to-slate-900 rounded-[3rem] p-14 text-center text-white overflow-hidden relative">
+        <div className="max-w-6xl mx-auto bg-gradient-to-r from-blue-600 to-slate-900 rounded-sm p-14 text-center text-white overflow-hidden relative">
           <div className="absolute top-[-100px] right-[-100px] w-[300px] h-[300px] bg-white/10 rounded-full blur-3xl" />
           <GraduationCap size={60} className="mx-auto mb-8" />
           <h2 className="text-5xl font-black leading-tight">
