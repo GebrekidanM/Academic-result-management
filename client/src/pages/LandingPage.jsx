@@ -412,7 +412,7 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto bg-gradient-to-r from-blue-600 to-slate-900 rounded-sm p-14 text-center text-white overflow-hidden relative">
           <div className="absolute top-[-100px] right-[-100px] w-[300px] h-[300px] bg-white/10 rounded-full blur-3xl" />
           <GraduationCap size={60} className="mx-auto mb-8" />
-          <h2 className="text-5xl font-black leading-tight">
+          <h2 className="text-3xl md:text-5xl font-black leading-tight">
             Transform Your School Into
             <br />
             An Intelligent Digital Campus
