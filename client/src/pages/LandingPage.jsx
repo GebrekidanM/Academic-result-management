@@ -14,7 +14,7 @@ const LandingPage = () => {
   const [loading,setLoading] = useState(false)
   
   const trustItems = [
-    { icon: <Users size={28} className="text-blue-600" />, value: "1000+", label: "Students" },
+    { icon: <Users size={28} className="text-blue-600" />, value: "700+", label: "Students" },
     { icon: <Brain size={28} className="text-blue-600" />, value: "AI", label: "Powered" },
     { icon: <Globe2 size={28} className="text-blue-600" />, value: "6", label: "Languages" },
     { icon: <WifiOff size={28} className="text-blue-600" />, value: "24/7", label: "Access" },
@@ -124,62 +124,122 @@ const LandingPage = () => {
       </nav>
 
       {/* HERO */}
-      <section className="relative pt-40 pb-24 overflow-hidden">
-        <div className="absolute top-[-200px] left-[-200px] w-[500px] h-[500px] bg-blue-200/40 rounded-full blur-3xl" />
-        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center relative z-10">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white border border-slate-200 shadow-sm">
-              <Sparkles size={16} className="text-blue-600" />
-              <span className="text-sm font-black text-slate-700">AI Powered Education Platform</span>
+      <section className="relative pt-28 md:pt-40 pb-16 md:pb-24 overflow-hidden">
+        {/* BACKGROUND GLOW */}
+        <div className="absolute top-[-200px] left-[-200px] w-[320px] md:w-[500px] h-[320px] md:h-[500px] bg-blue-200/40 rounded-full blur-3xl" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-14 lg:gap-16 items-center relative z-10">
+          {/* LEFT */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center lg:text-left order-2 lg:order-1"
+          >
+            {/* BADGE */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm">
+              <Sparkles size={15} className="text-blue-600" />
+              <span className="text-xs sm:text-sm font-black text-slate-700">
+                AI Powered Education Platform
+              </span>
             </div>
 
-            <h1 className="mt-8 text-5xl md:text-7xl font-black leading-[1.05] tracking-tight text-slate-900">
+            {/* TITLE */}
+            <h1 className="mt-7 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight text-slate-900">
               Intelligent
               <br />
               School
               <br />
-              Management
+              <span className="text-blue-600">
+                Management
+              </span>
             </h1>
-            <p className="mt-8 text-lg text-slate-600 leading-relaxed max-w-xl font-medium">
+
+            {/* ENGLISH */}
+            <p className="mt-6 text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0 font-medium">
               AI-powered academic intelligence platform for Ethiopian schools with analytics, multilingual support, parent portals and smart educational insights.
             </p>
-            <p className="mt-5 text-base text-slate-500 leading-relaxed font-medium">
-              ዘመናዊ በAI የተደገፈ የትምህርት ቤት አስተዳደር። የተማሪ ውጤት ትንተና፣ የወላጅ ፖርታል እና የሪስክ ትንበያ ሲስተም።
+
+            {/* AMHARIC */}
+            <p className="mt-4 text-sm sm:text-base text-slate-500 leading-relaxed max-w-xl mx-auto lg:mx-0 font-medium">
+              ዘመናዊ በAI የተደገፈ የትምህርት ቤት አስተዳደር።
+              የተማሪ ውጤት ትንተና፣ የወላጅ ፖርታል እና
+              የሪስክ ትንበያ ሲስተም።
             </p>
-            <div className="mt-10 flex flex-col sm:flex-row gap-4">
-              <Link to="/login" className="group px-8 py-4 rounded-3xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 hover:-translate-y-1 transition-all shadow-lg shadow-blue-200/40">
+
+            {/* BUTTON */}
+            <div className="mt-8 sm:mt-10 flex justify-center lg:justify-start">
+              <Link
+                to="/login"
+                className="group px-7 sm:px-8 py-3.5 sm:py-4 rounded-3xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 hover:-translate-y-1 transition-all shadow-lg shadow-blue-200/40"
+              >
                 Launch Platform
-                <ChevronRight size={18} className="group-hover:translate-x-1 transition-all" />
+                <ChevronRight
+                  size={18}
+                  className="group-hover:translate-x-1 transition-all"
+                />
               </Link>
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1 }} className="relative">
+          {/* RIGHT */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1 }}
+            className="relative order-1 lg:order-2 mt-4 lg:mt-0"
+          >
+            {/* GLOW */}
             <div className="absolute inset-0 bg-blue-200/30 blur-3xl rounded-full scale-110" />
-            <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute -left-8 top-12 bg-white rounded-3xl shadow-lg border border-slate-200 p-5 z-20">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
-                  <BarChart3 className="text-blue-600" />
+            {/* FLOATING CARD 1 */}
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+              className="absolute left-2 sm:left-0 lg:-left-8 top-4 sm:top-10 bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-slate-200 p-3 sm:p-5 z-20"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
+                  <BarChart3 className="text-blue-600" size={20} />
                 </div>
+
                 <div>
-                  <p className="text-sm font-bold text-slate-500">Performance</p>
-                  <h3 className="text-2xl font-black text-slate-900">92%</h3>
+                  <p className="text-xs sm:text-sm font-bold text-slate-500">
+                    Performance
+                  </p>
+                  <h3 className="text-lg sm:text-2xl font-black text-slate-900">
+                    99.9%
+                  </h3>
                 </div>
               </div>
             </motion.div>
 
-            <motion.div animate={{ y: [0, 12, 0] }} transition={{ duration: 5, repeat: Infinity }} className="absolute -right-8 bottom-10 bg-white rounded-3xl shadow-lg border border-slate-200 p-5 z-20">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
-                  <Brain className="text-blue-600" />
+            {/* FLOATING CARD 2 */}
+            <motion.div
+              animate={{ y: [0, 12, 0] }}
+              transition={{ duration: 5, repeat: Infinity }}
+              className="absolute right-2 sm:right-0 lg:-right-6 bottom-4 sm:bottom-10 bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-slate-200 p-3 sm:p-5 z-20"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
+                  <Brain className="text-blue-600" size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-500">AI Insight</p>
-                  <h3 className="text-lg font-black text-slate-900">Stable Progress</h3>
+                  <p className="text-xs sm:text-sm font-bold text-slate-500">
+                    AI Insight
+                  </p>
+                  <h3 className="text-sm sm:text-lg font-black text-slate-900">
+                    Stable Progress
+                  </h3>
                 </div>
               </div>
             </motion.div>
-            <img src={heroImage} alt="AI School Platform" className="relative z-10 w-full rounded-[2rem] border border-slate-200 shadow-2xl" />
+
+            {/* IMAGE */}
+            <img
+              src={heroImage}
+              alt="AI School Platform"
+              className="relative z-10 w-full rounded-[2rem] border border-slate-200 shadow-2xl"
+            />
           </motion.div>
         </div>
       </section>
