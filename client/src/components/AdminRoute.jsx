@@ -10,8 +10,6 @@ const AdminRoute = () => {
     }else{
         return <Navigate to='/login'/>;
     }
-
-
 };
 
 export default AdminRoute;

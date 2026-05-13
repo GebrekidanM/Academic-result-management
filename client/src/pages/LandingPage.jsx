@@ -1,292 +1,383 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { 
-  Menu, X,PlayCircle ,
-  Users, BarChart3, FileText, Lock, LayoutDashboard, 
-  UploadCloud, AlertCircle, IdCard, Bell, Globe2, WifiOff, CheckCircle2,
-  Target, Heart, Award
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { Brain,Sparkles,Globe2,ShieldCheck,Users,WifiOff,BarChart3,ChevronRight,PlayCircle, AlertTriangle,
+  CheckCircle2,BookOpen, GraduationCap, Bell, FileText, UserCheck } from "lucide-react";
+import axios from "axios";
+import heroImage from "../assests/ai-school-hero.png";
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from "react-router-dom";
 
 const LandingPage = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [loading,setLoading] = useState(false)
+  
+  const trustItems = [
+    { icon: <Users size={28} className="text-blue-600" />, value: "1000+", label: "Students" },
+    { icon: <Brain size={28} className="text-blue-600" />, value: "AI", label: "Powered" },
+    { icon: <Globe2 size={28} className="text-blue-600" />, value: "6", label: "Languages" },
+    { icon: <WifiOff size={28} className="text-blue-600" />, value: "24/7", label: "Access" },
+    { icon: <ShieldCheck size={28} className="text-blue-600" />, value: "Safe", label: "Cloud" },
+    { icon: <BarChart3 size={28} className="text-blue-600" />, value: "Smart", label: "Analytics" }
+  ];
   const features = [
-  { 
-    id: 1, 
-    title: "የተማሪዎች ዲጂታል አስተዳደር", 
-    desc: "የተማሪዎችን መረጃ በአንድ ማዕከላዊ ቦታ በማደራጀት በቀላሉ ለማግኘት እና ለማስተዳደር ይረዳል።", 
-    icon: <Users className="text-slate-600" size={28} />, 
-    bg: "bg-slate-50" 
-  },
-  { 
-    id: 2, 
-    title: "አውቶማቲክ የውጤት አስተዳደር", 
-    desc: "ሲስተሙ አማካይ፣ ድምር እና ደረጃን (Rank) በራሱ ያሰላል፤ የሰው ስህተትን ያስቀራል።", 
-    icon: <BarChart3 className="text-emerald-600" size={28} />, 
-    bg: "bg-emerald-50" 
-  },
-  { 
-    id: 3, 
-    title: "ፈጣን ሪፖርት ማመንጨት", 
-    desc: "በአንድ ክሊክ ፕሮፌሽናል የሪፖርት ካርድ እና አጠቃላይ የክፍል ሰነዶችን (Rosters) ያዘጋጃል።", 
-    icon: <FileText className="text-purple-600" size={28} />, 
-    bg: "bg-purple-50" 
-  },
-  { 
-    id: 4, 
-    title: "የተጠቃሚ ሚና እና ቁጥጥር", 
-    desc: "ለመምህራን፣ ለወላጆች እና ለአስተዳዳሪዎች የተለያየ የፈቃድ ደረጃ በመስጠት ደህንነትን ይጠብቃል።", 
-    icon: <Lock className="text-amber-600" size={28} />, 
-    bg: "bg-amber-50" 
-  },
-  { 
-    id: 5, 
-    title: "የወላጆች ፖርታል", 
-    desc: "ወላጆች የልጆቻቸውን ውጤት፣ ባህሪ እና የክፍያ ሁኔታ በማንኛውም ሰዓት በስልካቸው ያያሉ።", 
-    icon: <LayoutDashboard className="text-rose-600" size={28} />, 
-    bg: "bg-rose-50" 
-  },
-  { 
-    id: 6, 
-    title: "የቡድን ምዝገባ (Bulk Import)", 
-    desc: "በሺዎች የሚቆጠሩ ተማሪዎችን መረጃ ከExcel ፋይል በቀጥታ ወደ ሲስተሙ በፍጥነት ያስገባል።", 
-    icon: <UploadCloud className="text-cyan-600" size={28} />, 
-    bg: "bg-cyan-50" 
-  },
-  { 
-    id: 7, 
-    title: "የውጤት ትንተና (Risk Analytics)", 
-    desc: "ደካማ ውጤት ያላቸውን ተማሪዎች (ከ60% በታች) በመለየት ፈጣን ድጋፍ እንዲያገኙ ይረዳል።", 
-    icon: <AlertCircle className="text-red-600" size={28} />, 
-    bg: "bg-red-50" 
-  },
-  { 
-    id: 8, 
-    title: "ዲጂታል መታወቂያ እና ምስክር ወረቀት", 
-    desc: "መታወቂያዎችን እና ሰርተፊኬቶችን ያለ ተጨማሪ የህትመት ወጪ በራስ-ሰር ያዘጋጃል።", 
-    icon: <IdCard className="text-indigo-600" size={28} />, 
-    bg: "bg-indigo-50" 
-  },
-  { 
-    id: 9, 
-    title: "የማስታወቂያ ስርዓት", 
-    desc: "ለተማሪዎች፣ ለመምህራን እና ለወላጆች አስፈላጊ ማስታወቂያዎችን በፍጥነት ማስረከብ።", 
-    icon: <Bell className="text-orange-600" size={28} />, 
-    bg: "bg-orange-50" 
-  },
-  { 
-    id: 10, 
-    title: "ኦንላይን እና ኦፍላይን ድጋፍ", 
-    desc: "የኢንተርኔት ችግር ቢኖርም ስርዓቱ በቀጥታ እንዲሰራ የሚያስችል የቴክኖሎጂ ድጋፍ።", 
-    icon: <WifiOff className="text-gray-600" size={28} />, 
-    bg: "bg-gray-50" 
-  }
-];
+    { icon: <Users size={32} className="text-blue-600" />, title: "Student Management", desc: "Centralized digital student information management." },
+    { icon: <BarChart3 size={32} className="text-blue-600" />, title: "Automated Results", desc: "Automatic ranking, averages and analytics." },
+    { icon: <FileText size={32} className="text-blue-600" />, title: "Report Cards", desc: "Professional digital report generation." },
+    { icon: <Bell size={32} className="text-blue-600" />, title: "Parent Notifications", desc: "Real-time parent communication system." },
+    { icon: <Brain size={32} className="text-blue-600" />, title: "AI Insights", desc: "Gemini-powered semester analysis." },
+    { icon: <WifiOff size={32} className="text-blue-600" />, title: "Offline Support", desc: "Work even with unstable internet access." }
+  ];
+  const demos = [
+    {
+      title: "Admin Demo",
+      desc: "School analytics, AI reports, management and dashboards.",
+      route: "admin",
+      icon: <ShieldCheck size={36} className="text-blue-600" />
+    },
+    {
+      title: "Teacher Demo",
+      desc: "Assessment, grading and academic management experience.",
+      route: "teacher",
+      icon: <BookOpen size={36} className="text-blue-600" />
+    },
+    {
+      title: "Parent Demo",
+      desc: "Results, AI semester insights and student progress tracking.",
+      route: "parent",
+      icon: <UserCheck size={36} className="text-blue-600" />
+    }
+  ];
+
+   const loginDemo = async (role) => {
+          try {
+              if (role === "admin") {
+                  const response = await axios.post(`https://academic-result-management.onrender.com/api/auth/login`,{
+                      username:'admin',
+                      password:'admin@123'
+                  });
+
+                  if (response.data.token) {
+                      localStorage.setItem('user', JSON.stringify(response.data));
+                      navigate('/');
+                      window.location.reload();
+                  }
+              } 
+              else if (role === "parent") {
+                  const response = await axios.post(`https://academic-result-management.onrender.com/api/student-auth/login`,{
+                      username:'FKS-2018-008',
+                      password:'admin@'
+                  });
+                  if (response.data.token) {
+                      localStorage.setItem('student-user', JSON.stringify(response.data));
+  
+                      if (response.data.isInitialPassword) {
+                          navigate('/parent/change-password');
+                      } else {
+                          navigate('/parent/dashboard');
+                      }
+                      window.location.reload();
+                  }
+              } 
+              else if (role === "teacher") {
+                  const response = await axios.post(`https://academic-result-management.onrender.com/api/auth/login`,{
+                      username:'1',
+                      password:'123456'
+                  });
+
+                  if (response.data.token) {
+                      localStorage.setItem('user', JSON.stringify(response.data));
+                      navigate('/');
+                      window.location.reload();
+                  }
+              } 
+          } catch (err) {
+              console.error(err);
+              const msg = err.response?.data?.message || t('error') || 'Login failed.';
+              setLoading(false);
+          }
+      };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 selection:bg-slate-100">
-      
-      {/* 1. NAVIGATION WITH MOBILE MENU */}
-      <nav className="fixed top-0 left-0 w-full z-50 bg-slate-900 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
-          
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-600 rounded-xl flex items-center justify-center ">
-              <span className="text-white font-black text-xl">N</span>
+
+    <div className="min-h-screen bg-[#F8FAFC] overflow-hidden text-slate-900">
+      {/* NAVBAR */}
+      <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-3xl bg-gradient-to-br from-blue-600 to-slate-900 flex items-center justify-center shadow-lg shadow-blue-200/40">
+              <Brain className="text-white" size={24} />
             </div>
-            <span className="font-black text-xl tracking-tight text-slate-100 uppercase italic">Nitsuh</span>
+            <div>
+              <h2 className="font-black text-lg text-slate-900">Nitsuh AI</h2>
+              <p className="text-xs text-slate-500 font-bold">School Intelligence Platform</p>
+            </div>
           </div>
-
-          {/* Desktop Links (Hidden on Mobile) */}
-          <div className="hidden md:flex items-center gap-10">
-            <a href="#about" className="text-sm amharic-font font-bold text-slate-200 hover:text-slate-600 transition">ስለ እኛ</a>
-            <a href="#features" className="text-sm amharic-font font-bold text-slate-200 hover:text-slate-600 transition">አገልግሎቶች</a>
-            <Link to="/login" className="bg-slate-500 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-slate-200 transition-all">
-              Login
-            </Link>
-          </div>
-
-          {/* Mobile Menu Button (Hamburger) */}
-          <div className="md:hidden">
-            <button 
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
-            >
-              {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
-            </button>
+          <div className="hidden lg:flex items-center gap-10">
+            <a href="#features" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-all">Features</a>
+            <a href="#ai" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-all">AI Engine</a>
+            <a href="#demo" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-all">Demo</a>
+            <Link to="/login" className="px-6 py-3 rounded-2xl bg-slate-900 text-white font-black hover:scale-[1.02] transition-all">Login</Link>
           </div>
         </div>
-
-        {/* Mobile Menu Overlay (Visible only when isMenuOpen is true) */}
-        {isMenuOpen && (
-          <div className="md:hidden absolute top-20 left-0 w-full bg-slate-900 border-b border-slate-100 p-6 flex flex-col gap-6 shadow-xl animate-in slide-in-from-top duration-300">
-            <a 
-              href="#about" 
-              onClick={() => setIsMenuOpen(false)}
-              className="text-lg font-bold text-slate-200 hover:text-slate-100"
-            >
-              ስለ እኛ
-            </a>
-            <a 
-              href="#features" 
-              onClick={() => setIsMenuOpen(false)}
-              className="text-lg font-bold text-slate-200 hover:text-slate-100"
-            >
-              አገልግሎቶች
-            </a>
-            <Link 
-              to="/login" 
-              onClick={() => setIsMenuOpen(false)}
-              className="bg-slate-600 text-white px-6 py-4 rounded-2xl font-black text-center"
-            >
-              Login
-            </Link>
-          </div>
-        )}
       </nav>
 
-      {/* 2. HERO SECTION */}
-      <section className="bg-gradient-to-br mt-26 from-slate-600 to-slate-900 text-white py-24">
-        <div className="max-w-6xl mx-auto px-6 text-center">
+      {/* HERO */}
+      <section className="relative pt-40 pb-24 overflow-hidden">
+        <div className="absolute top-[-200px] left-[-200px] w-[500px] h-[500px] bg-blue-200/40 rounded-full blur-3xl" />
+        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center relative z-10">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white border border-slate-200 shadow-sm">
+              <Sparkles size={16} className="text-blue-600" />
+              <span className="text-sm font-black text-slate-700">AI Powered Education Platform</span>
+            </div>
 
-          <h1 className="!amharic-font text-4xl md:text-5xl font-bold leading-tight mb-6">
-            ዘመናዊ የትምህርት ቤት  
-            <span className="text-yellow-300 !amharic-font"> አስተዳደር ሲስተም</span>
-          </h1>
+            <h1 className="mt-8 text-5xl md:text-7xl font-black leading-[1.05] tracking-tight text-slate-900">
+              Intelligent
+              <br />
+              School
+              <br />
+              Management
+            </h1>
+            <p className="mt-8 text-lg text-slate-600 leading-relaxed max-w-xl font-medium">
+              AI-powered academic intelligence platform for Ethiopian schools with analytics, multilingual support, parent portals and smart educational insights.
+            </p>
+            <p className="mt-5 text-base text-slate-500 leading-relaxed font-medium">
+              ዘመናዊ በAI የተደገፈ የትምህርት ቤት አስተዳደር። የተማሪ ውጤት ትንተና፣ የወላጅ ፖርታል እና የሪስክ ትንበያ ሲስተም።
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row gap-4">
+              <Link to="/login" className="group px-8 py-4 rounded-3xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 hover:-translate-y-1 transition-all shadow-lg shadow-blue-200/40">
+                Launch Platform
+                <ChevronRight size={18} className="group-hover:translate-x-1 transition-all" />
+              </Link>
+            </div>
+          </motion.div>
 
-          <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8 !amharic-font">
-            የተማሪ መረጃ፣ ውጤት፣ ሪፖርት ካርድ እና የትምህርት ቤት ስራዎችን በአንድ ዘመናዊ ዲጂታል ሲስተም ያስተዳድሩ።
+          <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1 }} className="relative">
+            <div className="absolute inset-0 bg-blue-200/30 blur-3xl rounded-full scale-110" />
+            <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute -left-8 top-12 bg-white rounded-3xl shadow-lg border border-slate-200 p-5 z-20">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
+                  <BarChart3 className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-500">Performance</p>
+                  <h3 className="text-2xl font-black text-slate-900">92%</h3>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div animate={{ y: [0, 12, 0] }} transition={{ duration: 5, repeat: Infinity }} className="absolute -right-8 bottom-10 bg-white rounded-3xl shadow-lg border border-slate-200 p-5 z-20">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
+                  <Brain className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-500">AI Insight</p>
+                  <h3 className="text-lg font-black text-slate-900">Stable Progress</h3>
+                </div>
+              </div>
+            </motion.div>
+            <img src={heroImage} alt="AI School Platform" className="relative z-10 w-full rounded-[2rem] border border-slate-200 shadow-2xl" />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* TRUST STRIP */}
+      <section className="pb-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {trustItems.map((item, index) => (
+              <div key={index} className="bg-white rounded-3xl border border-slate-200 p-6 text-center hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="flex justify-center mb-4">
+                  {item.icon}
+                </div>
+                <h3 className="text-2xl font-black text-slate-900">
+                  {item.value}
+                </h3>
+                <p className="text-sm font-bold text-slate-500 mt-1">
+                  {item.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PROBLEM / SOLUTION */}
+      <section className="py-24 bg-slate-900 text-white">
+        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16">
+          <div>
+            <h2 className="text-4xl font-black mb-10">
+              Traditional School Problems
+            </h2>
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <AlertTriangle className="text-red-400 mt-1" />
+                <p className="text-slate-300 text-lg">Manual ranking and report errors</p>
+              </div>
+              <div className="flex items-start gap-4">
+                <AlertTriangle className="text-red-400 mt-1" />
+                <p className="text-slate-300 text-lg">Weak parent communication systems</p>
+              </div>
+              <div className="flex items-start gap-4">
+                <AlertTriangle className="text-red-400 mt-1" />
+                <p className="text-slate-300 text-lg">Paper-based academic management</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-4xl font-black mb-10 text-blue-400">
+              Nitsuh AI Solution
+            </h2>
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <CheckCircle2 className="text-green-400 mt-1" />
+                <p className="text-slate-300 text-lg">AI-powered academic intelligence</p>
+              </div>
+              <div className="flex items-start gap-4">
+                <CheckCircle2 className="text-green-400 mt-1" />
+                <p className="text-slate-300 text-lg">Automated analytics and ranking</p>
+              </div>
+              <div className="flex items-start gap-4">
+                <CheckCircle2 className="text-green-400 mt-1" />
+                <p className="text-slate-300 text-lg">Multilingual parent portal access</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section id="features" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl font-black text-slate-900 tracking-tight">Platform Features</h2>
+            <p className="mt-5 text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">Everything schools need to manage education intelligently and efficiently.</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <div key={index} className="bg-[#F8FAFC] rounded-[2rem] border border-slate-200 p-8 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
+                  {feature.icon}
+                </div>
+                <h3 className="text-2xl font-black text-slate-900">
+                  {feature.title}
+                </h3>
+                <p className="mt-4 text-slate-500 leading-relaxed font-medium">
+                  {feature.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AI SECTION */}
+      <section id="ai" className="py-24 bg-[#F8FAFC]">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white border border-slate-200 shadow-sm mb-8">
+            <Brain size={16} className="text-blue-600" />
+            <span className="text-sm font-black text-slate-700">Gemini 2.5 Flash Powered</span>
+          </div>
+
+          <h2 className="text-5xl font-black text-slate-900 tracking-tight">
+            AI Intelligence Engine
+          </h2>
+
+          <p className="mt-6 max-w-3xl mx-auto text-lg text-slate-500 leading-relaxed font-medium">
+            AI-generated semester analysis, multilingual recommendations, student risk prediction and intelligent academic insights for parents, teachers and administrators.
           </p>
 
-          <div className="flex flex-col md:flex-row justify-center gap-4">
-            <Link to="/login" className="bg-slate-900 text-white px-10 py-4.5 rounded-xl font-bold text-sm hover:bg-slate-600 transition-all flex items-center justify-center">
-              የልጅዎን ውጤት ይዩ
-            </Link>
-            <Link to="https://nitsuh-academy.netlify.app/login?mode=demo" target="_blank" rel="noopener noreferrer" className="px-10 py-4.5 bg-white border-2 border-slate-100 text-slate-600 rounded-xl font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group" > <PlayCircle size={20} className="text-slate-600 group-hover:scale-125 transition-transform" /> Demo ይመልከቱ </Link>
-          </div>
-
-        </div>
-      </section>
-
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center">
-
-          <div>
-            <h3 className="text-4xl font-bold text-slate-600">1000+</h3>
-            <p className="text-gray-500">Students Managed</p>
-          </div>
-
-          <div>
-            <h3 className="text-4xl font-bold text-slate-600">1+</h3>
-            <p className="text-gray-500">Schools Using the System</p>
-          </div>
-
-          <div>
-            <h3 className="text-4xl font-bold text-slate-600">99%</h3>
-            <p className="text-gray-500">Accuracy in Results</p>
-          </div>
-
-        </div>
-      </section>
-
-      <section id="about" className="py-24 px-6 bg-slate-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div className="relative">
-              <div className="aspect-square bg-slate-100 rounded-[3rem] relative overflow-hidden border-8 border-white shadow-2xl">
-                <div className="absolute inset-0 flex items-center justify-center p-12">
-                   <div className="text-center">
-                      <Target className="text-slate-600 mx-auto mb-4" size={60} />
-                      <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Our Mission</p>
-                   </div>
-                </div>
-              </div>
-              {/* Floating Stat Card */}
-              <div className="absolute -bottom-8 -right-8 bg-white p-8 rounded-3xl shadow-xl border border-slate-100 hidden md:block">
-                <p className="text-4xl font-black text-slate-600 italic">100%</p>
-                <p className="text-slate-500 font-bold text-sm uppercase">Digital Efficiency</p>
-              </div>
+          <div className="mt-16 grid md:grid-cols-3 gap-8">
+            <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
+              <Brain className="text-blue-600" size={42} />
+              <h3 className="mt-6 text-2xl font-black text-slate-900">Semester AI Insights</h3>
+              <p className="mt-4 text-slate-500 leading-relaxed">Automatic strengths, weaknesses and recommendations generated per semester.</p>
             </div>
-            
-            <div>
-              <h2 className="text-4xl font-black text-slate-900 mb-6 leading-tight">
-                ስለ Nitsuh School Management <br/> 
-                <span className="text-slate-600 text-2xl tracking-normal font-bold">ቴክኖሎጂ ለትምህርት ጥራት</span>
-              </h2>
-              <p className="text-slate-600 text-lg mb-8 leading-relaxed">
-                Nitsuh SMS የተመሰረተው በትምህርት ቤቶች ውስጥ ያለውን የአስተዳደር ስራ በማቀለል፣ መምህራን በወረቀት ስራ ከመጠመድ ይልቅ ለተማሪዎቻቸው ትኩረት እንዲሰጡ ለማስቻል ነው። 
-              </p>
-              
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100">
-                    <Heart className="text-rose-500" size={24} fill="currentColor" />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-slate-800">ለሁሉም ተደራሽ</h4>
-                    <p className="text-slate-500 text-sm">ከከተማ እስከ ገጠር፣ ኢንተርኔት ባለበትም በሌለበትም ቦታ እንዲሰራ ሆኖ ተገንብቷል።</p>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100">
-                    <Award className="text-amber-500" size={24} fill="currentColor" />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-slate-800">ጥራት እና ደህንነት</h4>
-                    <p className="text-slate-500 text-sm">የተማሪዎች መረጃ በአስተማማኝ ሁኔታ የተጠበቀ እና በማንኛውም ሰዓት ዝግጁ ነው።</p>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
+              <BarChart3 className="text-blue-600" size={42} />
+              <h3 className="mt-6 text-2xl font-black text-slate-900">Risk Prediction</h3>
+              <p className="mt-4 text-slate-500 leading-relaxed">Identify struggling students before academic performance declines.</p>
+            </div>
+
+            <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
+              <Globe2 className="text-blue-600" size={42} />
+              <h3 className="mt-6 text-2xl font-black text-slate-900">Multilingual AI</h3>
+              <p className="mt-4 text-slate-500 leading-relaxed">AI-generated academic communication in English, Amharic, Oromo, Somali, Afar and Tigrinya.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. FEATURES GRID */}
-      <div id="features" className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16 mx-4">
-        {features.map((feature) => (
-          <div
-            key={feature.id}
-            className="group bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100"
-          >
-            <div className={`w-14 h-14 flex items-center justify-center rounded-xl ${feature.bg} mb-4`}>
-              {feature.icon}
-            </div>
-
-            <h3 className="text-lg font-semibold text-gray-800 mb-2 group-hover:text-slate-600 transition">
-              {feature.title}
-            </h3>
-
-            <p className="text-gray-500 text-sm leading-relaxed">
-              {feature.desc}
-            </p>
+      {/* DEMO */}
+      <section id="demo" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl font-black text-slate-900 tracking-tight">Explore Live Demo</h2>
+            <p className="mt-5 text-lg text-slate-500 max-w-2xl mx-auto">Experience the platform from different user perspectives.</p>
           </div>
-        ))}
-      </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {demos.map((demo, index) => (
+              <div key={index} className="bg-[#F8FAFC] rounded-[2rem] border border-slate-200 p-8 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
+                  {demo.icon}
+                </div>
+                <h3 className="text-3xl font-black text-slate-900"> {demo.title} </h3>
+                <p className="mt-4 text-slate-500 leading-relaxed font-medium"> {demo.desc} </p>
+                <button
+                   onClick={() => loginDemo(demo.route)}
+                   className="mt-8 inline-flex items-center gap-2 text-blue-600 font-black hover:gap-3 transition-all"
+                >
+                  Enter Demo
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      {/* 5. CALL TO ACTION */}
-      <section className="bg-slate-700 mt-4 text-white py-20 text-center">
-        <h2 className="text-3xl font-bold mb-4">
-          የትምህርት ቤትዎን አስተዳደር ዘመናዊ ያድርጉ
+      {/* CTA */}
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto bg-gradient-to-r from-blue-600 to-slate-900 rounded-[3rem] p-14 text-center text-white overflow-hidden relative">
+          <div className="absolute top-[-100px] right-[-100px] w-[300px] h-[300px] bg-white/10 rounded-full blur-3xl" />
+          <GraduationCap size={60} className="mx-auto mb-8" />
+          <h2 className="text-5xl font-black leading-tight">
+            Transform Your School Into
+            <br />
+            An Intelligent Digital Campus
+          </h2>
+          <p className="mt-6 text-blue-100 text-lg max-w-2xl mx-auto leading-relaxed font-medium">
+            Modern education infrastructure powered by AI, analytics and multilingual communication.
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+            <a
+              href="https://t.me/nitsuhal"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 rounded-3xl bg-white text-slate-900 font-black hover:scale-[1.02] transition-all"
+            >
+              Get Started
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-slate-950 py-14 px-6 text-center">
+        <h2 className="text-2xl font-black text-white">
+          Nitsuh AI
         </h2>
-
-        <Link
-          to="https://t.me/nitsuhal"
-          className="bg-white text-slate-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100"
-        >
-          አሁን ይጀምሩ
-        </Link>
-      </section>
-
-      {/* 6. FOOTER */}
-      <footer className="py-12 border-t border-slate-100 text-center">
-        <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">
-          © {new Date().getFullYear()} <Link className="text-gray-700"
-          to={"https://gkidanme.netlify.app"}>Gebrekidan Mequanint.</Link>
+        <p className="mt-4 text-slate-400 max-w-xl mx-auto leading-relaxed">
+          Modern Ethiopian AI Education Infrastructure.
+        </p>
+        <p className="mt-8 text-sm text-slate-500 font-medium">
+          © {new Date().getFullYear()} Nitsuh AI School Platform.
         </p>
       </footer>
-
     </div>
   );
 };
