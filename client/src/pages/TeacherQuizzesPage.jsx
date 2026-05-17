@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import quizService from '../services/quizService';
+import quizService from '@shared/services/quizService';
 import { useTranslation } from 'react-i18next';
 import { MdDelete } from "react-icons/md";
 import { RiEditBoxFill } from "react-icons/ri";

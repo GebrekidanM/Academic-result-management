@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import assessmentTypeService from "../services/assessmentTypeService";
+import assessmentTypeService from "@shared/services/assessmentTypeService";
 import { useNavigate } from "react-router-dom";
 //get this year
 const ThisYear = ()=>{

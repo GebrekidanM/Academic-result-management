@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; 
-import subjectService from '../services/subjectService';
+import subjectService from '@shared/services/subjectService';
 
 function formatGrade(input) {
   if (!input) return input;

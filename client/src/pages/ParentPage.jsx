@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import studentAuthService from '../services/studentAuthService';
-import studentService from '../services/studentService';
-import gradeService from '../services/gradeService';
-import behavioralReportService from '../services/behavioralReportService';
-import rankService from '../services/rankService';
-import quizService from '../services/quizService';
+import studentAuthService from '@shared/services/studentAuthService';
+import studentService from '@shared/services/studentService';
+import gradeService from '@shared/services/gradeService';
+import behavioralReportService from '@shared/services/behavioralReportService';
+import rankService from '@shared/services/rankService';
+import quizService from '@shared/services/quizService';
 
 import {
   Chart as ChartJS,

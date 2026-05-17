@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import studentService from '../services/studentService';
-import gradeService from '../services/gradeService';
-import behavioralReportService from '../services/behavioralReportService';
-import authService from '../services/authService';
-import rankService from '../services/rankService'; // Ensure this is imported
+import studentService from '@shared/services/studentService';
+import gradeService from '@shared/services/gradeService';
+import behavioralReportService from '@shared/services/behavioralReportService';
+import authService from '@shared/services/authService';
+import rankService from '@shared/services/rankService'; // Ensure this is imported
 
 const StudentDetailPage = () => {
     const { t } = useTranslation();

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import authService from '../services/authService';
-import studentAuthService from '../services/studentAuthService';
+import authService from '@shared/services/authService';
+import studentAuthService from '@shared/services/studentAuthService';
 
 const LoginPage = () => {
     const { t } = useTranslation();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import userService from '../services/userService';
+import userService from '@shared/services/userService';
 
 const ProfilePage = () => {
     const [user, setUser] = useState(null);

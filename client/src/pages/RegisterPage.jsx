@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // <--- Import Hook
-import authService from '../services/authService';
+import authService from '@shared/services/authService';
 
 const RegisterPage = () => {
     const { t } = useTranslation(); // <--- Initialize

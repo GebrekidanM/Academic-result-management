@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next'; // <--- Import Hook
-import analyticsService from '../services/analyticsService';
-import subjectService from '../services/subjectService';
-import authService from '../services/authService';
-import userService from '../services/userService';
+import analyticsService from '@shared/services/analyticsService';
+import subjectService from '@shared/services/subjectService';
+import authService from '@shared/services/authService';
+import userService from '@shared/services/userService';
 
 const AtRiskStudents = () => {
   const { t } = useTranslation(); // <--- Initialize Hook

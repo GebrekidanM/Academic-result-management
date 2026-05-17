@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import userService from '../services/userService';
-import authService from '../services/authService';
-import studentAuthService from '../services/studentAuthService';
-import dashboardService from '../services/dashboardService';
+import userService from '@shared/services/userService';
+import authService from '@shared/services/authService';
+import studentAuthService from '@shared/services/studentAuthService';
+import dashboardService from '@shared/services/dashboardService';
 import LoggedOut from "./HomePage/LoggedOut"
 import IsAdmin from './HomePage/IsAdmin';
 import IsStaff from './HomePage/IsStaff';

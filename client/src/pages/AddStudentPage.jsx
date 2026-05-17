@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import studentService from '../services/studentService';
+import studentService from '@shared/services/studentService';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 

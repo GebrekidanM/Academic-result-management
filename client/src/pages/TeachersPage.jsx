@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // <--- Import Hook
-import userService from '../services/userService';
-import authService from '../services/authService';
+import userService from '@shared/services/userService';
+import authService from '@shared/services/authService';
 
 const TeachersPage = () => {
     const { t } = useTranslation();

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import quizService from '../services/quizService';
+import quizService from '@shared/services/quizService';
 import { useTranslation } from 'react-i18next';
-import authService from '../services/authService';
-import subjectService from '../services/subjectService';
-import configService from '../services/configService';
+import authService from '@shared/services/authService';
+import subjectService from '@shared/services/subjectService';
+import configService from '@shared/services/configService';
 
 const TeacherEditQuiz = () => {
     const { t } = useTranslation();

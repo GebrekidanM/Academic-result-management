@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import notificationService from '../services/notificationService';
-import authService from '../services/authService';
+import notificationService from '@shared/services/notificationService';
+import authService from '@shared/services/authService';
 
-// Sound file
 const notificationSound = new Audio('/alert.mp3'); 
 
 const NotificationBell = () => {

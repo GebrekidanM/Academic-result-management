@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import notificationService from '../services/notificationService';
+import notificationService from '@shared/services/notificationService';
 import { useTranslation } from 'react-i18next';
 
 const SendNotificationPage = () => {

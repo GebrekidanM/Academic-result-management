@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import scheduleService from '../services/scheduleService';
+import scheduleService from '@shared/services/scheduleService';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];

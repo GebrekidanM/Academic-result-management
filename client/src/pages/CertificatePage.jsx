@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReactToPrint } from 'react-to-print';
-import authService from '../services/authService';
-import userService from '../services/userService';
-import subjectService from '../services/subjectService';
-import reportCardService from '../services/reportCardService';
+import authService from '@shared/services/authService';
+import userService from '@shared/services/userService';
+import subjectService from '@shared/services/subjectService';
+import reportCardService from '@shared/services/reportCardService';
 
 // Import Templates
 import StandardCertificate from '../components/certificate/StandardCertificate';

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import authService from '../../services/authService';
-import studentAuthService from '../../services/studentAuthService';
+import authService from '@shared/services/authService';
+import studentAuthService from '@shared/services/studentAuthService';
 import LanguageSwitcher from '../LanguageSwitcher';
 import NotificationBell from '../NotificationBell';
 import { AdminMenu } from './AdminMenu';

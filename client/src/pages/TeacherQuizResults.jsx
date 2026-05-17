@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import quizService from '../services/quizService';
+import quizService from '@shared/services/quizService';
 import { useTranslation } from 'react-i18next';
 import TeacherQuizAnalytics from './TeacherQuizAnalytics';
 

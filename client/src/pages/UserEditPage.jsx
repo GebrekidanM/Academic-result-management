@@ -1,8 +1,8 @@
 // src/pages/UserEditPage.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import userService from '../services/userService';
-import subjectService from '../services/subjectService';
+import userService from '@shared/services/userService';
+import subjectService from '@shared/services/subjectService';
 
 const UserEditPage = () => {
     const { id: userId } = useParams();

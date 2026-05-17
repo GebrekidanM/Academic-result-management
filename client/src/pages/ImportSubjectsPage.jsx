@@ -1,7 +1,7 @@
 // src/pages/ImportSubjectsPage.js
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import subjectService from '../services/subjectService';
+import subjectService from '@shared/services/subjectService';
 
 const ImportSubjectsPage = () => {
     // --- State Management ---

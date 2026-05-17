@@ -65,8 +65,8 @@ import AllSubjectAnalytics from './pages/AllSubjectAnalytics';
 
 import CertificatePage from './pages/CertificatePage';
 import SendNotificationPage from './pages/SendNotificationPage';
-import authService from './services/authService';
-import studentAuthService from './services/studentAuthService';
+import authService from '@shared/services/authService';
+import studentAuthService from '@shared/services/studentAuthService';
 import SupportiveGradingPage from './pages/SupportiveGradingPage';
 import SupportiveSubjectPage from './pages/SupportiveSubjectPage';
 import ScheduleManager from './pages/ScheduleManager';

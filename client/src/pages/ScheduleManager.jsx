@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import scheduleService from '../services/scheduleService';
-import studentService from '../services/studentService';
-import subjectService from '../services/subjectService'; 
-import userService from '../services/userService';
+import scheduleService from '@shared/services/scheduleService';
+import studentService from '@shared/services/studentService';
+import subjectService from '@shared/services/subjectService'; 
+import userService from '@shared/services/userService';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];

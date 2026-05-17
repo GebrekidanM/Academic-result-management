@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // <--- Import Hook
-import studentAuthService from '../services/studentAuthService';
+import studentAuthService from '@shared/services/studentAuthService';
 
 const ForceChangePasswordPage = () => {
     const { t } = useTranslation(); // <--- Initialize Hook

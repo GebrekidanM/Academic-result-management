@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next'; // <--- IMPORT HOOK
-import offlineGradeService from '../services/offlineGradeService';
-import offlineAssessmentService from '../services/offlineAssessmentService';
-import gradeService from '../services/gradeService';
-import assessmentTypeService from '../services/assessmentTypeService';
+import offlineGradeService from '@shared/services/offlineGradeService';
+import offlineAssessmentService from '@shared/services/offlineAssessmentService';
+import gradeService from '@shared/services/gradeService';
+import assessmentTypeService from '@shared/services/assessmentTypeService';
 
 const SyncStatus = () => {
     const { t } = useTranslation(); // <--- INITIALIZE

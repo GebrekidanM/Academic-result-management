@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import studentService from '../services/studentService';
-import reportCardService from '../services/reportCardService';
+import studentService from '@shared/services/studentService';
+import reportCardService from '@shared/services/reportCardService';
 import ReportCardDocument from '../components/ReportCardDocument';
-import rankService from '../services/rankService';
-import {schoolInfoData} from '../utils/schoolInfoData';
+import rankService from '@shared/services/rankService';
+import {schoolInfoData} from '@shared/utils/schoolInfoData';
 
 const ClassReportGenerator = () => {
     

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import supportiveGradeService from '../services/supportiveGradeService';
+import supportiveGradeService from '@shared/services/supportiveGradeService';
 
 const SupportiveSubjectPage = () => {
     const { t } = useTranslation();

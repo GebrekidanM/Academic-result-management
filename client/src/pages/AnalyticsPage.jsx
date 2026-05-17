@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import subjectService from '../services/subjectService';
-import assessmentTypeService from '../services/assessmentTypeService';
-import analyticsService from '../services/analyticsService';
-import authService from '../services/authService';
-import userService from '../services/userService';
+import subjectService from '@shared/services/subjectService';
+import assessmentTypeService from '@shared/services/assessmentTypeService';
+import analyticsService from '@shared/services/analyticsService';
+import authService from '@shared/services/authService';
+import userService from '@shared/services/userService';
 
 // --- Reusable Stat Card Component ---
 const StatCard = ({ title, value, unit = '', colorClass = 'text-gray-900' }) => (

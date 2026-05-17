@@ -1,6 +1,6 @@
 import React from 'react'
 import { useLocation ,useNavigate} from 'react-router-dom'
-import userService from '../services/userService'
+import userService from '@shared/services/userService'
 
 function UserProfileEditPage() {
     const location = useLocation()

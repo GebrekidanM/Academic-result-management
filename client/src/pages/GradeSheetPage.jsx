@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import subjectService from '../services/subjectService';
-import assessmentTypeService from '../services/assessmentTypeService';
-import gradeService from '../services/gradeService';
-import authService from '../services/authService';
-import userService from '../services/userService';
-import studentService from '../services/studentService';
-import offlineGradeService from '../services/offlineGradeService';
-import offlineAssessmentService from '../services/offlineAssessmentService';
+import subjectService from '@shared/services/subjectService';
+import assessmentTypeService from '@shared/services/assessmentTypeService';
+import gradeService from '@shared/services/gradeService';
+import authService from '@shared/services/authService';
+import userService from '@shared/services/userService';
+import studentService from '@shared/services/studentService';
+import offlineGradeService from '@shared/services/offlineGradeService';
+import offlineAssessmentService from '@shared/services/offlineAssessmentService';
 import ScoreInput from '../components/ScoreInput';
 
 const GradeSheetPage = () => {

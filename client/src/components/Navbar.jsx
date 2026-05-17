@@ -13,8 +13,8 @@ import {
   Bell
 } from 'lucide-react';
 
-import authService from '../services/authService';
-import studentAuthService from '../services/studentAuthService';
+import authService from '@shared/services/authService';
+import studentAuthService from '@shared/services/studentAuthService';
 import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
 import MobileSidebar from './MobileSideBar'; // Ensure this path is correct

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import supportiveGradeService from '../services/supportiveGradeService';
-import studentService from '../services/studentService';
+import supportiveGradeService from '@shared/services/supportiveGradeService';
+import studentService from '@shared/services/studentService';
 
 // Grading Scale
 const GRADING_SCALE = ["A", "B", "C", "D", "E", "F"]; 

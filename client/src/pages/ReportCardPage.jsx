@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import reportCardService from '../services/reportCardService';
-import rankService from '../services/rankService';
+import reportCardService from '@shared/services/reportCardService';
+import rankService from '@shared/services/rankService';
 import ReportCoverPage from './ReportCoverPage';
-import {schoolInfoData} from '../utils/schoolInfoData'
+import {schoolInfoData} from '@shared/utils/schoolInfoData'
 // The exact order you requested
 const SUBJECT_PRIORITY = [
     "አማርኛ",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // <--- Import Hook
-import behavioralReportService from '../services/behavioralReportService';
+import behavioralReportService from '@shared/services/behavioralReportService';
 
 const EditReportPage = () => {
     const { t } = useTranslation(); // <--- Initialize

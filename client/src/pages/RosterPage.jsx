@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next'; 
-import rosterService from '../services/rosterService';
-import authService from '../services/authService';
+import rosterService from '@shared/services/rosterService';
+import authService from '@shared/services/authService';
 import { Link } from 'react-router-dom';
 
 function formatGrade(input) {

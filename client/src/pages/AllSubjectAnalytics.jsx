@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next'; // <--- 1. Import Hook
-import analyticsService from '../services/analyticsService';
-import authService from '../services/authService';
-import subjectService from '../services/subjectService';
-import userService from '../services/userService';
+import analyticsService from '@shared/services/analyticsService';
+import authService from '@shared/services/authService';
+import subjectService from '@shared/services/subjectService';
+import userService from '@shared/services/userService';
 
 const AllSubjectAnalytics = () => {
-  const { t } = useTranslation(); // <--- 2. Initialize Hook
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState(null);
   const [availableGrades, setAvailableGrades] = useState([]);
   

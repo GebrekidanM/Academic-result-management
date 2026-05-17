@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import reportCardService from '../services/reportCardService';
+import reportCardService from '@shared/services/reportCardService';
 
 const TopStudentsPage = () => {
     const [highScorers, setHighScorers] = useState({});

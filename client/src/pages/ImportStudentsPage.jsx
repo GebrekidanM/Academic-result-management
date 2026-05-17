@@ -1,7 +1,7 @@
 // src/pages/ImportStudentsPage.js
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import studentService from '../services/studentService';
+import studentService from '@shared/services/studentService';
 
 const ImportStudentsPage = () => {
     const [selectedFile, setSelectedFile] = useState(null);

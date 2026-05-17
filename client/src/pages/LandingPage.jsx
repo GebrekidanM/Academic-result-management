@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Brain,Sparkles,Globe2,ShieldCheck,Users,WifiOff,BarChart3,ChevronRight,PlayCircle, AlertTriangle,
   CheckCircle2,BookOpen, GraduationCap, Bell, FileText, UserCheck } from "lucide-react";
 import axios from "axios";
-import heroImage from "../assests/ai-school-hero.png";
+import heroImage from "@shared/assests/ai-school-hero.png";
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from "react-router-dom";
 
@@ -126,7 +126,7 @@ const LandingPage = () => {
       </nav>
 
       {/* HERO */}
-      <section className="relative pt-28 md:pt-40 pb-16 md:pb-24 overflow-hidden">
+      <section className="relative pt-28 md:pt-28 pb-16 md:pb-24 overflow-hidden">
         {/* BACKGROUND GLOW */}
         <div className="absolute top-[-200px] left-[-200px] w-[320px] md:w-[500px] h-[320px] md:h-[500px] bg-blue-200/40 rounded-full blur-3xl" />
         

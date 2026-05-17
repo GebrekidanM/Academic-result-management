@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import libraryService from '../services/libraryService';
-import authService from '../services/authService';
+import libraryService from '@shared/services/libraryService';
+import authService from '@shared/services/authService';
 import AITutorModal from '../components/library/AITutorModal';
 import FullScreenReader from '../components/library/FullScreenReader';
 

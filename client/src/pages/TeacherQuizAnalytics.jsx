@@ -1,5 +1,5 @@
 import { useState,useEffect } from "react";
-import quizService from '../services/quizService'
+import quizService from '@shared/services/quizService'
 const TeacherQuizAnalytics = ({id}) => {
     const [analytics, setAnalytics] = useState([]);
 

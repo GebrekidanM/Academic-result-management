@@ -1,7 +1,7 @@
 // src/pages/AddReportPage.js
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import behavioralReportService from '../services/behavioralReportService';
+import behavioralReportService from '@shared/services/behavioralReportService';
 
 // Predefined areas for evaluation
 const EVALUATION_AREAS = [

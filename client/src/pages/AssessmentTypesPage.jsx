@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import subjectService from '../services/subjectService';
-import assessmentTypeService from '../services/assessmentTypeService';
-import offlineAssessmentService from '../services/offlineAssessmentService';
-import authService from '../services/authService';
-import userService from '../services/userService';
+import subjectService from '@shared/services/subjectService';
+import assessmentTypeService from '@shared/services/assessmentTypeService';
+import offlineAssessmentService from '@shared/services/offlineAssessmentService';
+import authService from '@shared/services/authService';
+import userService from '@shared/services/userService';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; 
 

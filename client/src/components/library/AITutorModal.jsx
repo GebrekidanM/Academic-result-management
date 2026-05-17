@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import aiService from '../../services/aiService';
+import aiService from '@shared/services/aiService';
 
 const AITutorModal = ({ book, onClose }) => {
     const { i18n } = useTranslation();

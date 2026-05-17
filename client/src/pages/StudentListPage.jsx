@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import studentService from '../services/studentService';
-import authService from '../services/authService';
-import userService from '../services/userService';
+import studentService from '@shared/services/studentService';
+import authService from '@shared/services/authService';
+import userService from '@shared/services/userService';
 import StudentStats from '../components/StudentStats';
 
 const StudentListPage = () => {

@@ -2,16 +2,16 @@ import React, { useEffect, useState, lazy, Suspense } from "react";
 // Import useTranslation to access i18n
 import { useTranslation } from "react-i18next"; 
 
-import useDashboardData from "../hooks/useDashboardData";
-import useAnalytics from "../hooks/useAnalytics";
+import useDashboardData from "@shared/hooks/useDashboardData";
+import useAnalytics from "@shared/hooks/useAnalytics";
 
 import DashboardHeader from "../components/parent-dashboard/DashboardHeader";
 import DashboardTabs from "../components/parent-dashboard/DashboardTabs";
 import DashboardSkeleton from "../components/parent-dashboard/DashboardSkeleton";
 import FadeContainer from "../components/ui/FadeContainer";
 
-import quizService from "../services/quizService";
-import aiService from "../services/aiService";
+import quizService from "@shared/services/quizService";
+import aiService from "@shared/services/aiService";
 
 // Lazy Loaded Components
 const PerformanceChart = lazy(() => import("../components/parent-dashboard/PerformanceChart"));

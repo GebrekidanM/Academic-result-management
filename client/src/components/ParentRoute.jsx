@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import studentAuthService from '../services/studentAuthService';
+import studentAuthService from '@shared/services/studentAuthService';
 
 const ParentRoute = () => {
     const currentStudent = studentAuthService.getCurrentStudent();

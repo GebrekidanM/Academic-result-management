@@ -1,12 +1,12 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
-import { en } from "./locales/en";
-import { am } from "./locales/am";
-import { om } from "./locales/om"; 
-import { ti } from "./locales/ti"; 
-import { so } from "./locales/so";
-import { af } from "./locales/af";
+import { en } from "@shared/locales/en";
+import { am } from "@shared/locales/am";
+import { om } from "@shared/locales/om"; 
+import { ti } from "@shared/locales/ti"; 
+import { so } from "@shared/locales/so";
+import { af } from "@shared/locales/af";
 
 i18n
   .use(LanguageDetector)

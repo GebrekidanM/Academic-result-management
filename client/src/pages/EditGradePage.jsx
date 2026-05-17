@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // <--- Import Hook
-import gradeService from '../services/gradeService';
-import assessmentTypeService from '../services/assessmentTypeService';
-import offlineGradeService from '../services/offlineGradeService'; // <--- Import Offline Service
+import gradeService from '@shared/services/gradeService';
+import assessmentTypeService from '@shared/services/assessmentTypeService';
+import offlineGradeService from '@shared/services/offlineGradeService'; // <--- Import Offline Service
 
 const EditGradePage = () => {
     const { t } = useTranslation(); // <--- Initialize

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import rosterService from '../services/rosterService';
-import subjectService from '../services/subjectService';
-import authService from '../services/authService';
-import userService from '../services/userService';
-import gradeService from '../services/gradeService';
+// Sound file
+import rosterService from '@shared/services/rosterService';
+import subjectService from '@shared/services/subjectService';
+import authService from '@shared/services/authService';
+import userService from '@shared/services/userService';
+import gradeService from '@shared/services/gradeService';
 
 // Helper to get current academic year dynamically
 function getCurrentAcademicYear() {

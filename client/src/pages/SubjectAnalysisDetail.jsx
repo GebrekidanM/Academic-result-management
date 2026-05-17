@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom';
-import analyticsService from '../services/analyticsService';
+import analyticsService from '@shared/services/analyticsService';
 
 function SubjectAnalysisDetail() {
     const { state } = useLocation();

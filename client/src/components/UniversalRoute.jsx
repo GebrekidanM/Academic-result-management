@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import authService from '../services/authService';
-import studentAuthService from '../services/studentAuthService';
+import authService from '@shared/services/authService';
+import studentAuthService from '@shared/services/studentAuthService';
 
 const UniversalRoute = () => {
     const isStaffLoggedIn = !!authService.getCurrentUser();
