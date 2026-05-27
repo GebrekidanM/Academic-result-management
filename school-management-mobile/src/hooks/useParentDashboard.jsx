@@ -21,45 +21,22 @@ const useParentDashboard = () => {
   useEffect(() => {
 
     const load = async () => {
-
       setLoading(true);
-
       try {
-
-        const current =
-          studentAuthService.getCurrentStudent();
-
+       const currentStudent = await studentAuthService.getCurrentStudent();
         if (!current) {
           throw new Error("Not authenticated");
         }
-
-        // PARALLEL CORE DATA FETCH
-        const [
-          studentRes,
-          gradesRes,
-          reportsRes
-        ] = await Promise.all([
-          studentService.getStudentById(
-            current._id
-          ),
-
-          gradeService.getGradesByStudent(
-            current._id
-          ),
-
-          behavioralReportService.getReportsByStudent(
-            current._id
-          )
+        const [ studentRes, gradesRes, reportsRes] = await Promise.all([
+          studentService.getStudentById( current._id),
+          gradeService.getGradesByStudent(current._id),
+          behavioralReportService.getReportsByStudent(current._id)
         ]);
+console.log('gradesRes',gradesRes)
 
-        const studentData =
-          studentRes.data.data;
-
-        const gradesData =
-          gradesRes.data.data;
-
-        const reportsData =
-          reportsRes.data.data;
+        const studentData = studentRes.data.data;
+        const gradesData = gradesRes.data.data;
+        const reportsData = reportsRes.data.data;
 
         setStudent(studentData);
         setGrades(gradesData);
@@ -83,9 +60,7 @@ const useParentDashboard = () => {
 
         // QUIZZES
         try {
-
-          const quizRes =
-            await quizService.getAvailableQuizzes(
+          const quizRes = await quizService.getAvailableQuizzes(
               studentData.gradeLevel,
               gradesData?.[0]?.academicYear
             );
@@ -110,14 +85,7 @@ const useParentDashboard = () => {
 
   }, []);
 
-  return {
-    student,
-    grades,
-    reports,
-    ranks,
-    quizzes,
-    loading,
-    error
+  return { student, grades, reports, ranks, quizzes, loading, error
   };
 };
 

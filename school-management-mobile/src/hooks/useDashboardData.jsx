@@ -12,13 +12,13 @@ const useDashboardData = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
 
-        const currentStudent = studentAuthService.getCurrentStudent();
+       const currentStudent = await studentAuthService.getCurrentStudent();
         if (!currentStudent) throw new Error("No authenticated student");
 
         // 1. Student

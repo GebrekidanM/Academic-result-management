@@ -1,16 +1,8 @@
 import React from "react";
 
-const FadeContainer = ({
-  children,
-  className = ""
-}) => {
+const FadeContainer = ({children, className = ""}) => {
   return (
-    <div
-      className={`
-        animate-fadeIn
-        ${className}
-      `}
-    >
+    <div className={`animate-fadeIn ${className}`}>
       {children}
     </div>
   );

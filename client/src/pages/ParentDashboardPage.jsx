@@ -24,7 +24,7 @@ const ParentDashboardPage = () => {
   const { student, grades, reports, ranks, loading, error } = useDashboardData();
   const analytics = useAnalytics(grades);
 
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("semester-2");
   const[availableQuizzes, setAvailableQuizzes] = useState([]);
   const [quizStatuses, setQuizStatuses] = useState({});
   
