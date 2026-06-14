@@ -14,7 +14,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 registerRoute(
   ({ url }) => url.href.includes('/api/'),
   new NetworkFirst({
-    cacheName: 'freedom-api-cache-v6.1',
+    cacheName: 'freedom-api-cache-v6.2',
     plugins: [
       new ExpirationPlugin({
         maxEntries: 100,
@@ -27,7 +27,7 @@ registerRoute(
 registerRoute(
   ({ request }) => request.destination === 'image',
   new StaleWhileRevalidate({
-    cacheName: 'freedom-images-v6',
+    cacheName: 'freedom-images-v6.2',
     plugins: [
       new ExpirationPlugin({
         maxEntries: 60,
@@ -45,7 +45,7 @@ self.addEventListener('push', function(event) {
     data = event.data.json();
   }
 
-  const title = data.title || "Freedom SMS V7.2";
+  const title = data.title || "Freedom SMS V6.2";
   const options = {
     body: data.body || "New notification",
     icon: "/er-192.png",
