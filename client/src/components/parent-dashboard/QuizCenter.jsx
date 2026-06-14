@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Quiz from "./Quiz";
-import quizService from "../../services/quizService";
+import quizService from "../../shared/services/quizService";
 
 
 const QuizCenter = ({ quizzes, quizStatuses }) => {
