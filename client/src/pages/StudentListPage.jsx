@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import studentService from '@shared/services/studentService';
 import authService from '@shared/services/authService';
@@ -9,14 +9,16 @@ import StudentStats from '../components/StudentStats';
 const StudentListPage = () => {
     const { t } = useTranslation(); 
     const [currentUser] = useState(authService.getCurrentUser());
+    const [searchParams, setSearchParams] = useSearchParams();
     const [allStudents, setAllStudents] = useState([]);
     const [allAllowedGrades, setAllAllowedGrades] = useState([]);
     
-    const [selectedSection, setSelectedSection] = useState(null); 
-    const [selectedGrade, setSelectedGrade] = useState(null);
+    const [selectedSection, setSelectedSection] = useState(searchParams.get('section') || null); 
+    const [selectedGrade, setSelectedGrade] = useState(searchParams.get('grade') || null);
     const [searchTerm, setSearchTerm] = useState(''); 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
 
     // --- 1. Data Fetching ---
     useEffect(() => {
@@ -68,6 +70,16 @@ const StudentListPage = () => {
         loadInitialData();
     }, [currentUser, t]);
 
+    useEffect(() => {
+        const params = {};
+
+        if (selectedSection) params.section = selectedSection;
+        if (selectedGrade) params.grade = selectedGrade;
+
+        setSearchParams(params);
+    }, [selectedSection, selectedGrade, setSearchParams]);
+
+
     // --- 2. Filters ---
     const visibleGradeButtons = useMemo(() => {
         if (!selectedSection) return [];
@@ -107,8 +119,7 @@ const StudentListPage = () => {
         if (count === 0) return null;
 
         return (
-            <div 
-                onClick={() => { setSelectedSection(id); setSelectedGrade(null); }}
+            <div onClick={() => { setSelectedSection(id); setSelectedGrade(null); }}
                 className={`flex-1 min-w-[200px] p-6 rounded-xl border-2 cursor-pointer transition-all transform hover:-translate-y-1 hover:shadow-lg bg-white ${selectedSection === id ? 'ring-4 ring-offset-2 ring-pink-400 border-transparent shadow-xl' : color}`}
             >
                 <h3 className="text-xl font-bold uppercase tracking-wide opacity-80">{label}</h3>
@@ -207,7 +218,7 @@ const StudentListPage = () => {
                                     <th className="px-4 py-3 text-left">{t('id_no')}</th>
                                     <th className="px-4 py-3 text-left">{t('full_name')}</th>
                                     <th className="px-4 py-3 text-left">{t('gender')}</th>
-                                    <th className="px-4 py-3 text-left">DOB</th>
+                                    <th className="px-4 py-3 text-left">Date Of Birth</th>
                                     <th className="px-4 py-3 text-left">Mother</th>
                                     <th className="px-4 py-3 text-left">Mother Contacts</th>
                                     <th className="px-4 py-3 text-left">Father Contacts</th>
@@ -221,10 +232,10 @@ const StudentListPage = () => {
                                         <tr key={student._id} className="hover:bg-pink-50 transition-colors text-sm">
                                             <td className="px-4 py-4 font-mono text-gray-500">{student.studentId}</td>
                                             <td className="px-4 py-4 font-bold text-gray-800 whitespace-nowrap">
-                                                <Link to={`/students/${student._id}`} className="hover:text-pink-600 hover:underline">{student.fullName}</Link>
+                                                <Link to={`/students/${student._id}?section=${selectedSection}&grade=${selectedGrade}`} className="hover:text-pink-600 hover:underline">{student.fullName}</Link>
                                             </td>
                                             <td className="px-4 py-4 text-gray-600">{t(student.gender)}</td>
-                                            <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{student.dateOfBirth}</td>
+                                            <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{student?.dateOfBirth?.split('T')[0]}</td>
                                             <td className="px-4 py-4 text-gray-600">
                                                 <div className="text-xs font-bold">{student.motherName}</div>
                                             </td>
@@ -238,7 +249,7 @@ const StudentListPage = () => {
                                                 {student.healthStatus}
                                             </td>
                                             <td className="px-4 py-4 text-center">
-                                                <Link to={`/students/${student._id}`} className="text-indigo-600 hover:text-indigo-900 font-bold">{t('view')}</Link>
+                                                <Link to={`/students/${student._id}?section=${selectedSection}&grade=${selectedGrade}`} className="text-indigo-600 hover:text-indigo-900 font-bold">{t('view')}</Link>
                                             </td>
                                         </tr>
                                     ))

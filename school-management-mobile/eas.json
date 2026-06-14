@@ -1,0 +1,45 @@
+{
+  "cli": {
+    "version": ">= 20.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_VAPID_PUBLIC_KEY": "BAyzPiMZCjL4lVswfyHnjAR2kSc16MMbF2tmAUZav2SAl4JZxDTEeocQe7m-UbeF5iPYieLwSva7L_Cma2i-mCw",
+        "EXPO_PUBLIC_URL": "https://freedom-school.onrender.com/",
+        "EXPO_PUBLIC_FRONT_URL": "https://freedom-school.onrender.com",
+        "EXPO_PUBLIC_API_URL": "https://freedom-school.onrender.com/api"
+      }
+    },
+
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_VAPID_PUBLIC_KEY": "BAyzPiMZCjL4lVswfyHnjAR2kSc16MMbF2tmAUZav2SAl4JZxDTEeocQe7m-UbeF5iPYieLwSva7L_Cma2i-mCw",
+        "EXPO_PUBLIC_URL": "https://freedom-school.onrender.com/",
+        "EXPO_PUBLIC_FRONT_URL": "https://freedom-school.onrender.com",
+        "EXPO_PUBLIC_API_URL": "https://freedom-school.onrender.com/api"
+      }
+    }
+  },
+
+  "submit": {
+    "production": {}
+  }
+}

@@ -10,7 +10,7 @@ const upload = multer({
       cb(new Error('File is not an image.'), false);
     }
   },
-  limits: { fileSize: 1024 * 1024 * 5 }
+  limits: { fileSize: 1024 * 1024 * 10 }
 });
 
 module.exports = upload;

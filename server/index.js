@@ -13,12 +13,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({ extended: true }));
+
 // ... existing requires
 const {performBackup} = require('./utils/backup');
 
-app.get("/", (req, res) => {
-  res.send("API Running");
-});
 // --- Routes ---
 app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));

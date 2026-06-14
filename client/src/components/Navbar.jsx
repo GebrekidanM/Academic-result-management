@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
+import { 
   BookOpen,
   LayoutDashboard,
   Users,
@@ -139,7 +139,7 @@ const Navbar = () => {
                 items={[
                   { to: '/grade-sheet', label: 'Enter Grades', desc: 'Manage student scores', icon: ClipboardList },
                   { to: '/manage-assessments', label: 'Assessments', desc: 'Control exam types', icon: ClipboardList },
-                  { to: '/grade-sheet', label: 'Supportive Subjects', desc: 'Manage A/B scores', icon: ClipboardList },
+                  { to: '/supportivesub', label: 'Supportive Subjects', desc: 'Manage A/B scores', icon: ClipboardList },
                   { to: '/roster', label: 'Class Roster', desc: 'View students by class', icon: Users },
                   { to: '/master', label: 'Schedule', desc: 'View master timetable', icon: LayoutDashboard },
                 ]}
@@ -163,6 +163,7 @@ const Navbar = () => {
                     { to: '/schedule', label: 'Schedule', desc: 'Manage timetable', icon: LayoutDashboard },
                     { to: '/subjects', label: 'Subjects', desc: 'Manage curriculum', icon: Settings },
                     { to: '/admin/users', label: 'Staff', desc: 'Manage system users', icon: Users },
+                    {to:'/supportivelist', label:'Supportive Subjects', desc: 'Manage curriculum', icon: Settings},
                     { to: '/send_notification', label: 'Notifications', desc: 'Send mass alerts', icon: Bell },
                   ]}
                 />

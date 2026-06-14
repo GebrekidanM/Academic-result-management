@@ -9,6 +9,7 @@ const styles = {
 
 const InsightCard = ({type, title, subjects}) => {
   const style = styles[type];
+
   return (
     <div className={`${style.bg} ${style.border} border rounded-2xl p-6 transition-all duration-200`}>
       <div className="flex items-center justify-between mb-5"> 
@@ -17,13 +18,13 @@ const InsightCard = ({type, title, subjects}) => {
       </div>
 
       {/* CONTENT */}
-      {subjects.length === 0 ? (<p className="text-slate-400 text-sm italic"> No subjects available</p>
-      ) : (
+      {subjects.length === 0 ? (<p className="text-slate-400 text-sm italic"> No subjects available</p>) 
+      : (
         <div className="space-y-3">
           {subjects.map((subject, index) => (
             <div key={index} className=" bg-white rounded-xl px-4 py-3 flex items-center justify-between shadow-sm">
               <span className="font-bold text-slate-700">{subject.name}</span>
-              <span className="text-sm font-black text-slate-800">{subject.percentage?.toFixed(1)}%</span>
+              <span className="text-sm font-black text-slate-800">{subject?.pct}%</span>
             </div>
           ))}
         </div>

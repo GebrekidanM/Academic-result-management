@@ -5,6 +5,9 @@ const Grade = require('../models/Grade');
 const User = require('../models/User');
 const calculateAge = require('../utils/calculateAge');
 const getCurrentEthDate = require('../utils/thatYear') 
+const cloudinary = require('cloudinary').v2; 
+
+
 // --- HELPER FUNCTIONS ---
 const capitalizeName = (name) => {
     if (!name || typeof name !== 'string') return '';
@@ -32,8 +35,7 @@ const getEthiopianYear = () => {
 exports.getStudents = async (req, res) => {
     try {
         const { gradeLevel } = req.query;
-        
-        const constraints = [];
+        const constraints = [{ status: 'Active' }];
 
         // 1. Specific Filter (from Frontend)
         if (gradeLevel) {
@@ -98,7 +100,7 @@ exports.getStudents = async (req, res) => {
         const students = await Student.find(finalQuery)
             // Sort by Grade Level (alphabetically) then Name
             .sort({ gradeLevel: 1, fullName: 1 }) 
-            .select('studentId fullName gender imageUrl gradeLevel status');
+            .select('studentId fullName gender imageUrl gradeLevel status dateOfBirth fatherContact healthStatus motherName motherContact');
         
         res.json({ success: true, count: students.length, data: students });
 
@@ -150,7 +152,6 @@ exports.getStudentById = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
-
 
 // @desc    Create a single new student
 // @route   POST /api/students
@@ -215,7 +216,6 @@ exports.createStudent = async (req, res) => {
         res.status(500).json({ message: 'Server Error', details: error.message });
     }
 };
-
 
 // @desc    Update a student's profile
 // @route   PUT /api/students/:id
@@ -305,8 +305,12 @@ exports.deactiveStudent = async (req, res) => {
 };
 
 // @desc    Upload student profile photo
-// @route   POST /api/students/:id/photo
+// @route   POST /api/students/photo/:id
+// Import your cloud storage library at the top of your controller file if using Cloudinary
+
 exports.uploadProfilePhoto = async (req, res) => {
+    console.log('Incoming Headers:', req.headers['content-type']);
+    console.log('File Object Status:', req.file);
     try {
         if (!req.file) return res.status(400).json({ message: 'No file was uploaded.' });
 
@@ -314,6 +318,7 @@ exports.uploadProfilePhoto = async (req, res) => {
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found.' });
 
+        // Authorization Check
         if (currentUser.role === 'teacher') {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
                 return res.status(403).json({ message: 'You are not authorized to update this student.' });
@@ -322,13 +327,28 @@ exports.uploadProfilePhoto = async (req, res) => {
             return res.status(403).json({ message: 'You are not authorized to update students.' });
         }
 
+        // 🔹 FIX: Delete the old photo from storage if it exists to prevent storage leaks
+        if (student.imagePublicId) {
+            try {
+                await cloudinary.uploader.destroy(student.imagePublicId);
+            } catch (destroyError) {
+                // Log the error but don't crash the request; let the new upload finish
+                console.error('Failed to delete old image from cloud:', destroyError);
+            }
+        }
+
+        // Assign new image references
         student.imageUrl = req.file.path; 
         student.imagePublicId = req.file.filename; 
-        await student.save({ validateBeforeSave: false }); // Validations skipped, but pre-save hooks run (checked by isNew)
-
-        res.status(200).json({ message: 'Profile photo updated successfully', imageUrl: student.imageUrl });
-
+        
+        await student.save({ validateBeforeSave: false });
+        
+        res.status(200).json({ 
+            message: 'Profile photo updated successfully', 
+            imageUrl: student.imageUrl 
+        });
     } catch (error) {
+        console.error(error); 
         res.status(500).json({ message: 'Error uploading photo', details: error.message });
     }
 };
@@ -509,8 +529,6 @@ exports.resetPassword = async (req,res)=>{
     }
 }
 
-
-
 // 1. Search for existing student by ID
 exports.getStudentForRegistration = async (req, res) => {
     try {
@@ -534,15 +552,11 @@ exports.getStudentForRegistration = async (req, res) => {
 // 2. Process the "New" Registration
 exports.reRegisterStudent = async (req, res) => {
     const { studentId, newGradeLevel, thatYear} = req.body;
-
     const acadamicYear = getCurrentEthDate(thatYear)
-
 
     try {
         const student = await Student.findOne({ studentId });
-
         if (!student) return res.status(404).json({ message: "Student not found" });
-
         const historyEntry = {
             year: acadamicYear,
             gradeAtThatTime: student.gradeLevel,
@@ -555,7 +569,6 @@ exports.reRegisterStudent = async (req, res) => {
         student.status = 'Active'; 
         
         await student.save();
-
         res.json({ message: `${student.fullName} successfully registered for ${newGradeLevel}` });
     } catch (error) {
         res.status(500).json({ message: error.message });

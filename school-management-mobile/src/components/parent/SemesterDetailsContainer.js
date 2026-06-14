@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import SemesterDetails from "../../src/components/parent/SemesterDetails";
-import { COLORS } from "../../src/utils/theme";
-import useDashboardData from "../../src/hooks/useDashboardData";
-import aiService from "../../src/services/aiService";
+import SemesterDetails from "./SemesterDetails";
+import { COLORS } from "../../utils/theme";
+import useDashboardData from "../../hooks/useDashboardData";
+import aiService from "../../services/aiService";
+import FadeContainer from "./FadeContainer";
 
-export default function SemesterDetailsScreen() {
-  const { semester } = useLocalSearchParams();
+export default function SemesterDetailsScreen({semester}) {
   const { grades, reports, ranks, student, loading } = useDashboardData();
   const [aiLoading, setAiLoading] = useState(false);
   const [aiInsight, setAiInsight] = useState(null);
@@ -63,7 +62,7 @@ export default function SemesterDetailsScreen() {
     const groupedByMonth = {};
     item.assessments.forEach(
       (assessment) => {
-        const month = assessment.month || "Unknown";
+        const month = assessment?.assessmentType?.month || "Unknown";
         if (!groupedByMonth[month]) {
           groupedByMonth[month] = [];
         }
@@ -133,7 +132,8 @@ export default function SemesterDetailsScreen() {
             Academic performance details
           </Text>
         </View>
-
+        
+        <FadeContainer>
          <SemesterDetails
             semesterName={semester}
             subjects={formattedSubjects}
@@ -144,6 +144,7 @@ export default function SemesterDetailsScreen() {
             aiLoading={aiLoading}
             onGenerateAI={fetchSemesterAI}
          />
+        </FadeContainer>
       </ScrollView>
     </SafeAreaView>
   );

@@ -119,10 +119,7 @@ function App() {
       
       {/* --- 3. ADD OFFLINE UI HERE --- */}
       <SyncStatus /> 
-
-      {(currentUser ) && (
-          <Navbar isOpen={isOpen} setIsOpen={setIsOpen} /> 
-      )}
+      {(currentUser ) && ( <Navbar isOpen={isOpen} setIsOpen={setIsOpen} /> )}
 
       <main className={"container  mx-auto p-4"} onClick={()=> setIsOpen(false)}>
         <Routes>

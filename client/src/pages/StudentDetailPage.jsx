@@ -150,6 +150,7 @@ const StudentDetailPage = () => {
             } catch { alert(t('failed_delete_student')); }
         }
     };
+
     const handleReportDelete = async (reportId) => {
         if (window.confirm(t('confirm_delete_report'))) {
             try {
@@ -158,6 +159,7 @@ const StudentDetailPage = () => {
             } catch { alert(t('failed_delete_report')); }
         }
     };
+    
     const handleResetPassword = async (studentId) => {
         if (!window.confirm(t('confirm_reset_password'))) return;
         try {

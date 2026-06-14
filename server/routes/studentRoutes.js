@@ -20,9 +20,7 @@ router.route('/')
     .get(protect, getStudents);
 
 router.post('/re-register',reRegisterStudent)
-
 router.get('/id/:studentId',getStudentForRegistration)
-
 router.route('/:id')
     .get(canViewStudentData, getStudentById)
     .put(protect, updateStudent)

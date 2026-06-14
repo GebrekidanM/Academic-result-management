@@ -3,6 +3,7 @@ const model = require("../services/geminiService");
 const axios = require('axios');
 const pdfParse = require('pdf-extraction');
 
+
 const generateSemesterInsight = async (req, res) => {
   try {
      const { studentId, semester, academicYear, analytics, language, forceRegenerate } = req.body;
@@ -59,6 +60,9 @@ const generateSemesterInsight = async (req, res) => {
           "parentGuidance": "String"
         }
     `;
+
+
+
 
     // 5. Native JSON Mode Generation 
     // (If your geminiService wrapper doesn't support the config object, you can stick to your original generateContent call, but this is the modern SDK way)
@@ -141,10 +145,10 @@ const getSavedSemesterInsight = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Error fetching saved insight:", err);
+    console.error("Error fetching saved insight:", err.statusText);
     res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: err.statusText || "An internal server error occurred."
     });
   }
 };

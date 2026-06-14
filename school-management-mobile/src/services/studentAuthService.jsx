@@ -4,26 +4,12 @@ import api from "./api";
 
 // Helper to get parent/student token
 const getStudentAuthConfig = async () => {
+  const studentUser = await AsyncStorage.getItem("student-user");
+  const parsedStudent = studentUser? JSON.parse(studentUser) : null;
 
-  const studentUser =
-    await AsyncStorage.getItem(
-      "student-user"
-    );
-
-  const parsedStudent = studentUser
-    ? JSON.parse(studentUser)
-    : null;
-
-  if (
-    parsedStudent &&
-    parsedStudent.token
-  ) {
-
+  if ( parsedStudent && parsedStudent.token) {
     return {
-      headers: {
-        Authorization:
-          `Bearer ${parsedStudent.token}`,
-      },
+      headers: { Authorization: `Bearer ${parsedStudent.token}` },
     };
   }
 
@@ -32,7 +18,6 @@ const getStudentAuthConfig = async () => {
 
 // LOGIN
 const login = (studentId, password) => {
-
   return api.post("/student-auth/login",
     {
       studentId,
@@ -43,36 +28,18 @@ const login = (studentId, password) => {
 
 // CHANGE PASSWORD
 const changePassword = async (newPassword) => {
-
-  const config =
-    await getStudentAuthConfig();
-
-  return api.put(
-    "/student-auth/change-password",
-    { newPassword },
-    config
-  );
+  const config = await getStudentAuthConfig();
+  return api.put("/student-auth/change-password", { newPassword }, config);
 };
 
 // LOGOUT
-const logout = async () => {
-
-  await AsyncStorage.removeItem(
-    "student-user"
-  );
-};
+const logout = async () => { 
+  await AsyncStorage.removeItem( "student-user")};
 
 // GET CURRENT STUDENT
 const getCurrentStudent = async () => {
-
-  const student =
-    await AsyncStorage.getItem(
-      "student-user"
-    );
-
-  return student
-    ? JSON.parse(student)
-    : null;
+  const student = await AsyncStorage.getItem("student-user" );
+  return student? JSON.parse(student): null;
 };
 
 export default {

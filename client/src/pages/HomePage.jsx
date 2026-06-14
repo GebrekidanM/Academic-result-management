@@ -9,6 +9,7 @@ import LoggedOut from "./HomePage/LoggedOut"
 import IsAdmin from './HomePage/IsAdmin';
 import IsStaff from './HomePage/IsStaff';
 import LandingPage from './LandingPage';
+import LoginPage from './LoginPage';
 
 // --- Premium SaaS-Style Level Badge ---
 const LevelBadge = ({ level }) => {
@@ -95,7 +96,7 @@ const HomePage = ({ currentUser }) => {
     
     // --- Visitor View ---
     if (!currentUser) {
-        return <LandingPage />;
+        return <LoginPage />;
     }
 
     // --- Parent Redirect ---

@@ -259,7 +259,6 @@ const ParentDashboardPage = () => {
             </Suspense>
           </FadeContainer>
         )}
-
       </div>
     </div>
   );

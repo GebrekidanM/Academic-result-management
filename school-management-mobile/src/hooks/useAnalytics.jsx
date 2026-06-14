@@ -167,17 +167,16 @@ const useAnalytics = (grades = []) => {
 
     const chartData = {
       labels,
-      datasets: [{
-        label: "Performance",
-        data: labels.map((month) => {
-          const monthData = monthlyTotals[month];
-          return ((monthData.obtained / monthData.max) * 100).toFixed(1);
-        }),
-        borderColor: "rgb(219, 39, 119)",
-        backgroundColor: "rgba(219, 39, 119, 0.15)",
-        tension: 0.4,
-        fill: true
-      }]
+      datasets: [
+        {
+          data: labels.map((month) => {
+            const monthData = monthlyTotals[month];
+            return Number(
+              ((monthData.obtained / monthData.max) * 100).toFixed(1)
+            );
+          })
+        }
+      ]
     };
 
     // =====================================

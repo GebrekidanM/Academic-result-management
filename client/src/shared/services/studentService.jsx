@@ -1,0 +1,83 @@
+//Student Service Module
+import api from './api.jsx';
+
+const API_URL = '/students';
+
+// --- Functions for Managing Student Data (CRUD) ---
+
+const getAllStudents = () => {
+    return api.get(API_URL);
+};
+
+// Get students by grade
+const getStudentsByGrade = (gradeLevel) => {
+    return api.get(`${API_URL}?gradeLevel=${encodeURIComponent(gradeLevel)}`);
+};
+const getStudentById = (id) => {
+    return api.get(`${API_URL}/${id}`);
+};
+// Search for a student by their ID (e.g., FKS-2016-001)
+const getStudentByStudentId = (studentId) => {
+    return api.get(`${API_URL}/id/${studentId}`);
+};
+
+// Update an existing student for the new year
+const reRegisterStudent = (data) => {
+    return api.post(`${API_URL}/re-register`, data);
+}
+const createStudent = (studentData) => {
+    return api.post(API_URL, studentData);
+};
+
+const updateStudent = (id, studentData) => {
+    return api.put(`${API_URL}/${id}`, studentData, {
+        headers: { 'Content-Type': 'application/json' }
+    });
+};
+
+const deleteStudent = (id) => {
+    return api.delete(`${API_URL}/${id}`);
+};
+
+
+// For bulk import of students from an Excel file
+const uploadStudents = (file) => {
+    const formData = new FormData();
+    formData.append('studentsFile', file);
+    return api.post(`${API_URL}/upload`, formData,{
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+};
+
+// For uploading a single student profile photo
+const uploadPhoto = (studentId, file) => {
+    const formData = new FormData();
+    formData.append('profilePhoto', file);
+
+    return api.post(`students/photo/${studentId}`, formData,{
+         headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+};
+
+const resetPassword = (studentId) => {
+    return api.get(`${API_URL}/resetpassword/${studentId}`)
+}
+
+// --- The final, complete export block ---
+export default {
+    resetPassword,
+    getAllStudents,
+    getStudentById,
+    createStudent,
+    updateStudent,
+    deleteStudent,
+    uploadStudents,
+    uploadPhoto,
+    getStudentsByGrade,
+    getStudentByStudentId,
+    reRegisterStudent
+};

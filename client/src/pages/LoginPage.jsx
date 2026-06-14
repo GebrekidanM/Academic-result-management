@@ -87,10 +87,7 @@ const LoginPage = () => {
 
         try {
             if (formData.role === "staff") {
-                const response = await authService.login({
-                    username: formData.username,
-                    password: formData.password
-                });
+                const response = await authService.login({username: formData.username, password: formData.password});
                 if (response.data.token) {
                     localStorage.setItem('user', JSON.stringify(response.data));
                     navigate('/');
