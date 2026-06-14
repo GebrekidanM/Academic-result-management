@@ -77,7 +77,7 @@ const MobileSidebar = ({ open, setOpen, user, student, logout }) => {
               <div className={sectionHeader}>Academics</div>
               <Link to="/grade-sheet" onClick={handleClose} className={navItem("/grade-sheet")}>Enter Grades</Link>
               <Link to="/manage-assessments" onClick={handleClose} className={navItem("/manage-assessments")}>Assessments</Link>
-              <Link to="/grade-sheet" onClick={handleClose} className={navItem("/grade-sheet")}>Supportive Subjects</Link>
+              <Link to="/supportivesub" onClick={handleClose} className={navItem("/grade-sheet")}>Supportive Subjects</Link>
               <Link to="/roster" onClick={handleClose} className={navItem("/roster")}>Class Roster</Link>
               <Link to="/master" onClick={handleClose} className={navItem("/master")}>Schedule</Link>
             </>
@@ -99,6 +99,7 @@ const MobileSidebar = ({ open, setOpen, user, student, logout }) => {
               <div className={sectionHeader}>Admin</div>
               <Link to="/schedule" onClick={handleClose} className={navItem("/schedule")}>Schedule</Link>
               <Link to="/subjects" onClick={handleClose} className={navItem("/subjects")}>Subjects</Link>
+              <Link to="/supportivelist" onClick={handleClose} className={navItem("/subjects")}>Supportive Subjects</Link>
               <Link to="/admin/users" onClick={handleClose} className={navItem("/admin/users")}>Staff</Link>
               <Link to="/send_notification" onClick={handleClose} className={navItem("/send_notification")}>Notifications</Link>
             </>
