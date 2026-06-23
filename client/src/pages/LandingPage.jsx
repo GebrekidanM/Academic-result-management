@@ -1,17 +1,21 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Brain,Sparkles,Globe2,ShieldCheck,Users,WifiOff,BarChart3,ChevronRight,PlayCircle, AlertTriangle,
-  CheckCircle2,BookOpen, GraduationCap, Bell, FileText, UserCheck } from "lucide-react";
+import { 
+  Brain, Sparkles, Globe2, ShieldCheck, Users, WifiOff, BarChart3, 
+  ChevronRight, AlertTriangle, CheckCircle2, BookOpen, GraduationCap, 
+  Bell, FileText, UserCheck 
+} from "lucide-react";
 import axios from "axios";
-import heroImage from "@shared/assests/ai-school-hero.png";
+import heroImage from "../shared/assests/ai-school-hero.png";
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from "react-router-dom";
 
 const LandingPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [loading,setLoading] = useState(false)
+  const [loadingRole, setLoadingRole] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
   
   const trustItems = [
     { icon: <Users size={28} className="text-blue-600" />, value: "700+", label: "Students" },
@@ -21,6 +25,7 @@ const LandingPage = () => {
     { icon: <ShieldCheck size={28} className="text-blue-600" />, value: "Safe", label: "Cloud" },
     { icon: <BarChart3 size={28} className="text-blue-600" />, value: "Smart", label: "Analytics" }
   ];
+
   const features = [
     { icon: <Users size={32} className="text-blue-600" />, title: "Student Management", desc: "Centralized digital student information management." },
     { icon: <BarChart3 size={32} className="text-blue-600" />, title: "Automated Results", desc: "Automatic ranking, averages and analytics." },
@@ -29,6 +34,7 @@ const LandingPage = () => {
     { icon: <Brain size={32} className="text-blue-600" />, title: "AI Insights", desc: "Gemini-powered semester analysis." },
     { icon: <WifiOff size={32} className="text-blue-600" />, title: "Offline Support", desc: "Work even with unstable internet access." }
   ];
+
   const demos = [
     {
       title: "Admin Demo",
@@ -50,59 +56,51 @@ const LandingPage = () => {
     }
   ];
 
-   const loginDemo = async (role) => {
-          try {
-            setLoading(true)
-              if (role === "admin") {
-                  const response = await axios.post(`https://academic-result-management.onrender.com/api/auth/login`,{
-                      username:'admin',
-                      password:'admin@123'
-                  });
+  const loginDemo = async (role) => {
+    try {
+      setLoadingRole(role);
+      setErrorMsg("");
 
-                  if (response.data.token) {
-                      localStorage.setItem('user', JSON.stringify(response.data));
-                      navigate('/');
-                      window.location.reload();
-                  }
-              } 
-              else if (role === "parent") {
-                  const response = await axios.post(`https://academic-result-management.onrender.com/api/student-auth/login`,{
-                      studentId:'FKS-2018-008',
-                      password:'123456'
-                  });
-                  if (response.data.token) {
-                      localStorage.setItem('student-user', JSON.stringify(response.data));
-  
-                      if (response.data.isInitialPassword) {
-                          navigate('/parent/change-password');
-                      } else {
-                          navigate('/parent/dashboard');
-                      }
-                      window.location.reload();
-                  }
-              } 
-              else if (role === "teacher") {
-                  const response = await axios.post(`https://academic-result-management.onrender.com/api/auth/login`,{
-                      username:'1',
-                      password:'123456'
-                  });
+      const baseUrl = "https://academic-result-management.onrender.com/api";
+      let endpoint = `${baseUrl}/auth/login`;
+      let payload = {};
 
-                  if (response.data.token) {
-                      localStorage.setItem('user', JSON.stringify(response.data));
-                      navigate('/');
-                      window.location.reload();
-                  }
-              } 
-          } catch (err) {
-              console.error(err);
-              const msg = err.response?.data?.message || t('error') || 'Login failed.';
-          }finally{
-              setLoading(false);
+      if (role === "admin") {
+        payload = { username: 'admin', password: 'admin@123' };
+      } else if (role === "teacher") {
+        payload = { username: '1', password: '123456' };
+      } else if (role === "parent") {
+        endpoint = `${baseUrl}/student-auth/login`;
+        payload = { studentId: 'FKS-2018-008', password: '123456' };
+      }
+
+      const response = await axios.post(endpoint, payload);
+
+      if (response.data && response.data.token) {
+        const storageKey = role === "parent" ? 'student-user' : 'user';
+        localStorage.setItem(storageKey, JSON.stringify(response.data));
+        
+        if (role === "parent") {
+          if (response.data.isInitialPassword) {
+            navigate('/parent/change-password');
+          } else {
+            navigate('/parent/dashboard');
           }
-      };
+        } else {
+          navigate('/');
+        }
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.message || t('error') || 'Login failed.';
+      setErrorMsg(msg);
+    } finally {
+      setLoadingRole(null);
+    }
+  };
 
   return (
-
     <div className="min-h-screen bg-[#F8FAFC] overflow-hidden text-slate-900">
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200">
@@ -126,8 +124,7 @@ const LandingPage = () => {
       </nav>
 
       {/* HERO */}
-      <section className="relative pt-28 md:pt-28 pb-16 md:pb-24 overflow-hidden">
-        {/* BACKGROUND GLOW */}
+      <section className="relative pt-32 pb-28 overflow-hidden bg-gradient-to-b from-blue-50 via-white to-slate-50">
         <div className="absolute top-[-200px] left-[-200px] w-[320px] md:w-[500px] h-[320px] md:h-[500px] bg-blue-200/40 rounded-full blur-3xl" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-14 lg:gap-16 items-center relative z-10">
@@ -138,7 +135,6 @@ const LandingPage = () => {
             transition={{ duration: 0.8 }}
             className="text-center lg:text-left order-2 lg:order-1"
           >
-            {/* BADGE */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm">
               <Sparkles size={15} className="text-blue-600" />
               <span className="text-xs sm:text-sm font-black text-slate-700">
@@ -146,40 +142,26 @@ const LandingPage = () => {
               </span>
             </div>
 
-            {/* TITLE */}
             <h1 className="mt-7 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight text-slate-900">
-              Intelligent
-              <br />
-              School
-              <br />
-              <span className="text-blue-600">
-                Management
-              </span>
-            </h1>
+              Intelligent<br />School<br />
+              <span className="text-blue-600">Management</span>
+            </h1> 
 
-            {/* ENGLISH */}
             <p className="mt-6 text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0 font-medium">
               AI-powered academic intelligence platform for Ethiopian schools with analytics, multilingual support, parent portals and smart educational insights.
             </p>
 
-            {/* AMHARIC */}
             <p className="mt-4 text-sm sm:text-base text-slate-500 leading-relaxed max-w-xl mx-auto lg:mx-0 font-medium">
-              ዘመናዊ በAI የተደገፈ የትምህርት ቤት አስተዳደር።
-              የተማሪ ውጤት ትንተና፣ የወላጅ ፖርታል እና
-              የሪስክ ትንበያ ሲስተም።
+              ዘመናዊ በAI የተደገፈ የትምህርት ቤት አስተዳደር። የተማሪ ውጤት ትንተና፣ የወላጅ ፖርታል እና የሪስክ ትንበያ ሲስተም።
             </p>
 
-            {/* BUTTON */}
             <div className="mt-8 sm:mt-10 flex justify-center lg:justify-start">
               <Link
                 to="/login"
                 className="group px-7 sm:px-8 py-3.5 sm:py-4 rounded-3xl bg-blue-600 text-white font-black flex items-center justify-center gap-2 hover:-translate-y-1 transition-all shadow-lg shadow-blue-200/40"
               >
                 Launch Platform
-                <ChevronRight
-                  size={18}
-                  className="group-hover:translate-x-1 transition-all"
-                />
+                <ChevronRight size={18} className="group-hover:translate-x-1 transition-all" />
               </Link>
             </div>
           </motion.div>
@@ -191,8 +173,8 @@ const LandingPage = () => {
             transition={{ duration: 1 }}
             className="relative order-1 lg:order-2 mt-4 lg:mt-0"
           >
-            {/* GLOW */}
             <div className="absolute inset-0 bg-blue-200/30 blur-3xl rounded-full scale-110" />
+            
             {/* FLOATING CARD 1 */}
             <motion.div
               animate={{ y: [0, -10, 0] }}
@@ -203,14 +185,9 @@ const LandingPage = () => {
                 <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
                   <BarChart3 className="text-blue-600" size={20} />
                 </div>
-
                 <div>
-                  <p className="text-xs sm:text-sm font-bold text-slate-500">
-                    Performance
-                  </p>
-                  <h3 className="text-lg sm:text-2xl font-black text-slate-900">
-                    99.9%
-                  </h3>
+                  <p className="text-xs sm:text-sm font-bold text-slate-500">Performance</p>
+                  <h3 className="text-lg sm:text-2xl font-black text-slate-900">99.9%</h3>
                 </div>
               </div>
             </motion.div>
@@ -226,17 +203,12 @@ const LandingPage = () => {
                   <Brain className="text-blue-600" size={20} />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm font-bold text-slate-500">
-                    AI Insight
-                  </p>
-                  <h3 className="text-sm sm:text-lg font-black text-slate-900">
-                    Stable Progress
-                  </h3>
+                  <p className="text-xs sm:text-sm font-bold text-slate-500">AI Insight</p>
+                  <h3 className="text-sm sm:text-lg font-black text-slate-900">Stable Progress</h3>
                 </div>
               </div>
             </motion.div>
 
-            {/* IMAGE */}
             <img
               src={heroImage}
               alt="AI School Platform"
@@ -251,16 +223,10 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {trustItems.map((item, index) => (
-              <div key={index} className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-6 text-center hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
-                <div className="flex justify-center mb-4">
-                  {item.icon}
-                </div>
-                <h3 className="text-2xl font-black text-slate-900">
-                  {item.value}
-                </h3>
-                <p className="text-sm font-bold text-slate-500 mt-1">
-                  {item.label}
-                </p>
+              <div key={index} className="bg-[#e8eaeb] rounded-2xl border border-slate-200 p-6 text-center hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="flex justify-center mb-4">{item.icon}</div>
+                <h3 className="text-2xl font-black text-slate-900">{item.value}</h3>
+                <p className="text-sm font-bold text-slate-500 mt-1">{item.label}</p>
               </div>
             ))}
           </div>
@@ -271,9 +237,7 @@ const LandingPage = () => {
       <section className="py-24 bg-slate-900 text-white">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16">
           <div>
-            <h2 className="text-4xl font-black mb-10">
-              Traditional School Problems
-            </h2>
+            <h2 className="text-4xl font-black mb-10">Traditional School Problems</h2>
             <div className="space-y-6">
               <div className="flex items-start gap-4">
                 <AlertTriangle className="text-red-400 mt-1" />
@@ -291,9 +255,7 @@ const LandingPage = () => {
           </div>
 
           <div>
-            <h2 className="text-4xl font-black mb-10 text-blue-400">
-              Nitsuh AI Solution
-            </h2>
+            <h2 className="text-4xl font-black mb-10 text-blue-400">Nitsuh AI Solution</h2>
             <div className="space-y-6">
               <div className="flex items-start gap-4">
                 <CheckCircle2 className="text-green-400 mt-1" />
@@ -321,16 +283,12 @@ const LandingPage = () => {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <div key={index} className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+              <div key={index} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
                 <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
                   {feature.icon}
                 </div>
-                <h3 className="text-2xl font-black text-slate-900">
-                  {feature.title}
-                </h3>
-                <p className="mt-4 text-slate-500 leading-relaxed font-medium">
-                  {feature.desc}
-                </p>
+                <h3 className="text-2xl font-black text-slate-900">{feature.title}</h3>
+                <p className="mt-4 text-slate-500 leading-relaxed font-medium">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -345,27 +303,23 @@ const LandingPage = () => {
             <span className="text-sm font-black text-slate-700">Gemini 2.5 Flash Powered</span>
           </div>
 
-          <h2 className="text-5xl font-black text-slate-900 tracking-tight">
-            AI Intelligence Engine
-          </h2>
-
+          <h2 className="text-5xl font-black text-slate-900 tracking-tight">AI Intelligence Engine</h2>
           <p className="mt-6 max-w-3xl mx-auto text-lg text-slate-500 leading-relaxed font-medium">
             AI-generated semester analysis, multilingual recommendations, student risk prediction and intelligent academic insights for parents, teachers and administrators.
           </p>
 
           <div className="mt-16 grid md:grid-cols-3 gap-8">
-            <div className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
+            <div className="bg-[#e8eaeb] rounded-2xl border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
               <Brain className="text-blue-600" size={42} />
               <h3 className="mt-6 text-2xl font-black text-slate-900">Semester AI Insights</h3>
               <p className="mt-4 text-slate-500 leading-relaxed">Automatic strengths, weaknesses and recommendations generated per semester.</p>
             </div>
-            <div className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
+            <div className="bg-[#e8eaeb] rounded-2xl border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
               <BarChart3 className="text-blue-600" size={42} />
               <h3 className="mt-6 text-2xl font-black text-slate-900">Risk Prediction</h3>
               <p className="mt-4 text-slate-500 leading-relaxed">Identify struggling students before academic performance declines.</p>
             </div>
-
-            <div className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
+            <div className="bg-[#e8eaeb] rounded-2xl border border-slate-200 p-8 text-left hover:-translate-y-1 hover:shadow-lg transition-all">
               <Globe2 className="text-blue-600" size={42} />
               <h3 className="mt-6 text-2xl font-black text-slate-900">Multilingual AI</h3>
               <p className="mt-4 text-slate-500 leading-relaxed">AI-generated academic communication in English, Amharic, Oromo, Somali, Afar and Tigrinya.</p>
@@ -380,37 +334,35 @@ const LandingPage = () => {
           <div className="text-center mb-16">
             <h2 className="text-5xl font-black text-slate-900 tracking-tight">Explore Live Demo</h2>
             <p className="mt-5 text-lg text-slate-500 max-w-2xl mx-auto">Experience the platform from different user perspectives.</p>
+            {errorMsg && <p className="mt-4 text-red-500 font-bold bg-red-50 inline-block px-4 py-2 rounded-xl border border-red-200">{errorMsg}</p>}
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {demos.map((demo, index) => (
-              <div key={index} className="bg-[#e8eaeb] rounded-sm border border-slate-200 p-8 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
-                <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
-                  {demo.icon}
+              <div key={index} className="bg-[#e8eaeb] rounded-2xl border border-slate-200 p-8 flex flex-col justify-between hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div>
+                  <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
+                    {demo.icon}
+                  </div>
+                  <h3 className="text-3xl font-black text-slate-900">{demo.title}</h3>
+                  <p className="mt-4 text-slate-500 leading-relaxed font-medium">{demo.desc}</p>
                 </div>
-                <h3 className="text-3xl font-black text-slate-900"> {demo.title} </h3>
-                <p className="mt-4 text-slate-500 leading-relaxed font-medium"> {demo.desc} </p>
                 
-                <button onClick={() => loginDemo(demo.route)}
-                        className="bg-gradient-to-r from-blue-600 to-slate-900 mt-3 hover:bg-slate-700 flex flex-row items-center  justify-center w-full  text-white font-bold py-2 px-2 rounded transition-colors duration-200"
-                        disabled={loading}
+                <button 
+                  onClick={() => loginDemo(demo.route)}
+                  className="bg-gradient-to-r from-blue-600 to-slate-900 mt-6 hover:opacity-90 flex flex-row items-center justify-center w-full text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50"
+                  disabled={loadingRole !== null}
                 >
-                  {
-                    loading ? 'Loging ...' : <span>
+                  {loadingRole === demo.route ? (
+                    'Logging in...'
+                  ) : (
+                    <span className="flex items-center gap-1.5">
                       Enter Demo
-                    <svg 
-                        className="w-4 h-4 ml-1.5 transform transition-transform duration-300 ease-out group-hover:translate-x-1.5" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor" 
-                        strokeWidth="2"
-                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
+                      </svg>
                     </span>
-                  }
-                       
+                  )}
                 </button>
-                
               </div>
             ))}
           </div>
@@ -419,13 +371,11 @@ const LandingPage = () => {
 
       {/* CTA */}
       <section className="py-24 px-6">
-        <div className="max-w-6xl mx-auto bg-gradient-to-r from-blue-600 to-slate-900 rounded-sm p-14 text-center text-white overflow-hidden relative">
+        <div className="max-w-6xl mx-auto bg-gradient-to-r from-blue-600 to-slate-900 rounded-3xl p-14 text-center text-white overflow-hidden relative">
           <div className="absolute top-[-100px] right-[-100px] w-[300px] h-[300px] bg-white/10 rounded-full blur-3xl" />
           <GraduationCap size={60} className="mx-auto mb-8" />
           <h2 className="text-3xl md:text-5xl font-black leading-tight">
-            Transform Your School Into
-            <br />
-            An Intelligent Digital Campus
+            Transform Your School Into<br />An Intelligent Digital Campus
           </h2>
           <p className="mt-6 text-blue-100 text-lg max-w-2xl mx-auto leading-relaxed font-medium">
             Modern education infrastructure powered by AI, analytics and multilingual communication.
@@ -445,15 +395,9 @@ const LandingPage = () => {
 
       {/* FOOTER */}
       <footer className="bg-slate-950 py-14 px-6 text-center">
-        <h2 className="text-2xl font-black text-white">
-          Nitsuh AI
-        </h2>
-        <p className="mt-4 text-slate-400 max-w-xl mx-auto leading-relaxed">
-          Modern Ethiopian AI Education Infrastructure.
-        </p>
-        <p className="mt-8 text-sm text-slate-500 font-medium">
-          © {new Date().getFullYear()} Nitsuh AI School Platform.
-        </p>
+        <h2 className="text-2xl font-black text-white">Nitsuh AI</h2>
+        <p className="mt-4 text-slate-400 max-w-xl mx-auto leading-relaxed">Modern Ethiopian AI Education Infrastructure.</p>
+        <p className="mt-8 text-sm text-slate-500 font-medium">© {new Date().getFullYear()} Nitsuh AI School Platform.</p>
       </footer>
     </div>
   );

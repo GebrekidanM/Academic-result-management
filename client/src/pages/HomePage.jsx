@@ -96,7 +96,7 @@ const HomePage = ({ currentUser }) => {
     
     // --- Visitor View ---
     if (!currentUser) {
-        return <LoginPage />;
+        return <LandingPage />;
     }
 
     // --- Parent Redirect ---
