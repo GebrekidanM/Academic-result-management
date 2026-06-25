@@ -42,7 +42,7 @@ app.use('/api/ai', require('./routes/aiRoutes'));
 
 app.get('/api/admin/temp-sanitize-db', async (req, res) => {
     try {
-        await sanitizeDatabase();
+        await convertYearsToString();
         res.status(200).json({ message: "Database sanitized successfully!" });
     } catch (err) {
         res.status(500).json({ error: err.message });
