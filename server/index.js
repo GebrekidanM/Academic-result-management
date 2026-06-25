@@ -67,7 +67,6 @@ const startServer = async () => {
         // 3. Seed Admin
         
         await seedAdminUser();
-        await performBackup();
 
         const PORT = process.env.PORT || 5000;
 
