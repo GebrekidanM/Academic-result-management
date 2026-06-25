@@ -211,30 +211,10 @@ exports.generateSubjectRoster = async (req, res) => {
         const allAssessmentsForSubject = await AssessmentType.find({ 
             subject: subjectId, 
             gradeLevel, 
-            year: academicYear,
+             year: { $in: [academicYear, Number(academicYear)] },
             semester: semester,
             month: { $in: validMonths } 
         });
-// 🔍 ጊዜያዊ መመርመሪያ ኮድ (Culprit Finder)
-        console.log("=== START QUERY DEBUGGING ===");
-        console.log("Variables:", { subjectId, gradeLevel, academicYear, semester, validMonths });
-
-        const testSubject = await AssessmentType.find({ subject: subjectId });
-        console.log(`1. Found by Subject only: ${testSubject.length} docs`);
-
-        const testGrade = await AssessmentType.find({ subject: subjectId, gradeLevel });
-        console.log(`2. Found by Subject + Grade: ${testGrade.length} docs`);
-
-        // ⚠️ ይህ 0 ካለ አመተ ምህረቱ በዳታቤዝ ውስጥ በቁጥር (Number) ነው ያለው ማለት ነው
-        const testYearString = await AssessmentType.find({ subject: subjectId, gradeLevel, year: academicYear });
-        console.log(`3a. Found with Year (as String): ${testYearString.length} docs`);
-
-        const testYearNumber = await AssessmentType.find({ subject: subjectId, gradeLevel, year: Number(academicYear) });
-        console.log(`3b. Found with Year (as Number): ${testYearNumber.length} docs`);
-
-        const testSemester = await AssessmentType.find({ subject: subjectId, gradeLevel, semester: semester });
-        console.log(`4. Found with Semester filter: ${testSemester.length} docs`);
-        console.log("=== END QUERY DEBUGGING ===");
 
         if (allAssessmentsForSubject.length === 0) {
             return res.status(404).json({ message: 'No assessment types found for this semester.' });
