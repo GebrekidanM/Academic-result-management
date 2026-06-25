@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import supportiveGradeService from '@shared/services/supportiveGradeService';
+import supportiveGradeService from '../shared/services/supportiveGradeService';
 
 const SupportiveSubjectPage = () => {
     const { t } = useTranslation();
@@ -50,7 +50,7 @@ const SupportiveSubjectPage = () => {
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure? This will delete the subject from the grade.")) {
             try {
-                await supportiveGradeService.delete(id);
+                await supportiveGradeService.deleteSupportive(id);
                 fetchSubjects();
             } catch (err) {
                 alert("Error deleting");
