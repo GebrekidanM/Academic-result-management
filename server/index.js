@@ -6,7 +6,7 @@ const connectDB = require('./config/db');
 const User = require('./models/User');
 const cron = require('node-cron');
 
-const sanitizeDatabase = require('./sanitizeDatabase')
+const { sanitizeDatabase } = require('./sanitizeDatabase')
 
 const app = express();
 
