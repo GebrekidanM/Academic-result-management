@@ -191,7 +191,6 @@ exports.generateRoster = async (req, res) => {
 
 exports.generateSubjectRoster = async (req, res) => {
     const { gradeLevel, subjectId, semester, academicYear } = req.query;
-console.log(semester)
     // 1. Validation
     if (!gradeLevel || !subjectId || !semester || !academicYear) {
         return res.status(400).json({ message: 'Grade Level, Subject, Semester, and Year are required.' });
@@ -216,6 +215,7 @@ console.log(semester)
             semester: semester,
             month: { $in: validMonths } 
         });
+console.log(allAssessmentsForSubject)
 
         if (allAssessmentsForSubject.length === 0) {
             return res.status(404).json({ message: 'No assessment types found for this semester.' });
