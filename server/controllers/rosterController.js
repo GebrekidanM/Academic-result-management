@@ -191,14 +191,13 @@ exports.generateRoster = async (req, res) => {
 
 exports.generateSubjectRoster = async (req, res) => {
     const { gradeLevel, subjectId, semester, academicYear } = req.query;
-
+console.log(semester)
     // 1. Validation
     if (!gradeLevel || !subjectId || !semester || !academicYear) {
         return res.status(400).json({ message: 'Grade Level, Subject, Semester, and Year are required.' });
     }
 
     // 2. Define Semester Logic
-    // Adjust these arrays to match your school's actual academic calendar
     const SEMESTER_CONFIG = {
         "First Semester": ["September", "October", "November", "December", "January"],
         "Second Semester": ["February", "March", "April", "May", "June"]
