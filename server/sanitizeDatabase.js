@@ -71,10 +71,5 @@ const sanitizeDatabase = async () => {
 
     } catch (error) {
         console.error("❌ Sanitization failed:", error);
-    } finally {
-        await mongoose.connection.close();
-        console.log("🔌 Connection closed.");
-    }
+    } 
 };
-
-sanitizeDatabase();
