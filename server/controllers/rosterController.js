@@ -8,10 +8,10 @@ const AssessmentType = require('../models/AssessmentType');
 const calculateAge = require('../utils/calculateAge');
 
 const SUBJECT_ORDER = [
-    "አማርኛ", "English", "Mathematics", "ሒሳብ", 
-    "አካባቢ ሳይንስ", "General Science", "Social Studies", 
-    "Civics", "ግብረ ገብ", "ICT", "HPE", "ጤሰማ", 
-    "Art", "ስነጥበብ", "Spoken", "Grammar", "Affan Oromo"
+    "አማርኛ", "English", "ሒሳብ", "አካባቢ ሳይንስ","ግብረ ገብ" ,"ጤሰማ", "Affan Oromo", "ስነጥበብ",
+    "General Science", "Mathematics", "Social Studies", 
+    "Civics", "ICT", "HPE", 
+    "Art", "Spoken", "Grammar"
 ];
 
 exports.generateRoster = async (req, res) => {
@@ -210,12 +210,12 @@ exports.generateSubjectRoster = async (req, res) => {
     }
 
     try {
-        // 3. Fetch Assessment Types (Filtered by Semester months if stored that way, or sorted later)
         const allAssessmentsForSubject = await AssessmentType.find({ 
             subject: subjectId, 
             gradeLevel, 
             year: academicYear,
-            month: { $in: validMonths } // Database-level filtering for efficiency
+            semester: semester,
+            month: { $in: validMonths } 
         });
 
         if (allAssessmentsForSubject.length === 0) {

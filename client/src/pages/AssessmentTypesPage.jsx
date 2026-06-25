@@ -55,13 +55,11 @@ const AssessmentTypesPage = () => {
       setError('');
       try {
         let subjectsList = [];
-        // Attempt to fetch subjects. Service worker handles cache if offline.
         if (currentUser.role === 'admin') {
           const res = await subjectService.getAllSubjects();
           subjectsList = res.data.data;
         } else if (currentUser.role === 'teacher') {
           const res = await userService.getProfile();
-          // Safety check for subjectsTaught
           subjectsList = res.data.subjectsTaught ? res.data.subjectsTaught.map(s => s.subject).filter(Boolean) : [];
         }
         setSubjects(subjectsList);
@@ -134,17 +132,30 @@ const AssessmentTypesPage = () => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedSubject) return alert(t('select_class') || 'Select a subject first.');
     
     setSaving(true);
     setError('');
 
-    const payload = { ...formData, subjectId: selectedSubject._id, gradeLevel: selectedSubject.gradeLevel };
+    // 1️⃣ ለማረም (Update) የምንጠቀመው ፔይሎድ (subjectId እና gradeLevel አይካተቱም)
+    const updatePayload = {
+      name: formData.name,
+      totalMarks: Number(formData.totalMarks), // ቁጥር መሆኑን ለማረጋገጥ
+      month: formData.month,
+      semester: formData.semester,
+      year: String(formData.year)
+    };
+
+    // 2️⃣ ለአዲስ መፍጠሪያ (Create) የምንጠቀመው ፔይሎድ (ሁሉንም ያካትታል)
+    const createPayload = { 
+      ...updatePayload, 
+      subjectId: selectedSubject._id, 
+      gradeLevel: selectedSubject.gradeLevel 
+    };
 
     // --- OFFLINE MODE WRITE ---
-    // Use navigator.onLine here because we CANNOT write to the server offline
     if (!navigator.onLine) {
         if (editingId && !editingId.startsWith('TEMP_')) {
             alert("Cannot edit online assessments while offline.");
@@ -153,19 +164,15 @@ const AssessmentTypesPage = () => {
         }
         try {
             if (editingId && editingId.startsWith('TEMP_')) {
-                 offlineAssessmentService.removeLocalAssessment(editingId);
-                 offlineAssessmentService.addLocalAssessment({
-                    ...payload,
+                offlineAssessmentService.removeLocalAssessment(editingId);
+                offlineAssessmentService.addLocalAssessment({
+                    ...createPayload, // ከመስመር ውጭ ሲንክ ሲደረግ አዲስ ስለሚፈጠር ሙሉውን ይፈልገዋል
                     subject: selectedSubject._id
-                 });
-                 if (!newAssess) {
-                      setSaving(false);
-                      return; 
-                  }
-                 alert("Offline assessment updated locally.");
+                });
+                alert("Offline assessment updated locally.");
             } else {
                 offlineAssessmentService.addLocalAssessment({
-                    ...payload,
+                    ...createPayload, 
                     subject: selectedSubject._id 
                 });
                 alert("📴 Offline: Assessment created locally! Use Sync when online.");
@@ -184,9 +191,11 @@ const AssessmentTypesPage = () => {
     // --- ONLINE MODE WRITE ---
     try {
       if (editingId && !editingId.startsWith('TEMP_')) {
-        await assessmentTypeService.update(editingId, payload);
+        // ⚠️ ማስተካከያ፦ ለማሻሻል (Update) ስንልክ "updatePayload" ን ብቻ እንልካለን (ያለ subjectId እና gradeLevel)
+        await assessmentTypeService.update(editingId, updatePayload);
       } else {
-        await assessmentTypeService.create(payload);
+        // ለአዲስ መፍጠሪያ (Create) ሙሉውን "createPayload" እንልካለን
+        await assessmentTypeService.create(createPayload);
       }
       await fetchAssessments();
       setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
@@ -201,20 +210,13 @@ const AssessmentTypesPage = () => {
     } finally {
       setSaving(false);
     }
-  };
+};
 
   const handleEdit = (assessment) => {
-    // Allow editing TEMP items if you implement updateLocalAssessment, 
-    // otherwise warn.
     if (assessment._id.startsWith('TEMP_')) {
-        // Simple approach: Allow loading into form, but handle save as delete old + create new local
-        // Or for now, just restrict
-        if(!window.confirm("Editing offline items is limited. Do you want to delete and recreate?")) {
-             return;
+        if(!window.confirm("Editing offline items is limited. We will replace it upon saving. Do you want to proceed?")) {
+            return;
         }
-        offlineAssessmentService.removeLocalAssessment(assessment._id);
-        fetchAssessments();
-        // Continue to load form data so user can re-save
     }
 
     setEditingId(assessment._id);
@@ -302,7 +304,7 @@ const AssessmentTypesPage = () => {
                   {MONTHS.map(m => <option key={m}>{m}</option>)}
                 </select>
               </div>
-              <input type="number" name="year" value={formData.year} onChange={handleChange} placeholder={t('academic_year')} className="border p-2 rounded" />
+              <input type="text" name="year" value={formData.year} onChange={handleChange} placeholder={t('academic_year')} className="border p-2 rounded" />
               
               <button type="submit" disabled={saving} className={`col-span-2 py-2 rounded font-semibold text-white ${saving ? 'bg-green-300 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
                 {saving ? t('loading') : editingId ? t('update') : t('add')}

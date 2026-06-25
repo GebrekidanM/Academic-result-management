@@ -38,7 +38,7 @@ exports.getGradesByStudent = async (req, res) => {
     // 1. Fetch Student
     const studentObj = await Student.findById(studentId);
     if (!studentObj) return res.status(404).json({ message: "Student not found" });
-    
+
     // 2. Fetch Raw Grades
     const rawGrades = await Grade.find({ student: studentId })
       .populate('subject', 'name gradeLevel')
@@ -47,7 +47,7 @@ exports.getGradesByStudent = async (req, res) => {
 
     if (!rawGrades.length) return res.status(200).json({ success: true, count: 0, data: [] });
 
-    // 3. FILTER: Keep only current grade level (Removes Grade 4A vs 4B mismatch)
+    // 3. FILTER: Keep only current grade level
     const currentGradeLevel = studentObj.gradeLevel.trim();
     const filteredGrades = rawGrades.filter(g => 
         g.subject && g.subject.gradeLevel === currentGradeLevel
@@ -57,46 +57,40 @@ exports.getGradesByStudent = async (req, res) => {
     const gradeMap = new Map();
 
     filteredGrades.forEach(grade => {
-        // Filter out null/broken assessments
         const cleanAssessments = (grade.assessments || []).filter(a => a.assessmentType != null);
         
-        // Key: "First Semester-Amharic"
-        const key = `${grade.semester}-${grade.subject.name.trim().toLowerCase()}`;
+        // ⚠️ ማስተካከያ፦ የአካዳሚክ አመቱን በቁልፍ (Key) ውስጥ አካትተናል
+        const key = `${grade.academicYear}-${grade.semester}-${grade.subject.name.trim().toLowerCase()}`;
 
         if (gradeMap.has(key)) {
             const existing = gradeMap.get(key);
-            
-            // A. Prefer valid Academic Year
-            // If the existing one has "" but the new one has "2018", update the year.
+
             if (!existing.academicYear && grade.academicYear) {
                 existing.academicYear = grade.academicYear;
             }
 
-            // B. ADVANCED MERGE: Deduplicate Assessments by ID
-            // This prevents "Mid Exam" (score 15.5) from being added twice
             const assessmentMap = new Map();
-            
-            // Load existing assessments
-            existing.assessments.forEach(a => assessmentMap.set(a.assessmentType._id.toString(), a));
-            
-            // Try to add new ones. If ID exists, SKIP IT.
-            cleanAssessments.forEach(a => {
-                const assessId = a.assessmentType._id.toString();
-                if (!assessmentMap.has(assessId)) {
-                    assessmentMap.set(assessId, a);
+            existing.assessments.forEach(a => {
+                if (a.assessmentType) {
+                    assessmentMap.set(a.assessmentType._id.toString(), a);
                 }
             });
 
-            // Save merged list
-            existing.assessments = Array.from(assessmentMap.values());
+            cleanAssessments.forEach(a => {
+                if (a.assessmentType) {
+                    const assessId = a.assessmentType._id.toString();
+                    if (!assessmentMap.has(assessId)) {
+                        assessmentMap.set(assessId, a);
+                    }
+                }
+            });
 
-            // C. Recalculate Final Score
-            // We sum the UNIQUE assessments only.
+            existing.assessments = Array.from(assessmentMap.values());
             existing.finalScore = existing.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
 
         } else {
-            // New Entry
             grade.assessments = cleanAssessments;
+            grade.finalScore = cleanAssessments.reduce((sum, a) => sum + (a.score || 0), 0);
             gradeMap.set(key, grade);
         }
     });
@@ -133,13 +127,9 @@ exports.getGradesByStudent = async (req, res) => {
 exports.getGradeDetails = async (req, res) => {
   const { studentId, subjectId, semester, academicYear } = req.query;
   try {
-    // Note: If you have duplicates in DB, 'findOne' might pick the wrong one (e.g. the 4B one).
-    // Ideally, you should use 'find' here too and merge if you want to be 100% safe, 
-    // but usually editing happens on a specific ID.
-    
     const grade = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear })
       .populate('assessments.assessmentType', 'name totalMarks');
-      
+
     res.json({ success: true, data: grade });
   } catch (error) {
     console.error("Error fetching grade details:", error);
@@ -147,7 +137,7 @@ exports.getGradeDetails = async (req, res) => {
   }
 };
 
-// @desc    Delete a grade (only teachers can delete)
+// @desc    Delete a grade
 // @route   DELETE /api/grades/:id
 exports.deleteGrade = async (req, res) => {
   try {
@@ -156,6 +146,14 @@ exports.deleteGrade = async (req, res) => {
 
     if (req.user.role === 'admin') {
       return res.status(403).json({ message: "Admins cannot delete grade records." });
+    }
+
+    // ⚠️ የደህንነት ማሻሻያ፦ መምህሩ የዚህ ትምህርት ፈቃድ ያለው መሆኑን ማረጋገጥ
+    const isAssigned = req.user.subjectsTaught && req.user.subjectsTaught.some(
+        assignment => assignment.subject && assignment.subject.toString() === grade.subject.toString()
+    );
+    if (!isAssigned) {
+        return res.status(403).json({ message: "You are not authorized to delete this grade record." });
     }
 
     await grade.deleteOne();
@@ -177,6 +175,14 @@ exports.updateGrade = async (req, res) => {
       return res.status(403).json({ message: "Admins cannot alter grade records." });
     }
 
+    // ⚠️ የደህንነት ማሻሻያ፦ መምህሩ የዚህ ትምህርት ፈቃድ ያለው መሆኑን ማረጋገጥ
+    const isAssigned = req.user.subjectsTaught && req.user.subjectsTaught.some(
+        assignment => assignment.subject && assignment.subject.toString() === grade.subject.toString()
+    );
+    if (!isAssigned) {
+        return res.status(403).json({ message: "You are not authorized to update this grade record." });
+    }
+
     const { assessments } = req.body;
     if (!Array.isArray(assessments) || assessments.length === 0) {
       return res.status(400).json({ message: 'No assessments provided.' });
@@ -185,17 +191,16 @@ exports.updateGrade = async (req, res) => {
     const assessmentTypeIds = assessments.map(a => a.assessmentType);
     const defs = await AssessmentType.find({ _id: { $in: assessmentTypeIds } });
 
-    let finalScore = 0;
+    // ⚠️ ማስተካከያ፦ እዚህ ላይ የነበረው የ finalScore መደመሪያ ሎጂክ በሙሉ ጠፍቷል
     for (const a of assessments) {
       const def = defs.find(d => d._id.equals(a.assessmentType));
       if (!def) return res.status(400).json({ message: `Invalid assessmentType ID: ${a.assessmentType}` });
       if (a.score > def.totalMarks)
         return res.status(400).json({ message: `${def.name} score cannot exceed ${def.totalMarks}` });
-      finalScore += Number(a.score);
     }
 
     grade.assessments = assessments;
-    grade.finalScore = finalScore;
+    // ⚠️ finalScore በራስ-ሰር በ save Hook ይደመራል
     const updated = await grade.save();
 
     res.status(200).json({ success: true, data: updated });
@@ -218,20 +223,17 @@ exports.getGradeSheet = async (req, res) => {
       .sort({ fullName: 1 })
       .select('fullName');
 
-    // Populate assessmentType to ensure we don't work with raw IDs causing type mismatches
     const grades = await Grade.find({
       student: { $in: students.map(s => s._id) },
       'assessments.assessmentType': assessmentTypeId
-    }).populate('assessments.assessmentType'); // <--- ADD POPULATE FOR SAFETY
+    }).populate('assessments.assessmentType');
 
     const result = students.map(student => {
       const grade = grades.find(g => g.student.equals(student._id));
-      
-      // --- FIX: Add Safe Check (a.assessmentType && ...) ---
       const score = grade?.assessments.find(a => 
           a.assessmentType && a.assessmentType._id.equals(assessmentTypeId)
       )?.score ?? null;
-      
+
       return { _id: student._id, fullName: student.fullName, score };
     });
 
@@ -241,95 +243,96 @@ exports.getGradeSheet = async (req, res) => {
     res.status(500).json({ message: 'Server error fetching grade sheet.' });
   }
 };
+
 // @desc    Save or update multiple grades for one assessment
 // @route   POST /api/grades/sheet
 exports.saveGradeSheet = async (req, res) => {
   try {
     const { subjectId, semester, academicYear } = req.body;
 
-    // 1️⃣ Validate common fields that BOTH cases share
     if (!subjectId || !semester || !academicYear) {
       return res.status(400).json({ message: "Missing subject, semester, or academic year" });
     }
 
-    // =========================================================================
     // CASE A: By Assessment (1 Assessment, Multiple Students)
-    // Payload has: assessmentTypeId and scores: [{studentId, score}]
-    // =========================================================================
     if (req.body.assessmentTypeId && req.body.scores) {
       const { assessmentTypeId, scores } = req.body;
 
-      // Loop through each student in the scores array
+      // ⚠️ የደህንነት ማሻሻያ፦ የፈተናውን ወሰን (totalMarks) አስቀድሞ መፈለግ (ለቫሊዴሽን)
+      const def = await AssessmentType.findById(assessmentTypeId);
+      if (!def) return res.status(404).json({ message: "Assessment Type not found." });
+
       for (const item of scores) {
         if (item.score === null || item.score === undefined || item.score === '') continue;
 
-        // Find or create grade doc for this specific student
-        let gradeDoc = await Grade.findOne({ student: item.studentId, subject: subjectId, semester, academicYear });
-        
-        if (!gradeDoc) {
-          gradeDoc = new Grade({ student: item.studentId, subject: subjectId, semester, academicYear, assessments:[], finalScore: 0 });
+        // ⚠️ ማስተካከያ፦ ውጤት ከጠቅላላ ፈተናው ነጥብ በላይ እንዳይሆን ቫሊዴት ማድረግ
+        if (Number(item.score) > def.totalMarks) {
+            return res.status(400).json({ message: `Score for student cannot exceed ${def.totalMarks}` });
         }
 
-        // Check if this assessment already exists for the student
-        const existingIndex = gradeDoc.assessments.findIndex(a => a.assessmentType.toString() === assessmentTypeId.toString());
+        let gradeDoc = await Grade.findOne({ student: item.studentId, subject: subjectId, semester, academicYear });
+
+        if (!gradeDoc) {
+          gradeDoc = new Grade({ student: item.studentId, subject: subjectId, semester, academicYear, assessments:[] });
+        }
+
+        const existingIndex = gradeDoc.assessments.findIndex(a => a.assessmentType && a.assessmentType.toString() === assessmentTypeId.toString());
 
         if (existingIndex > -1) {
-          gradeDoc.assessments[existingIndex].score = Number(item.score); // Update
+          gradeDoc.assessments[existingIndex].score = Number(item.score);
         } else {
-          gradeDoc.assessments.push({ assessmentType: assessmentTypeId, score: Number(item.score) }); // Add new
+          gradeDoc.assessments.push({ assessmentType: assessmentTypeId, score: Number(item.score) });
         }
 
-        // Clean up and calculate final score
         gradeDoc.assessments = gradeDoc.assessments.filter(a => a.assessmentType);
-        gradeDoc.finalScore = gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
-
-        await gradeDoc.save(); // Save this student's document
+        // ⚠️ finalScore በራስ-ሰር በ save Hook ይደመራል
+        await gradeDoc.save(); 
       }
 
       return res.status(200).json({ success: true, message: "Grades saved successfully for multiple students" });
     }
 
-    // =========================================================================
     // CASE B: By Student (1 Student, Multiple Assessments)
-    // Payload has: studentId and assessments: [{assessmentType, score}]
-    // =========================================================================
     else if (req.body.studentId && req.body.assessments) {
       const { studentId, assessments } = req.body;
 
-      // Find or create grade doc for this one student
       let gradeDoc = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear });
-      
+
       if (!gradeDoc) {
-        gradeDoc = new Grade({ student: studentId, subject: subjectId, semester, academicYear, assessments:[], finalScore: 0 });
+        gradeDoc = new Grade({ student: studentId, subject: subjectId, semester, academicYear, assessments:[] });
       }
 
-      // Loop through the submitted assessments
-      assessments.forEach(update => {
-        if (update.score === null || update.score === undefined || update.score === '') return;
+      const assessmentTypeIds = assessments.map(a => a.assessmentType);
+      const defs = await AssessmentType.find({ _id: { $in: assessmentTypeIds } });
 
-        const existingIndex = gradeDoc.assessments.findIndex(a => a.assessmentType.toString() === update.assessmentType.toString());
+      for (const update of assessments) {
+        if (update.score === null || update.score === undefined || update.score === '') continue;
+
+        // ⚠️ ማስተካከያ፦ እዚህም ላይ የ totalMarks ቫሊዴሽን ጨምረናል
+        const def = defs.find(d => d._id.equals(update.assessmentType));
+        if (!def) return res.status(400).json({ message: `Invalid assessmentType ID: ${update.assessmentType}` });
+        if (Number(update.score) > def.totalMarks) {
+            return res.status(400).json({ message: `Score for ${def.name} cannot exceed ${def.totalMarks}` });
+        }
+
+        const existingIndex = gradeDoc.assessments.findIndex(a => a.assessmentType && a.assessmentType.toString() === update.assessmentType.toString());
 
         if (existingIndex > -1) {
-          gradeDoc.assessments[existingIndex].score = Number(update.score); // Update
+          gradeDoc.assessments[existingIndex].score = Number(update.score);
         } else {
-          gradeDoc.assessments.push({ assessmentType: update.assessmentType, score: Number(update.score) }); // Add new
+          gradeDoc.assessments.push({ assessmentType: update.assessmentType, score: Number(update.score) });
         }
-      });
+      }
 
-      // Clean up and calculate final score
       gradeDoc.assessments = gradeDoc.assessments.filter(a => a.assessmentType);
-      gradeDoc.finalScore = gradeDoc.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
-
+      // ⚠️ finalScore በራስ-ሰር በ save Hook ይደመራል
       await gradeDoc.save();
 
       return res.status(200).json({ success: true, message: "Assessments saved successfully for student" });
     }
 
-    // =========================================================================
-    // CASE C: Invalid Payload format sent
-    // =========================================================================
     else {
-      return res.status(400).json({ message: "Invalid payload. Must provide either (assessmentTypeId + scores) OR (studentId + assessments)." });
+      return res.status(400).json({ message: "Invalid payload." });
     }
 
   } catch (error) {
@@ -342,42 +345,30 @@ exports.saveGradeSheet = async (req, res) => {
 exports.cleanBrokenAssessments = async (req, res) => {
   try {
     console.log("Starting System Cleanup...");
-    
-    // 1. Fetch ALL grades and populate BOTH subject and assessments
+
     const allGrades = await Grade.find()
       .populate('assessments.assessmentType')
-      .populate('subject'); // <--- Essential to detect null subjects
+      .populate('subject');
 
     let gradesDeleted = 0;
     let gradesFixed = 0;
 
     for (const grade of allGrades) {
-      // --- CASE 1: The Subject is Deleted (Fixes your new problem) ---
       if (!grade.subject) {
-        console.log(`CRITICAL: Grade ${grade._id} has no subject. Deleting entire document.`);
+        console.log(`CRITICAL: Grade ${grade._id} has no subject. Deleting.`);
         await grade.deleteOne(); 
         gradesDeleted++;
-        continue; // Skip the rest, this document is gone
+        continue;
       }
 
-      // --- CASE 2: An Assessment is Deleted (Fixes the previous problem) ---
       const originalCount = grade.assessments.length;
-      
-      // Keep only assessments where assessmentType is NOT null
       const validAssessments = grade.assessments.filter(a => a.assessmentType !== null);
 
       if (validAssessments.length < originalCount) {
         grade.assessments = validAssessments;
-
-        // Recalculate Final Score
-        grade.finalScore = grade.assessments.reduce(
-          (sum, a) => sum + (a.score || 0),
-          0
-        );
-
+        // ⚠️ finalScore በራስ-ሰር በ save Hook ይደመራል
         await grade.save();
         gradesFixed++;
-        console.log(`Fixed Grade ${grade._id}: Removed broken assessments.`);
       }
     }
 
@@ -387,7 +378,7 @@ exports.cleanBrokenAssessments = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Cleanup Complete: Deleted ${gradesDeleted} invalid grade sheets (missing subjects) and fixed ${gradesFixed} grade sheets (missing assessments).`
+      message: `Cleanup Complete: Deleted ${gradesDeleted} and fixed ${gradesFixed} grade sheets.`
     });
 
   } catch (error) {

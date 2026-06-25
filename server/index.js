@@ -6,6 +6,7 @@ const connectDB = require('./config/db');
 const User = require('./models/User');
 const cron = require('node-cron');
 
+const sanitizeDatabase = require('./sanitizeDatabase')
 
 const app = express();
 
@@ -39,6 +40,15 @@ app.use('/api/schedule',require('./routes/scheduleRoutes'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 
+app.get('/api/admin/temp-sanitize-db', async (req, res) => {
+    try {
+        await sanitizeDatabase();
+        res.status(200).json({ message: "Database sanitized successfully!" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- Default admin seeding ---
 const seedAdminUser = async () => {
   try {
@@ -65,7 +75,6 @@ const startServer = async () => {
         // 1. Connect to DB
         await connectDB();
         // 3. Seed Admin
-        
         await seedAdminUser();
 
         const PORT = process.env.PORT || 5000;

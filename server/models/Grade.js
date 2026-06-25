@@ -1,4 +1,3 @@
-// backend/models/Grade.js
 const mongoose = require('mongoose');
 
 const assessmentSchema = new mongoose.Schema({
@@ -9,7 +8,8 @@ const assessmentSchema = new mongoose.Schema({
     },
     score: {
         type: Number,
-        required: true
+        required: true,
+        min: 0 
     }
 }, { _id: false });
 
@@ -36,15 +36,23 @@ const gradeSchema = new mongoose.Schema({
     assessments: [assessmentSchema],
     finalScore: {
         type: Number,
-        required: true,
+        default: 0,
         min: 0
     }
 }, {
     timestamps: true
 });
 
+
+gradeSchema.pre('save', function(next) {
+    if (this.isModified('assessments') || this.isNew) {
+        this.finalScore = this.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
+    }
+    next();
+});
+
 gradeSchema.index(
- { student: 1, subject: 1, semester: 1, academicYear: 1, "assessments.assessmentType": 1 },
+ { student: 1, subject: 1, semester: 1, academicYear: 1 },
  { unique: true }
 );
 

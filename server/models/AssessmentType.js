@@ -37,7 +37,7 @@ const assessmentTypeSchema = new mongoose.Schema({
         enum: ['First Semester', 'Second Semester']
     },
     year: {
-        type: Number,
+        type: String,
         required: true
     }
 }, {
