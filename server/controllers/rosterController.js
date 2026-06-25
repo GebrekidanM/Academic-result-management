@@ -211,10 +211,33 @@ exports.generateSubjectRoster = async (req, res) => {
         const allAssessmentsForSubject = await AssessmentType.find({ 
             subject: subjectId, 
             gradeLevel, 
-             year: { $in: [academicYear, Number(academicYear)] },
+            year: { $in: [academicYear, Number(academicYear)] },
             semester: semester,
             month: { $in: validMonths } 
         });
+
+// 🔍 ጊዜያዊ የጠለቀ መመርመሪያ ኮድ (Deep Diagnostics)
+        console.log("=== SUBJECT ROSTER DIAGNOSTICS ===");
+        console.log("Request Query Params:", { gradeLevel, subjectId, semester, academicYear });
+        
+        // 1. ለዚህ subjectId ብቻ ያሉትን ሰነዶች መፈለግ
+        const rawDocs = await AssessmentType.find({ subject: subjectId });
+        console.log(`Raw documents found in DB for this subject: ${rawDocs.length}`);
+        
+        if (rawDocs.length > 0) {
+            rawDocs.forEach((d, index) => {
+                console.log(`\nDocument #${index + 1}:`);
+                console.log(`  - Name: "${d.name}"`);
+                console.log(`  - Grade Level in DB: "${d.gradeLevel}" | Request Query: "${gradeLevel}" | Match: ${d.gradeLevel === gradeLevel}`);
+                console.log(`  - Semester in DB: "${d.semester}" | Request Semester: "${semester}" | Match: ${d.semester === semester}`);
+                console.log(`  - Month in DB: "${d.month}" | Is in validMonths? ${validMonths.includes(d.month)}`);
+                console.log(`  - Year in DB: ${d.year} (Type: ${typeof d.year}) | Request Year: "${academicYear}" | Match: ${String(d.year) === String(academicYear)}`);
+            });
+        } else {
+            console.log("❌ CRITICAL: No documents found in database for this subjectId at all!");
+        }
+        console.log("=== END DIAGNOSTICS ===");
+
 
         if (allAssessmentsForSubject.length === 0) {
             return res.status(404).json({ message: 'No assessment types found for this semester.' });
