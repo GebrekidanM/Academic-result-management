@@ -67,24 +67,27 @@ const startServer = async () => {
         // 3. Seed Admin
         
         await seedAdminUser();
+        await performBackup();
 
         const PORT = process.env.PORT || 5000;
-        app.listen(PORT, () => {
-              console.log(`🚀 Server running on port ${PORT}`);
 
-              // Cron job with improved error handling
-              cron.schedule('0 22 */3 * *', async () => {
-                  console.log(`[${new Date().toISOString()}] 🕒 Cron job triggered...`);
-                  try {
-                      await performBackup();
-                      console.log(`[${new Date().toISOString()}] ✅ Backup performed successfully.`);
-                  } catch (error) {
-                      console.error(`[${new Date().toISOString()}] ❌ Backup failed:`, error);
-                  }
-              });
-              
-              console.log("📅 Automated backup job scheduled for 01:00 AM EAT");
-          });
+        app.listen(PORT, () => {
+            console.log(`🚀 Server running on port ${PORT}`);
+
+            cron.schedule('0 1 */3 * *', async () => { 
+                console.log(`[${new Date().toISOString()}] 🕒 Cron job triggered...`);
+                try {
+                    await performBackup();
+                    console.log(`[${new Date().toISOString()}] ✅ Backup performed successfully.`);
+                } catch (error) {
+                    console.error(`[${new Date().toISOString()}] ❌ Backup failed:`, error);
+                }
+            }, {
+                timezone: "Africa/Addis_Ababa"
+            });
+            
+            console.log("📅 Automated backup job scheduled for 01:00 AM EAT");
+        });
       } catch (error) {
           console.error("Failed to start server:", error);
             process.exit(1);

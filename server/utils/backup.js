@@ -1,53 +1,76 @@
-const { MongoClient } = require('mongodb');
-const { Octokit } = require('octokit');
+const { exec } = require('child_process');
+const util = require('util');
+const fs = require('fs');
+const path = require('path');
 const axios = require('axios');
 const FormData = require('form-data');
 require('dotenv').config();
 
-const performBackup = async () => {
-    const client = new MongoClient(process.env.MONGO_URI, { serverSelectionTimeoutMS: 5000 });
-    
-    try {
-        await client.connect();
-        const db = client.db();
-        const collections = await db.listCollections().toArray();
-        let backupData = {};
+const execPromise = util.promisify(exec);
 
-        for (let col of collections) {
-            if (col.name.startsWith('system.')) continue;
-            backupData[col.name] = await db.collection(col.name).find({}).toArray();
+const performBackup = async () => {
+    const mongoUri = process.env.MONGO_URI;
+    const tgToken = process.env.TG_TOKEN;
+    const chatId = process.env.TG_CHAT_ID;
+
+    if (!mongoUri || !tgToken || !chatId) {
+        console.error("❌ Missing required environment variables (MONGO_URI, TG_TOKEN, or TG_CHAT_ID).");
+        return;
+    }
+
+    // process.cwd() የፕሮጀክቱን ዋና ፎልደር (root directory) በትክክል ለማግኘት ይረዳል
+    const binaryPath = path.join(process.cwd(), 'bin', 'mongodump');
+    const fileName = `backup_${new Date().toISOString().split('T')[0]}.gz`;
+    const tempPath = path.join(process.cwd(), fileName);
+
+    try {
+        console.log("🔄 Preparing mongodump binary...");
+
+        // 1. የ mongodump ባይናሪ በቦታው መኖሩን ማረጋገጥ
+        if (!fs.existsSync(binaryPath)) {
+            throw new Error(`mongodump binary was not found at: ${binaryPath}. Please make sure you committed it inside the "bin" folder.`);
         }
 
-        const jsonString = JSON.stringify(backupData); // Minify to save space
-        const fileName = `backup_${new Date().toISOString().split('T')[0]}.json`;
+        // 2. በRender (Linux) ላይ Permission Denied እንዳይል ፍቃድ መስጠት
+        fs.chmodSync(binaryPath, '755');
+        console.log("⚙️ Executable permissions set for mongodump.");
 
-        // GitHub Upload
-        const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-        await octokit.rest.repos.createOrUpdateFileContents({
-            owner: process.env.GITHUB_OWNER,
-            repo: process.env.GITHUB_REPO,
-            path: `backups/${fileName}`, // Put backups in a folder
-            message: `Backup: ${new Date().toISOString()}`,
-            content: Buffer.from(jsonString).toString('base64')
-        });
+        console.log("🔄 Executing database backup via mongodump...");
+        // 3. የ Atlas ዳታቤዝን በ Gzip አሽጎ ጊዜያዊ ቦታ ማስቀመጥ
+        const dumpCommand = `"${binaryPath}" --uri="${mongoUri}" --archive="${tempPath}" --gzip`;
+        await execPromise(dumpCommand);
 
-        // Telegram Notification
+        console.log(`✅ Backup archive created successfully at: ${tempPath}`);
+
+        // 4. የተፈጠረውን .gz ፋይል በStream አንብቦ ወደ ቴሌግራም መላክ
+        const fileStream = fs.createReadStream(tempPath);
         const form = new FormData();
-        form.append('document', Buffer.from(jsonString), { filename: fileName });
-        form.append('chat_id', process.env.TG_CHAT_ID);
-        form.append('caption', `✅ Backup successful: ${fileName}`);
-        
-        await axios.post(`https://api.telegram.org/bot${process.env.TG_TOKEN}/sendDocument`, form, {
-            headers: form.getHeaders()
+        form.append('document', fileStream, { filename: fileName });
+        form.append('chat_id', chatId);
+        form.append('caption', `✅ Atlas Backup Successful: ${fileName}`);
+
+        console.log("📤 Uploading backup to Telegram...");
+        await axios.post(`https://api.telegram.org/bot${tgToken}/sendDocument`, form, {
+            headers: form.getHeaders(),
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
         });
 
-        console.log(`✅ Backup ${fileName} completed successfully.`);
+        console.log(`✅ Backup successful! Sent to Telegram: ${fileName}`);
+
     } catch (err) {
-        console.error("❌ Backup failed:", err.message);
+        console.error("❌ Backup execution failed:", err.message);
     } finally {
-        await client.close();
+        // 5. ⚠️ የRender ዲስክ እንዳይሞላ ጊዜያዊ ፋይሉን ከሰርቨሩ ላይ ማጥፋት
+        if (fs.existsSync(tempPath)) {
+            try {
+                fs.unlinkSync(tempPath);
+                console.log(`🧹 Cleaned up temporary backup file from server disk.`);
+            } catch (unlinkErr) {
+                console.error(`❌ Failed to delete temporary file: ${unlinkErr.message}`);
+            }
+        }
     }
 };
-
 
 module.exports = { performBackup };
