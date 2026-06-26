@@ -29,20 +29,45 @@ exports.getAssessmentTypesBySubject = async (req, res) => {
 exports.createAssessmentType = async (req, res) => {
     const { name, totalMarks, subjectId, gradeLevel, month, semester, year } = req.body;
     try {
+        // 1. የኢትዮጵያ አመተ ምህረትን መፈተሽ (የወደፊት አመት እንዳይገባ መከልከል)
         const ethiopianYear = parseInt(new Intl.DateTimeFormat('en-US', { calendar: 'ethiopic', year: 'numeric' }).format(new Date()).replace(/\D/g, ''));
-        if(Number(year) > ethiopianYear){
-            return res.status(400).json({message: "You did not enter the correct year."})
+        if (Number(year) > ethiopianYear) {
+            return res.status(400).json({ message: "You did not enter the correct year." });
         }
 
+        // 2. ትምህርቱ (Subject) መኖሩን ማረጋገጥ
         const subject = await Subject.findById(subjectId);
         if (!subject) return res.status(404).json({ message: 'Subject not found' });
 
-        const assessmentType = await AssessmentType.create({
-            name, totalMarks, month, semester,
+        // ⚠️ 3. አዲሱ ቫሊዴሽን፦ ለአንድ ትምህርት በዚያ ሴሚስተር ያሉትን የቆዩ ፈተናዎች መፈለግ
+        const existingAssessments = await AssessmentType.find({
             subject: subjectId,
             gradeLevel,
-            year: String(year) // ⚠️ የአካዳሚክ አመቱን ወደ String ቀይረነዋል
+            semester,
+            year: String(year) // ⚠️ ሁልጊዜም እንደ String ኳየሪ ይደረጋል
         });
+
+        // የነባር ፈተናዎችን ጠቅላላ ውጤት መደመር
+        const currentSum = existingAssessments.reduce((sum, at) => sum + at.totalMarks, 0);
+
+        // የአሁኑ ሲደመር ከ 100 በላይ የሚሆን ከሆነ መከልከል
+        if (currentSum + Number(totalMarks) > 100) {
+            return res.status(400).json({ 
+                message: `The cumulative total marks of all assessments for this subject cannot exceed 100. Current total is ${currentSum}/100. Adding this (${totalMarks}) would make it ${currentSum + Number(totalMarks)}/100.` 
+            });
+        }
+
+        // 4. አዲሱን የፈተና አይነት በዳታቤዝ ውስጥ መፍጠር
+        const assessmentType = await AssessmentType.create({
+            name, 
+            totalMarks: Number(totalMarks), 
+            month, 
+            semester,
+            subject: subjectId,
+            gradeLevel,
+            year: String(year) // ⚠️ ሁልጊዜም በዳታቤዝ ውስጥ እንደ String ይቀመጣል [2]
+        });
+
         res.status(201).json({ success: true, data: assessmentType });
     } catch (error) {
         if (error.code === 11000) {
@@ -52,25 +77,6 @@ exports.createAssessmentType = async (req, res) => {
     }
 };
 
-// @desc    Get all assessments (Unique names)
-exports.getAllAssessments = async (req,res)=>{
-  const {year,semester} = req.query;
-
-  try{
-    const assessmentTypes = await AssessmentType.find({year,semester}).select('name')
-      if(assessmentTypes){
-        const uniqueAssessment = Array.from(
-          new Map(assessmentTypes.map(ass=>[ass.name,ass])).values()
-        )
-        return res.status(200).json(uniqueAssessment); // ⚠️ HTTP Status ወደ 200 ተቀይሯል
-      }
-  }catch(error){
-    res.status(500).json({'message':"server error"})
-  }
-}
-
-// @desc    Update an assessment type
-// @route   PUT /api/assessment-types/:id
 // @desc    Update an assessment type
 // @route   PUT /api/assessment-types/:id
 exports.updateAssessmentType = async (req, res) => {
@@ -80,25 +86,53 @@ exports.updateAssessmentType = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Assessment type not found.' });
     }
 
-    // --- PERMISSION CHECK ---
+    // 1. የደህንነት ማሻሻያ፦ መምህሩ ለማዘመን ፈቃድ ያለው መሆኑን ማረጋገጥ
     const isAdmin = req.user.role === 'admin';
     const isAssignedTeacher = req.user.subjectsTaught && req.user.subjectsTaught.some(
         assignment => assignment.subject && assignment.subject.equals(assessmentType.subject)
     );
 
     if (!isAdmin && !isAssignedTeacher) {
-        return res.status(403).json({
+        return status(403).json({
             message: 'Forbidden: You are not authorized to update this assessment type.'
         });
     }
 
-    // subject እና gradeLevel እንዳይቀየሩ መከላከል
-    if (req.body.subject || req.body.gradeLevel) {
+    // 2. subject እና gradeLevel እንዳይቀየሩ መከላከል
+    if (req.body.subject || req.body.subjectId || req.body.gradeLevel) {
         return res.status(400).json({ message: "You cannot change the subject or grade level of an existing assessment type." });
+    }
+
+    // 3. ለማሻሻል የተላኩትን አዳዲስ እሴቶች መለየት (ካልተላኩ የድሮውን መያዝ)
+    const newTotalMarks = req.body.totalMarks !== undefined ? Number(req.body.totalMarks) : assessmentType.totalMarks;
+    const newSemester = req.body.semester || assessmentType.semester;
+    const newYear = req.body.year ? String(req.body.year) : assessmentType.year;
+
+    // ⚠️ 4. አዲሱ ቫሊዴሽን፦ ከራሱ ከሚሻሻለው ፈተና ውጪ ያሉትን ሌሎችን መፈለግ
+    const otherAssessments = await AssessmentType.find({
+        _id: { $ne: assessmentType._id }, // ራሱን ማግለል
+        subject: assessmentType.subject,
+        gradeLevel: assessmentType.gradeLevel,
+        semester: newSemester,
+        year: newYear
+    });
+
+    const currentSum = otherAssessments.reduce((sum, at) => sum + at.totalMarks, 0);
+
+    // አዲሱ የተሻሻለው ውጤት ሲደመር ከ 100 በላይ የሚሆን ከሆነ መከልከል
+    if (currentSum + newTotalMarks > 100) {
+        return res.status(400).json({
+            message: `The cumulative total marks of all assessments for this subject cannot exceed 100. Other assessments sum to ${currentSum}/100. Setting this to ${newTotalMarks} would make the total ${currentSum + newTotalMarks}/100.`
+        });
     }
 
     const oldSemester = assessmentType.semester;
     const oldYear = assessmentType.year;
+
+    // 5. አመተ ምህረቱ ከተላከ ወደ String መቀየሩን ማረጋገጥ
+    if (req.body.year) {
+        req.body.year = String(req.body.year);
+    }
 
     // አፕዴት ማድረግ
     const updatedAssessmentType = await AssessmentType.findByIdAndUpdate(
@@ -107,14 +141,10 @@ exports.updateAssessmentType = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    const newSemester = updatedAssessmentType.semester;
-    const newYear = updatedAssessmentType.year;
-
-    // ⚠️ CASCADE UPDATE: ሴሚስተር ወይም አመት ከተቀየረ የGrade ሰነዶችን ማጽዳት
+    // ⚠️ 6. CASCADE UPDATE: ሴሚስተር ወይም አመት ከተቀየረ የGrade ሰነዶችን ማጽዳት
     if (oldSemester !== newSemester || oldYear !== newYear) {
         console.log(`Cascade: Semester/Year changed. Cleaning up grades for AssessmentType: ${updatedAssessmentType._id}`);
         
-        // ይህ ፈተና ያለባቸውን ሁሉንም የGrade ሰነዶች መፈለግ
         const affectedGrades = await Grade.find({
             "assessments.assessmentType": updatedAssessmentType._id
         });
@@ -149,6 +179,23 @@ exports.updateAssessmentType = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Get all assessments (Unique names)
+exports.getAllAssessments = async (req,res)=>{
+  const {year,semester} = req.query;
+
+  try{
+    const assessmentTypes = await AssessmentType.find({year,semester}).select('name')
+      if(assessmentTypes){
+        const uniqueAssessment = Array.from(
+          new Map(assessmentTypes.map(ass=>[ass.name,ass])).values()
+        )
+        return res.status(200).json(uniqueAssessment); // ⚠️ HTTP Status ወደ 200 ተቀይሯል
+      }
+  }catch(error){
+    res.status(500).json({'message':"server error"})
+  }
+}
 
 // @desc    Delete an assessment type
 // @route   DELETE /api/assessment-types/:id

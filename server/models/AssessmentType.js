@@ -15,7 +15,8 @@ const assessmentTypeSchema = new mongoose.Schema({
     totalMarks: {
         type: Number,
         required: true,
-        min: 1
+        min: 1,
+        max: 100
     },
     subject: {
         type: mongoose.Schema.Types.ObjectId,
