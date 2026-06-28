@@ -5,7 +5,7 @@ import studentService from '@shared/services/studentService';
 import gradeService from '@shared/services/gradeService';
 import behavioralReportService from '@shared/services/behavioralReportService';
 import authService from '@shared/services/authService';
-import rankService from '@shared/services/rankService'; // Ensure this is imported
+import rankService from '@shared/services/rankService';
 
 const StudentDetailPage = () => {
     const { t } = useTranslation();
@@ -17,7 +17,6 @@ const StudentDetailPage = () => {
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
     const [reports, setReports] = useState([]);
-    // Rank State initialized with dashes
     const [ranks, setRanks] = useState({ sem1: '-', sem2: '-', overall: '-' });
     
     const [loading, setLoading] = useState(true);
@@ -29,14 +28,12 @@ const StudentDetailPage = () => {
             setLoading(true);
             setError(null);
             try {
-                // A. Fetch Basic Data Parallelly
                 const [studentRes, gradesRes, reportsRes] = await Promise.allSettled([
                     studentService.getStudentById(id),
                     gradeService.getGradesByStudent(id),
                     behavioralReportService.getReportsByStudent(id)
                 ]);
 
-                // B. Handle Student Data (Critical)
                 let studentData = null;
                 if (studentRes.status === 'fulfilled') {
                     studentData = studentRes.value.data.data;
@@ -45,7 +42,6 @@ const StudentDetailPage = () => {
                     throw new Error(t('error_student_not_found') || "Student not found");
                 }
 
-                // C. Handle Grades & Reports
                 const fetchedGrades = gradesRes.status === 'fulfilled' ? gradesRes.value.data.data : [];
                 setGrades(fetchedGrades);
 
@@ -55,20 +51,13 @@ const StudentDetailPage = () => {
                     setReports([]);
                 }
 
-                // D. RANK INTEGRATION
                 if (studentData) {
                     const gradeLevel = studentData.gradeLevel;
-                    
-                    // Determine Academic Year: Priority -> Grades > Reports > Current Year Fallback
-                    const currentYearFallback = new Date().getFullYear().toString(); // Simple fallback
                     const academicYear = fetchedGrades.length > 0 ? fetchedGrades[0].academicYear 
                                      : reports.length > 0 ? reports[0].academicYear 
-                                     : '2017'; // Or calculate based on Ethiopian calendar logic if needed
+                                     : '2017';
 
-                    // Call the Service Helper
                     const rankResult = await rankService.getRankByStudent(id, gradeLevel, academicYear);
-
-                    // Update State
                     setRanks(rankResult);
                 }
 
@@ -95,7 +84,6 @@ const StudentDetailPage = () => {
         let grandMax = 0;
         grades.forEach(grade => {
             grandTotal += grade.finalScore || 0;
-            // Assuming max score is calculated from assessments or defaults to 100
             grandMax += grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 100;
         });
         const avg = grandMax > 0 ? (grandTotal / grandMax) * 100 : 0;
@@ -151,6 +139,28 @@ const StudentDetailPage = () => {
         }
     };
 
+    // ⚠️ 1. አዲሱ ሁኔታን የመቀያየሪያ (Toggle Status) ሃንድለር
+    const toggleStudentStatus = async () => {
+        const isCurrentActive = student.status === 'Active';
+        const newStatus = isCurrentActive ? 'Withdrawn' : 'Active'; // Active ካልሆነ ወደ Active ይመልሰዋል
+        
+        const confirmMsg = isCurrentActive 
+            ? t('confirm_deactivate_student') || "Are you sure you want to make this student inactive (Withdrawn)?"
+            : t('confirm_activate_student') || "Are you sure you want to make this student active again?";
+
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            // በተማሪዎች ማሻሻያ API በኩል ሁኔታውን ማዘመን
+            await studentService.updateStudent(student._id, { status: newStatus });
+            setStudent({ ...student, status: newStatus });
+            alert(`✅ ${t('status_updated_successfully') || "Student status updated successfully!"}`);
+        } catch (error) {
+            console.error(error);
+            alert(t('failed_update_status') || "Failed to update student status.");
+        }
+    };
+
     const handleReportDelete = async (reportId) => {
         if (window.confirm(t('confirm_delete_report'))) {
             try {
@@ -172,7 +182,6 @@ const StudentDetailPage = () => {
     if (error) return <p className="text-center text-red-500 mt-8">{error}</p>;
     if (!student) return <p className="text-center text-lg mt-8">Student not found.</p>;
 
-    // --- RENDER HELPERS ---
     const sectionWrapper = "bg-white p-6 rounded-lg shadow-md mb-8";
     const sectionTitle = "text-xl font-bold text-gray-800";
     const buttonBase = "py-2 px-4 rounded-md font-semibold transition-colors duration-200 text-sm shadow-sm";
@@ -185,16 +194,26 @@ const StudentDetailPage = () => {
                     &larr; {t('back')}
                 </Link>
              </div>
+            
             {/* 1. Header & Quick Stats */}
             <div className={sectionWrapper}>
                 <div className="flex flex-col sm:flex-row justify-between items-start">
                     <div className="flex items-center gap-6">
                         <img src={`${student.imageUrl}?key=${Date.now()}`} alt={student.fullName} className="w-32 h-32 rounded-full object-cover border-4 border-gray-200" />
                         <div>
-                            <h2 className="text-3xl font-bold text-gray-800">{student.fullName}</h2>
+                            {/* ⚠️ 2. የተማሪው ስም አጠገብ ያለ አዲሱ የሁኔታ ማሳያ ባጅ (Status Badge) */}
+                            <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                                {student.fullName}
+                                <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
+                                    student.status === 'Active' 
+                                        ? 'bg-green-100 text-green-800 border-green-200' 
+                                        : 'bg-red-100 text-red-800 border-red-200'
+                                }`}>
+                                    {t(student.status.toLowerCase()) || student.status}
+                                </span>
+                            </h2>
                             <p className="text-gray-500 mt-1 text-sm font-mono">{t('id_no')}: {student.studentId}</p>
                             
-                            {/* RANK DISPLAY */}
                             <div className="flex gap-4 mt-3">
                                 <div className="bg-blue-50 px-3 py-1 rounded border border-blue-200 text-center">
                                     <span className="block text-xs text-blue-500 font-bold uppercase">{t('average')}</span>
@@ -212,6 +231,21 @@ const StudentDetailPage = () => {
                     {(isAdmin || isHomeroomTeacher) && (
                         <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap">
                             <Link to={`/students/edit/${student._id}`} className={`${buttonBase} bg-yellow-500 hover:bg-yellow-600 text-white`}>{t('edit')}</Link>
+                            
+                            {/* ⚠️ 3. ለአድሚኖች ብቻ የሚታየው አዲሱ Toggle Status አዝራር */}
+                            {isAdmin && (
+                                <button 
+                                    onClick={toggleStudentStatus} 
+                                    className={`${buttonBase} ${
+                                        student.status === 'Active' 
+                                            ? 'bg-orange-500 hover:bg-orange-600' 
+                                            : 'bg-green-600 hover:bg-green-700'
+                                    } text-white`}
+                                >
+                                    {student.status === 'Active' ? '⚠️ ' + t('make_inactive') : '✅ ' + t('make_active')}
+                                </button>
+                            )}
+
                             {isAdmin && <button onClick={handleStudentDelete} className={`${buttonBase} bg-red-500 hover:bg-red-600 text-white`}>{t('delete')}</button>}
                             <button onClick={()=> handleResetPassword(student._id)} className={`${buttonBase} bg-gray-600 hover:bg-gray-700 text-white`}>{t('reset_password')}</button>
                         </div>
