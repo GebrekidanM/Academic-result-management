@@ -6,8 +6,9 @@ const connectDB = require('./config/db');
 const User = require('./models/User');
 const cron = require('node-cron');
 
-const { sanitizeDatabase } = require('./sanitizeDatabase')
-const {convertYearsToString} = require('./convertYearsToString')
+const { sanitizeDatabase } = require('./sanitizeDatabase');
+const {convertYearsToString} = require('./convertYearsToString');
+const {migrateAssessmentNames} = require('./migrateAssessmentNames')
 const app = express();
 
 // --- Middleware ---
@@ -39,6 +40,7 @@ app.use('/api/supportive-grades',require('./routes/supportiveGradeRoutes'));
 app.use('/api/schedule',require('./routes/scheduleRoutes'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
+app.use('/api/assessment-names', require('./routes/assessmentNameRoutes'))
 
 app.get('/api/admin/temp-sanitize-db', async (req, res) => {
     try {

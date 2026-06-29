@@ -19,6 +19,9 @@ const StudentDetailPage = () => {
     const [reports, setReports] = useState([]);
     const [ranks, setRanks] = useState({ sem1: '-', sem2: '-', overall: '-' });
     
+    // ⚠️ 1. አዲሱ ንቁ ሴሚስተር መቆጣጠሪያ ስቴት (Default: First Semester)
+    const [activeSemester, setActiveSemester] = useState('First Semester');
+    
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -78,22 +81,35 @@ const StudentDetailPage = () => {
     const isHomeroomTeacher = currentUser?.role === 'teacher' && student && currentUser.homeroomGrade === student.gradeLevel;
     const canViewFullInsights = isAdmin || isHomeroomTeacher;
 
+    // ⚠️ 2. ውጤቶችን በሴሚስተር ብቻ መለየት
+    const semesterGrades = useMemo(() => {
+        return grades.filter(g => g.semester === activeSemester);
+    }, [grades, activeSemester]);
+
+    // ⚠️ 3. የክፍል ደረጃን በሴሚስተር መለየት
+    const displayRank = useMemo(() => {
+        if (activeSemester === 'First Semester') return ranks.sem1;
+        if (activeSemester === 'Second Semester') return ranks.sem2;
+        return ranks.overall;
+    }, [ranks, activeSemester]);
+
+    // ⚠️ 4. አማካይ ውጤትን በሴሚስተር ብቻ ማስላት
     const academicStats = useMemo(() => {
-        if (!grades || grades.length === 0) return { average: 0 };
+        if (!semesterGrades || semesterGrades.length === 0) return { average: 0 };
         let grandTotal = 0;
         let grandMax = 0;
-        grades.forEach(grade => {
+        semesterGrades.forEach(grade => {
             grandTotal += grade.finalScore || 0;
             grandMax += grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 100;
         });
         const avg = grandMax > 0 ? (grandTotal / grandMax) * 100 : 0;
         return { average: avg.toFixed(1) };
-    }, [grades]);
+    }, [semesterGrades]);
 
     const subjectTeacherStats = useMemo(() => {
-        if (isAdmin || isHomeroomTeacher || !currentUser.subjectsTaught || grades.length === 0) return null;
+        if (isAdmin || isHomeroomTeacher || !currentUser.subjectsTaught || semesterGrades.length === 0) return null;
         const mySubjectIds = currentUser.subjectsTaught.map(s => s.subject?._id || s.subject);
-        const myGrades = grades.filter(g => mySubjectIds.includes(g.subject._id));
+        const myGrades = semesterGrades.filter(g => mySubjectIds.includes(g.subject._id));
 
         return myGrades.map(g => {
              const max = g.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 100;
@@ -108,13 +124,14 @@ const StudentDetailPage = () => {
 
              return { subjectName: g.subject.name, score: g.finalScore, max, pct: pct.toFixed(1), label, color };
         });
-    }, [grades, currentUser, isAdmin, isHomeroomTeacher]);
+    }, [semesterGrades, currentUser, isAdmin, isHomeroomTeacher]);
 
+    // ⚠️ 5. የአካዳሚክ ግንዛቤዎችን በሴሚስተር መለየት
     const insights = useMemo(() => {
-        if (!grades || grades.length === 0) return null;
+        if (!semesterGrades || semesterGrades.length === 0) return null;
         const categories = { critical: [], average: [], good: [], excellent: [] };
 
-        grades.forEach(grade => {
+        semesterGrades.forEach(grade => {
             const subjectName = grade.subject?.name || "Unknown";
             const obtained = grade.finalScore || 0;
             const maxScore = grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 100;
@@ -127,7 +144,7 @@ const StudentDetailPage = () => {
             else categories.excellent.push(item);
         });
         return categories;
-    }, [grades]);
+    }, [semesterGrades]);
 
     // --- HANDLERS ---
     const handleStudentDelete = async () => {
@@ -139,10 +156,9 @@ const StudentDetailPage = () => {
         }
     };
 
-    // ⚠️ 1. አዲሱ ሁኔታን የመቀያየሪያ (Toggle Status) ሃንድለር
     const toggleStudentStatus = async () => {
         const isCurrentActive = student.status === 'Active';
-        const newStatus = isCurrentActive ? 'Withdrawn' : 'Active'; // Active ካልሆነ ወደ Active ይመልሰዋል
+        const newStatus = isCurrentActive ? 'Withdrawn' : 'Active';
         
         const confirmMsg = isCurrentActive 
             ? t('confirm_deactivate_student') || "Are you sure you want to make this student inactive (Withdrawn)?"
@@ -151,7 +167,6 @@ const StudentDetailPage = () => {
         if (!window.confirm(confirmMsg)) return;
 
         try {
-            // በተማሪዎች ማሻሻያ API በኩል ሁኔታውን ማዘመን
             await studentService.updateStudent(student._id, { status: newStatus });
             setStudent({ ...student, status: newStatus });
             alert(`✅ ${t('status_updated_successfully') || "Student status updated successfully!"}`);
@@ -201,7 +216,6 @@ const StudentDetailPage = () => {
                     <div className="flex items-center gap-6">
                         <img src={`${student.imageUrl}?key=${Date.now()}`} alt={student.fullName} className="w-32 h-32 rounded-full object-cover border-4 border-gray-200" />
                         <div>
-                            {/* ⚠️ 2. የተማሪው ስም አጠገብ ያለ አዲሱ የሁኔታ ማሳያ ባጅ (Status Badge) */}
                             <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
                                 {student.fullName}
                                 <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
@@ -214,15 +228,20 @@ const StudentDetailPage = () => {
                             </h2>
                             <p className="text-gray-500 mt-1 text-sm font-mono">{t('id_no')}: {student.studentId}</p>
                             
+                            {/* ⚠️ 6. የሴሚስተር ስም በአማካኝ እና በደረጃ ካርዶች ላይ ተጨምሯል */}
                             <div className="flex gap-4 mt-3">
                                 <div className="bg-blue-50 px-3 py-1 rounded border border-blue-200 text-center">
-                                    <span className="block text-xs text-blue-500 font-bold uppercase">{t('average')}</span>
+                                    <span className="block text-xs text-blue-500 font-bold uppercase">
+                                        {t('average')} ({activeSemester === 'First Semester' ? t('sem_1') : t('sem_2')})
+                                    </span>
                                     <span className="text-lg font-black text-blue-800">{academicStats.average}%</span>
                                 </div>
                                 <div className="bg-purple-50 px-3 py-1 rounded border border-purple-200 text-center">
-                                    <span className="block text-xs text-purple-500 font-bold uppercase">{t('rank')}</span>
+                                    <span className="block text-xs text-purple-500 font-bold uppercase">
+                                        {t('rank')} ({activeSemester === 'First Semester' ? t('sem_1') : t('sem_2')})
+                                    </span>
                                     <span className="text-lg font-black text-purple-800">
-                                        {ranks.overall}
+                                        {displayRank}
                                     </span>
                                 </div>
                             </div>
@@ -232,7 +251,6 @@ const StudentDetailPage = () => {
                         <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap">
                             <Link to={`/students/edit/${student._id}`} className={`${buttonBase} bg-yellow-500 hover:bg-yellow-600 text-white`}>{t('edit')}</Link>
                             
-                            {/* ⚠️ 3. ለአድሚኖች ብቻ የሚታየው አዲሱ Toggle Status አዝራር */}
                             {isAdmin && (
                                 <button 
                                     onClick={toggleStudentStatus} 
@@ -256,6 +274,30 @@ const StudentDetailPage = () => {
                         📄 {t('generate_report')}
                     </Link>
                 </div>
+            </div>
+
+            {/* ⚠️ 7. አዲሱ የሴሚስተር ታብ መቀያየሪያ (Semester Tab Switcher) */}
+            <div className="flex gap-2 border-b pb-4 mb-4">
+                <button
+                    onClick={() => setActiveSemester('First Semester')}
+                    className={`px-4 py-2 rounded-md font-bold text-sm transition-all ${
+                        activeSemester === 'First Semester'
+                            ? 'bg-pink-600 text-white shadow'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                    🗓️ {t('sem_1')}
+                </button>
+                <button
+                    onClick={() => setActiveSemester('Second Semester')}
+                    className={`px-4 py-2 rounded-md font-bold text-sm transition-all ${
+                        activeSemester === 'Second Semester'
+                            ? 'bg-pink-600 text-white shadow'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                    🗓️ {t('sem_2')}
+                </button>
             </div>
 
             {/* 2A. Subject Teacher View */}
@@ -287,7 +329,7 @@ const StudentDetailPage = () => {
             {canViewFullInsights && insights && (
                 <div className={sectionWrapper}>
                     <h3 className={`${sectionTitle} mb-4 flex items-center gap-2`}>
-                        📊 {t('academic_insights')}
+                        📊 {t('academic_insights')} ({activeSemester === 'First Semester' ? t('sem_1') : t('sem_2')})
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -320,8 +362,8 @@ const StudentDetailPage = () => {
 
             {/* 3. Grades Table */}
             <div className={sectionWrapper}>
-                <h3 className={sectionTitle}>{t('detailed_grades')}</h3>
-                {grades.length ? (
+                <h3 className={sectionTitle}>{t('detailed_grades')} ({activeSemester === 'First Semester' ? t('sem_1') : t('sem_2')})</h3>
+                {semesterGrades.length ? (
                     <div className="overflow-x-auto mt-4">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
@@ -333,7 +375,7 @@ const StudentDetailPage = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {grades.map(grade => {
+                                {semesterGrades.map(grade => {
                                     const max = grade.assessments?.reduce((sum, a) => sum + (a.assessmentType?.totalMarks || 0), 0) || 100;
                                     const pct = max > 0 ? ((grade.finalScore / max) * 100).toFixed(0) : 0;
                                     return (

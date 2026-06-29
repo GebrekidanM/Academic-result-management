@@ -46,7 +46,7 @@ const assessmentTypeSchema = new mongoose.Schema({
 });
 
 assessmentTypeSchema.index(
-    { name: 1, subject: 1, gradeLevel: 1, semester: 1, month: 1 },
+    { name: 1, subject: 1, gradeLevel: 1, semester: 1, month: 1, year: 1 },
     { unique: true }
 );
 

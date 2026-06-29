@@ -1,7 +1,7 @@
 // backend/models/Student.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const Counter = require('./Counter'); // <--- IMPORT THE COUNTER MODEL
+const Counter = require('./Counter');
 
 const studentSchema = new mongoose.Schema({
     studentId: { type: String, unique: true }, 
@@ -9,16 +9,20 @@ const studentSchema = new mongoose.Schema({
     gender: { type: String, required: true, enum: ['Male', 'Female'] },
     dateOfBirth: { type: Date },
     gradeLevel: { type: String, required: true, trim: true },
+    
+    year: { type: String, required: true }, 
+
     status: { type: String, required: true, enum: ['Active', 'Graduated', 'Withdrawn','Changed'], default: 'Active' },
     password: { type: String, required: true, select: false },
     isInitialPassword: { type: Boolean, default: true },
     imageUrl: { type: String, default: '/images/students/default-avatar.png' },
-    motherName: { type: String, trim: true, default: '' },
+    
+    motherName: { type: String, trim: true, defualt: '' }, 
     motherContact: { type: String, trim: true, default: '' },
     fatherContact: { type: String, trim: true, default: '' },
     healthStatus: { type: String, trim: true, default: 'No known conditions' },
     academicHistory: [{
-            year: Number,
+            year: String,
             gradeAtThatTime: String,
             statusAtEnd: String,
         }],
@@ -28,19 +32,16 @@ const studentSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
-// ✅ 1. AUTOMATIC ID GENERATOR HOOK
 studentSchema.pre('save', async function (next) {
     if (!this.isNew) return next();
 
-    const today = new Date();
-    const gregorianYear = today.getFullYear();
-    const gregorianMonth = today.getMonth() + 1;
-    const currentYear = gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
-
+    // ⚠️ ከአሁን በኋላ አመቱን ከቀን አናሰላም፣ በቀጥታ የተሞላውን የተማሪውን year እንወስዳለን
+    const currentYear = this.year; 
     const counterId = `studentId_${currentYear}`;
+    let counter;
 
     try {
-        let counter = await Counter.findOneAndUpdate(
+        counter = await Counter.findOneAndUpdate(
             { id: counterId },
             { $inc: { seq: 1 } },
             { new: true }
@@ -59,10 +60,23 @@ studentSchema.pre('save', async function (next) {
                 }
             }
 
-            counter = await Counter.create({
-                id: counterId,
-                seq: lastSeq + 1
-            });
+            try {
+                counter = await Counter.create({
+                    id: counterId,
+                    seq: lastSeq + 1
+                });
+            } catch (createError) {
+                // Race condition መከላከያ፦ ሌላው ሪኩዌስት ቀድሞ ከፈጠረው በድጋሚ findOneAndUpdate መሞከር
+                if (createError.code === 11000) {
+                    counter = await Counter.findOneAndUpdate(
+                        { id: counterId },
+                        { $inc: { seq: 1 } },
+                        { new: true }
+                    );
+                } else {
+                    throw createError;
+                }
+            }
         }
 
         const seqId = counter.seq.toString().padStart(3, '0');
@@ -70,14 +84,10 @@ studentSchema.pre('save', async function (next) {
         
         next();
     } catch (error) {
-        if (error.code === 11000) {
-            return next(new Error("Race condition detected during initialization. Please try again."));
-        }
         next(error);
     }
 });
 
-// ✅ 2. Hash password before saving
 studentSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
 

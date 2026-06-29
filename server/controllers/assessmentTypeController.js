@@ -17,7 +17,11 @@ exports.getAssessmentTypesBySubject = async (req, res) => {
     }
 
     try {
-        const assessmentTypes = await AssessmentType.find(filter).sort({ createdAt: 1 });
+        // ⚠️ ማስተካከያ፦ የፈተናውን ስም በጽሁፍ ለማውጣት populate ተጨምሯል [2]
+        const assessmentTypes = await AssessmentType.find(filter)
+            .populate('name', 'name')
+            .sort({ createdAt: 1 });
+
         res.status(200).json({ success: true, data: assessmentTypes });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -39,12 +43,12 @@ exports.createAssessmentType = async (req, res) => {
         const subject = await Subject.findById(subjectId);
         if (!subject) return res.status(404).json({ message: 'Subject not found' });
 
-        // ⚠️ 3. አዲሱ ቫሊዴሽን፦ ለአንድ ትምህርት በዚያ ሴሚስተር ያሉትን የቆዩ ፈተናዎች መፈለግ
+        // 3. ለአንድ ትምህርት በዚያ ሴሚስተር ያሉትን የቆዩ ፈተናዎች መፈለግ
         const existingAssessments = await AssessmentType.find({
             subject: subjectId,
             gradeLevel,
             semester,
-            year: String(year) // ⚠️ ሁልጊዜም እንደ String ኳየሪ ይደረጋል
+            year: String(year)
         });
 
         // የነባር ፈተናዎችን ጠቅላላ ውጤት መደመር
@@ -65,7 +69,7 @@ exports.createAssessmentType = async (req, res) => {
             semester,
             subject: subjectId,
             gradeLevel,
-            year: String(year) // ⚠️ ሁልጊዜም በዳታቤዝ ውስጥ እንደ String ይቀመጣል [2]
+            year: String(year)
         });
 
         res.status(201).json({ success: true, data: assessmentType });
@@ -93,7 +97,8 @@ exports.updateAssessmentType = async (req, res) => {
     );
 
     if (!isAdmin && !isAssignedTeacher) {
-        return status(403).json({
+        // ⚠️ ማስተካከያ፦ "res" እዚህ ላይ ተጨምሯል [1]
+        return res.status(403).json({
             message: 'Forbidden: You are not authorized to update this assessment type.'
         });
     }
@@ -108,7 +113,7 @@ exports.updateAssessmentType = async (req, res) => {
     const newSemester = req.body.semester || assessmentType.semester;
     const newYear = req.body.year ? String(req.body.year) : assessmentType.year;
 
-    // ⚠️ 4. አዲሱ ቫሊዴሽን፦ ከራሱ ከሚሻሻለው ፈተና ውጪ ያሉትን ሌሎችን መፈለግ
+    // 4. አዲሱ ቫሊዴሽን፦ ከራሱ ከሚሻሻለው ፈተና ውጪ ያሉትን ሌሎችን መፈለግ
     const otherAssessments = await AssessmentType.find({
         _id: { $ne: assessmentType._id }, // ራሱን ማግለል
         subject: assessmentType.subject,
@@ -141,7 +146,7 @@ exports.updateAssessmentType = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    // ⚠️ 6. CASCADE UPDATE: ሴሚስተር ወይም አመት ከተቀየረ የGrade ሰነዶችን ማጽዳት
+    // 6. CASCADE UPDATE: ሴሚስተር ወይም አመት ከተቀየረ የGrade ሰነዶችን ማጽዳት
     if (oldSemester !== newSemester || oldYear !== newYear) {
         console.log(`Cascade: Semester/Year changed. Cleaning up grades for AssessmentType: ${updatedAssessmentType._id}`);
         
@@ -184,15 +189,22 @@ exports.updateAssessmentType = async (req, res) => {
 exports.getAllAssessments = async (req,res)=>{
   const {year,semester} = req.query;
 
-  try{
-    const assessmentTypes = await AssessmentType.find({year,semester}).select('name')
-      if(assessmentTypes){
+  try {
+    // ⚠️ ማስተካከያ፦ የስሙን ኦብጀክት ሙሉ በሙሉ ለማግኘት populate ተጨምሯል [2]
+    const assessmentTypes = await AssessmentType.find({year,semester})
+      .populate('name', 'name');
+
+      if (assessmentTypes) {
+        // ⚠️ ማስተካከያ፦ ኖርማላይዝድ የሆነውን የስም እሴት (String) ተጠቅመን ዲዩፕሊኬት እናስወግዳለን [2]
         const uniqueAssessment = Array.from(
-          new Map(assessmentTypes.map(ass=>[ass.name,ass])).values()
-        )
-        return res.status(200).json(uniqueAssessment); // ⚠️ HTTP Status ወደ 200 ተቀይሯል
+          new Map(assessmentTypes.map(ass => {
+              const nameString = ass.name && typeof ass.name === 'object' ? ass.name.name : ass.name;
+              return [nameString, ass];
+          })).values()
+        );
+        return res.status(200).json(uniqueAssessment);
       }
-  }catch(error){
+  } catch(error) {
     res.status(500).json({'message':"server error"})
   }
 }
@@ -234,7 +246,6 @@ exports.deleteAssessmentType = async (req, res) => {
             );
 
             if (grade.assessments.length < originalLength) {
-                // ⚠️ finalScore በራስ-ሰር በ save Hook ይደመራል (መደመሪያ ሎጂኩ ተወግዷል)
                 await grade.save();
                 gradesUpdated++;
             }

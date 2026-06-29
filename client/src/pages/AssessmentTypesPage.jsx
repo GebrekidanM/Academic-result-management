@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import subjectService from '@shared/services/subjectService';
-import assessmentTypeService from '@shared/services/assessmentTypeService';
-import offlineAssessmentService from '@shared/services/offlineAssessmentService';
-import authService from '@shared/services/authService';
-import userService from '@shared/services/userService';
+import subjectService from '../shared/services/subjectService';
+import assessmentTypeService from '../shared/services/assessmentTypeService';
+import assessmentNameService from '../shared/services/assessmentNameService';
+import offlineAssessmentService from '../shared/services/offlineAssessmentService';
+import authService from '../shared/services/authService';
+import userService from '../shared/services/userService';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; 
 
@@ -31,9 +32,14 @@ const AssessmentTypesPage = () => {
   const [loading, setLoading] = useState(true);
   const [assessmentsLoading, setAssessmentsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // ⚠️ አዲሶቹ የስም መቆጣጠሪያ ስቴቶች (State)
+  const [assessmentNames, setAssessmentNames] = useState([]);
+  const [namesLoading, setNamesLoading] = useState(true);
+
   const currentEthiopianYear = getEthiopianYear();
   const [formData, setFormData] = useState({
-    name: '',
+    name: '', // ⚠️ ይህ አሁን የተመረጠውን የ AssessmentName ID ይይዛል
     totalMarks: 10,
     month: 'September',
     semester: 'First Semester',
@@ -48,6 +54,21 @@ const AssessmentTypesPage = () => {
       setSelectedSubject(subjectFromLink);
     }
   }, [subjectFromLink]);
+
+  // --- ⚠️ 1. የፈተና ስሞችን (AssessmentNames) መጫን ---
+  useEffect(() => {
+    const loadNames = async () => {
+      try {
+        const res = await assessmentNameService.getAllNames();
+        setAssessmentNames(res.data.data || res.data || []);
+      } catch (err) {
+        console.error("Error loading assessment names:", err);
+      } finally {
+        setNamesLoading(false);
+      }
+    };
+    loadNames();
+  }, []);
 
   // --- Load subjects ---
   useEffect(() => {
@@ -92,11 +113,9 @@ const AssessmentTypesPage = () => {
     let onlineData = [];
     let offlineData = [];
 
-    // 1. Fetch from API (Service Worker handles caching if offline)
     try {
         const res = await assessmentTypeService.getBySubject(selectedSubject._id);
         
-        // Validation: Ensure we actually got data (not an offline error object)
         if (res.data && Array.isArray(res.data.data)) {
             onlineData = res.data.data;
         } else if (res.data && res.data.error) {
@@ -105,16 +124,12 @@ const AssessmentTypesPage = () => {
              console.warn("Invalid response format.");
         }
     } catch (err) {
-        // If Axios fails completely (no cache available), just ignore and show offline items
         console.log("Using only offline items (No cache available).", err);
     }
 
-    // 2. Fetch Locally Created Items (Pending Sync)
     const allLocal = offlineAssessmentService.getLocalAssessments();
     offlineData = allLocal.filter(a => a.subject === selectedSubject._id);
 
-    // 3. Merge & Sort
-    // Filter out duplicates if any (though local items have TEMP_ IDs so unlikely)
     const merged = [...onlineData, ...offlineData].sort(
         (a, b) => MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month)
     );
@@ -132,23 +147,24 @@ const AssessmentTypesPage = () => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedSubject) return alert(t('select_class') || 'Select a subject first.');
+    if (!formData.name) return alert(t('select_assessment_name_error') || 'Please select an assessment name.');
     
     setSaving(true);
     setError('');
 
-    // 1️⃣ ለማረም (Update) የምንጠቀመው ፔይሎድ (subjectId እና gradeLevel አይካተቱም)
+    // ለማረም (Update) የምንጠቀመው ፔይሎድ (subjectId እና gradeLevel አይካተቱም)
     const updatePayload = {
-      name: formData.name,
-      totalMarks: Number(formData.totalMarks), // ቁጥር መሆኑን ለማረጋገጥ
+      name: formData.name, // ⚠️ ይህ የ AssessmentName ObjectId ነው
+      totalMarks: Number(formData.totalMarks),
       month: formData.month,
       semester: formData.semester,
       year: String(formData.year)
     };
 
-    // 2️⃣ ለአዲስ መፍጠሪያ (Create) የምንጠቀመው ፔይሎድ (ሁሉንም ያካትታል)
+    // ለአዲስ መፍጠሪያ (Create) የምንጠቀመው ፔይሎድ (ሁሉንም ያካትታል)
     const createPayload = { 
       ...updatePayload, 
       subjectId: selectedSubject._id, 
@@ -166,7 +182,7 @@ const handleSubmit = async (e) => {
             if (editingId && editingId.startsWith('TEMP_')) {
                 offlineAssessmentService.removeLocalAssessment(editingId);
                 offlineAssessmentService.addLocalAssessment({
-                    ...createPayload, // ከመስመር ውጭ ሲንክ ሲደረግ አዲስ ስለሚፈጠር ሙሉውን ይፈልገዋል
+                    ...createPayload, 
                     subject: selectedSubject._id
                 });
                 alert("Offline assessment updated locally.");
@@ -191,10 +207,8 @@ const handleSubmit = async (e) => {
     // --- ONLINE MODE WRITE ---
     try {
       if (editingId && !editingId.startsWith('TEMP_')) {
-        // ⚠️ ማስተካከያ፦ ለማሻሻል (Update) ስንልክ "updatePayload" ን ብቻ እንልካለን (ያለ subjectId እና gradeLevel)
         await assessmentTypeService.update(editingId, updatePayload);
       } else {
-        // ለአዲስ መፍጠሪያ (Create) ሙሉውን "createPayload" እንልካለን
         await assessmentTypeService.create(createPayload);
       }
       await fetchAssessments();
@@ -210,7 +224,7 @@ const handleSubmit = async (e) => {
     } finally {
       setSaving(false);
     }
-};
+  };
 
   const handleEdit = (assessment) => {
     if (assessment._id.startsWith('TEMP_')) {
@@ -220,8 +234,12 @@ const handleSubmit = async (e) => {
     }
 
     setEditingId(assessment._id);
+    
+    // ⚠️ 2. ማስተካከያ፦ index 0 ላይ ያለው name ፖፑሌት ሆኖ የመጣ object ከሆነ _id ፊልዱን መውሰድ
+    const selectedNameId = typeof assessment.name === 'object' ? assessment.name?._id : assessment.name;
+
     setFormData({
-      name: assessment.name,
+      name: selectedNameId || '',
       totalMarks: assessment.totalMarks,
       month: assessment.month,
       semester: assessment.semester,
@@ -292,7 +310,21 @@ const handleSubmit = async (e) => {
             </h3>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col md:flex-row gap-3">
-                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder={t('assessment') + " Name"} required className="border p-2 rounded w-full" />
+                {/* ⚠️ 3. አዲሱ የ Assessment Name መራጭ ሳጥን (Dropdown Select) */}
+                {namesLoading ? <p className="text-xs text-gray-500 w-full">{t('loading_names') || 'Loading assessment names...'}</p> : (
+                  <select 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={handleChange} 
+                    required 
+                    className="border p-2 rounded w-full bg-white text-gray-800"
+                  >
+                    <option value="">-- {t('select_assessment_name') || 'Select Assessment Name'} --</option>
+                    {assessmentNames.map(n => (
+                      <option key={n._id} value={n._id}>{n.name}</option>
+                    ))}
+                  </select>
+                )}
                 <input type="number" name="totalMarks" value={formData.totalMarks} onChange={handleChange} min="1" placeholder={t('total')} required className="border p-2 rounded w-full" />
               </div>
               <div className="flex flex-col md:flex-row gap-3">
@@ -306,7 +338,7 @@ const handleSubmit = async (e) => {
               </div>
               <input type="text" name="year" value={formData.year} onChange={handleChange} placeholder={t('academic_year')} className="border p-2 rounded" />
               
-              <button type="submit" disabled={saving} className={`col-span-2 py-2 rounded font-semibold text-white ${saving ? 'bg-green-300 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
+              <button type="submit" disabled={saving || namesLoading} className={`col-span-2 py-2 rounded font-semibold text-white ${saving ? 'bg-green-300 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
                 {saving ? t('loading') : editingId ? t('update') : t('add')}
               </button>
             </div>
@@ -320,7 +352,7 @@ const handleSubmit = async (e) => {
                 <ul className="space-y-2">
                   {assessmentTypes.map(a => (
                     <li key={a._id} className={`flex justify-between items-center bg-gray-50 p-2 rounded border-l-4 ${a._id.startsWith('TEMP_') ? 'border-l-red-500' : 'border-l-blue-500'}`}>
-                      
+                      {console.log(a)}
                       <Link
                         to="/grade-sheet"
                         state={{
@@ -329,7 +361,10 @@ const handleSubmit = async (e) => {
                         }}
                         className="flex-1 hover:underline flex flex-col"
                       >
-                        <span className="text-gray-800 font-bold">{a.name} ({a.totalMarks})</span>
+                        {/* ⚠️ 4. ስሙ Populated Object መሆኑን በማረጋገጥ በሴፍቲ ቼክ ማውጣት */}
+                        <span className="text-gray-800 font-bold">
+                          {typeof a.name === 'object' ? a.name?.name : a.name} ({a.totalMarks})
+                        </span>
                         <span className="text-xs text-gray-500">{a.month} | {a.semester} | {a.year}</span>
                         {a._id.startsWith('TEMP_') && <span className="text-xs text-red-500 font-bold">[Offline - Pending Sync]</span>}
                       </Link>
