@@ -46,17 +46,12 @@ exports.getStudents = async (req, res) => {
             const level = req.user.schoolLevel;
 
             if (level === 'kg') {
-                // Matches: "KG 1", "KG 1A", "Nursery", "Nursery A"
                 constraints.push({ gradeLevel: { $regex: /^(kg|nursery)/i } });
             } 
             else if (level === 'primary') {
-                // Matches: "Grade 1", "Grade 1A", "Grade 8C"
-                // Logic: Starts with Grade, then 1-8, then optional letters
                 constraints.push({ gradeLevel: { $regex: /^Grade\s*[1-8](\D|$)/i } });
             } 
             else if (level === 'High School') {
-                // Matches: "Grade 9", "Grade 9A", "Grade 10B", "Grade 12C"
-                // Logic: Starts with Grade, then 9-12, then optional letters
                 constraints.push({ gradeLevel: { $regex: /^Grade\s*(9|1[0-2])(\D|$)/i } });
             }
         }
@@ -90,9 +85,8 @@ exports.getStudents = async (req, res) => {
         }
 
         const students = await Student.find(finalQuery)
-            // Sort by Grade Level (alphabetically) then Name
             .sort({ gradeLevel: 1, fullName: 1 }) 
-            .select('studentId fullName gender imageUrl gradeLevel status dateOfBirth fatherContact healthStatus motherName motherContact');
+            .select('studentId fullName gender imageUrl gradeLevel status dateOfBirth fatherContact healthStatus motherName motherContact year');
         
         res.json({ success: true, count: students.length, data: students });
 

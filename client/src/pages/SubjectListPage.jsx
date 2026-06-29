@@ -24,7 +24,7 @@ const SubjectListPage = () => {
     // Form State
     const [newSubjectName, setNewSubjectName] = useState('');
     const [newSubjectCode, setNewSubjectCode] = useState('');
-    const [sessionsPerWeek, setSessionsPerWeek] = useState(3); // Default to 3
+    const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
 
     // --- Handlers ---
     const fetchSubjects = async (grade) => {

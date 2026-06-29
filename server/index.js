@@ -7,7 +7,6 @@ const User = require('./models/User');
 const cron = require('node-cron');
 
 const { sanitizeDatabase } = require('./sanitizeDatabase');
-const {convertYearsToString} = require('./convertYearsToString');
 const app = express();
 
 // --- Middleware ---
@@ -75,7 +74,7 @@ const startServer = async () => {
     try {
         // 1. Connect to DB
         await connectDB();
-        // 3. Seed Admin
+        // 2. Seed Admin
         await seedAdminUser();
 
         const PORT = process.env.PORT || 5000;

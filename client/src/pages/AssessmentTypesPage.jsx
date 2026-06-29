@@ -33,13 +33,17 @@ const AssessmentTypesPage = () => {
   const [assessmentsLoading, setAssessmentsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // ⚠️ አዲሶቹ የስም መቆጣጠሪያ ስቴቶች (State)
+  // የፈተና ስሞች ስቴቶች (State)
   const [assessmentNames, setAssessmentNames] = useState([]);
   const [namesLoading, setNamesLoading] = useState(true);
 
+  // ⚠️ አዲሶቹ የ Autocomplete ፍለጋ መቆጣጠሪያ ስቴቶች
+  const [nameSearch, setNameSearch] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const currentEthiopianYear = getEthiopianYear();
   const [formData, setFormData] = useState({
-    name: '', // ⚠️ ይህ አሁን የተመረጠውን የ AssessmentName ID ይይዛል
+    name: '', // ይህ አሁንም የ AssessmentName ID (ObjectId) ይይዛል
     totalMarks: 10,
     month: 'September',
     semester: 'First Semester',
@@ -55,7 +59,7 @@ const AssessmentTypesPage = () => {
     }
   }, [subjectFromLink]);
 
-  // --- ⚠️ 1. የፈተና ስሞችን (AssessmentNames) መጫን ---
+  // --- የፈተና ስሞችን (AssessmentNames) መጫን ---
   useEffect(() => {
     const loadNames = async () => {
       try {
@@ -104,6 +108,14 @@ const AssessmentTypesPage = () => {
     return grouped;
   }, [subjects]);
 
+  // --- ⚠️ 2. የፈተና ስሞችን በጻፍነው ፊደል መሠረት መለየት (Memoized Filter) ---
+  const filteredNames = useMemo(() => {
+    if (!nameSearch) return assessmentNames;
+    return assessmentNames.filter(n =>
+        n.name.toLowerCase().includes(nameSearch.toLowerCase())
+    );
+  }, [assessmentNames, nameSearch]);
+
   // --- Fetch assessments (Online/Cache + Offline Local) ---
   const fetchAssessments = async () => {
     if (!selectedSubject) return;
@@ -147,17 +159,33 @@ const AssessmentTypesPage = () => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // ⚠️ 3. ተጠቃሚው መጻፊያ ሳጥኑ ላይ ሲጽፍ መቆጣጠሪያ ሃንድለር
+  const handleNameInputChange = (e) => {
+    const val = e.target.value;
+    setNameSearch(val);
+    setShowSuggestions(true);
+    // ስሙ ከተቀየረ የድሮውን ID እናጸዳዋለን (አዲስ ምርጫ እንዲሆን)
+    setFormData(prev => ({ ...prev, name: '' }));
+  };
+
+  // ⚠️ 4. ተጠቃሚው ከፍለጋ ዝርዝሩ ውስጥ ሲመርጥ መቆጣጠሪያ ሃንድለር
+  const handleSelectSuggestion = (nameObj) => {
+    setNameSearch(nameObj.name);
+    setFormData(prev => ({ ...prev, name: nameObj._id }));
+    setShowSuggestions(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedSubject) return alert(t('select_class') || 'Select a subject first.');
-    if (!formData.name) return alert(t('select_assessment_name_error') || 'Please select an assessment name.');
+    if (!formData.name) return alert(t('select_assessment_name_error') || 'Please select an assessment name from the list.');
     
     setSaving(true);
     setError('');
 
     // ለማረም (Update) የምንጠቀመው ፔይሎድ (subjectId እና gradeLevel አይካተቱም)
     const updatePayload = {
-      name: formData.name, // ⚠️ ይህ የ AssessmentName ObjectId ነው
+      name: formData.name, // ይህ የ AssessmentName ObjectId ነው
       totalMarks: Number(formData.totalMarks),
       month: formData.month,
       semester: formData.semester,
@@ -196,6 +224,7 @@ const AssessmentTypesPage = () => {
             
             await fetchAssessments(); 
             setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
+            setNameSearch(''); // ⚠️ ፍለጋውን ማጽዳት
             setEditingId(null);
         } catch (err) {
             setError("Failed to save offline.");
@@ -213,6 +242,7 @@ const AssessmentTypesPage = () => {
       }
       await fetchAssessments();
       setFormData({ name: '', totalMarks: 10, month: 'September', semester: 'First Semester', year: currentEthiopianYear });
+      setNameSearch(''); // ⚠️ ፍለጋውን ማጽዳት
       setEditingId(null);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to save.';
@@ -235,8 +265,8 @@ const AssessmentTypesPage = () => {
 
     setEditingId(assessment._id);
     
-    // ⚠️ 2. ማስተካከያ፦ index 0 ላይ ያለው name ፖፑሌት ሆኖ የመጣ object ከሆነ _id ፊልዱን መውሰድ
     const selectedNameId = typeof assessment.name === 'object' ? assessment.name?._id : assessment.name;
+    const selectedNameString = typeof assessment.name === 'object' ? assessment.name?.name : '';
 
     setFormData({
       name: selectedNameId || '',
@@ -245,6 +275,7 @@ const AssessmentTypesPage = () => {
       semester: assessment.semester,
       year: assessment.year,
     });
+    setNameSearch(selectedNameString || ''); // ⚠️ ፎርሙ ላይ ስሙን መጫን
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -310,21 +341,48 @@ const AssessmentTypesPage = () => {
             </h3>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col md:flex-row gap-3">
-                {/* ⚠️ 3. አዲሱ የ Assessment Name መራጭ ሳጥን (Dropdown Select) */}
-                {namesLoading ? <p className="text-xs text-gray-500 w-full">{t('loading_names') || 'Loading assessment names...'}</p> : (
-                  <select 
-                    name="name" 
-                    value={formData.name} 
-                    onChange={handleChange} 
-                    required 
-                    className="border p-2 rounded w-full bg-white text-gray-800"
-                  >
-                    <option value="">-- {t('select_assessment_name') || 'Select Assessment Name'} --</option>
-                    {assessmentNames.map(n => (
-                      <option key={n._id} value={n._id}>{n.name}</option>
-                    ))}
-                  </select>
-                )}
+                
+                {/* ⚠️ 5. አዲሱ Autocomplete የፍለጋ መጻፊያ ፎርም */}
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    name="nameSearch"
+                    value={nameSearch}
+                    onChange={handleNameInputChange}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // focus ሲጠፋ ፓነሉን ለመዝጋት
+                    placeholder={t('search_assessment_name_placeholder') || "Type to search assessment name..."}
+                    required
+                    autoComplete="off"
+                    className="border p-2.5 rounded w-full bg-white text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none"
+                  />
+                  {/* ለ HTML5 ፎርም ቫሊዴሽን እና ለ submit የሚሆን የተደበቀ ID ፎርም */}
+                  <input type="hidden" name="name" value={formData.name} required />
+
+                  {/* የፍለጋ ውጤቶች ዝርዝር ፓነል */}
+                  {showSuggestions && (
+                    <ul className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {namesLoading ? (
+                        <li className="p-3 text-xs text-gray-400 italic">{t('loading')}</li>
+                      ) : filteredNames.length > 0 ? (
+                        filteredNames.map(n => (
+                          <li
+                            key={n._id}
+                            onMouseDown={() => handleSelectSuggestion(n)} // mouse click ቶሎ እንዲያዝ
+                            className="p-2 text-sm text-gray-700 hover:bg-pink-100 hover:text-pink-900 cursor-pointer transition-colors"
+                          >
+                            {n.name}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="p-3 text-xs text-gray-400 italic">
+                          {t('no_match_found') || "No matching assessment names found."}
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+
                 <input type="number" name="totalMarks" value={formData.totalMarks} onChange={handleChange} min="1" placeholder={t('total')} required className="border p-2 rounded w-full" />
               </div>
               <div className="flex flex-col md:flex-row gap-3">
@@ -360,7 +418,6 @@ const AssessmentTypesPage = () => {
                         }}
                         className="flex-1 hover:underline flex flex-col"
                       >
-                        {/* ⚠️ 4. ስሙ Populated Object መሆኑን በማረጋገጥ በሴፍቲ ቼክ ማውጣት */}
                         <span className="text-gray-800 font-bold">
                           {typeof a.name === 'object' ? a.name?.name : a.name} ({a.totalMarks})
                         </span>

@@ -70,6 +70,7 @@ const StudentListPage = () => {
         loadInitialData();
     }, [currentUser, t]);
 
+    
     useEffect(() => {
         const params = {};
 
@@ -96,7 +97,7 @@ const StudentListPage = () => {
         return allStudents
             .filter(s => s.gradeLevel === selectedGrade)
             .filter(s => searchTerm === '' || s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.studentId.toLowerCase().includes(searchTerm.toLowerCase()))
-            .sort((a, b) => a.fullName.localeCompare(b.fullName)); // ⚠️ ፊደላትን በቅደም ተከተል ያስተካክላል
+            .sort((a, b) => a.fullName.localeCompare(b.fullName));
     }, [allStudents, selectedGrade, searchTerm]);
 
     const graphStudents = useMemo(() => {
@@ -145,7 +146,6 @@ const StudentListPage = () => {
                 </div>
             </div>
 
-            {/* --- GRAPHS (ያለ ምንም ቅነሳ ተመልሷል) --- */}
             {!selectedGrade && (
                 <StudentStats 
                     students={graphStudents} 
@@ -158,7 +158,6 @@ const StudentListPage = () => {
                 />
             )}
 
-            {/* --- SECTION SELECTOR (ያለ ምንም ቅነሳ ተመልሷል) --- */}
             {!selectedGrade && (
                 <div className="flex flex-wrap gap-6 mb-8">
                     <SectionCard id="kg" label={t('section_kg')} color="border-purple-200 text-purple-800" />
