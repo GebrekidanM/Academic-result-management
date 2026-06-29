@@ -352,7 +352,6 @@ const AssessmentTypesPage = () => {
                 <ul className="space-y-2">
                   {assessmentTypes.map(a => (
                     <li key={a._id} className={`flex justify-between items-center bg-gray-50 p-2 rounded border-l-4 ${a._id.startsWith('TEMP_') ? 'border-l-red-500' : 'border-l-blue-500'}`}>
-                      {console.log(a)}
                       <Link
                         to="/grade-sheet"
                         state={{

@@ -3,13 +3,23 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import subjectService from '@shared/services/subjectService';
 import assessmentTypeService from '@shared/services/assessmentTypeService';
-import gradeService from '@shared/services/gradeService';
-import authService from '@shared/services/authService';
-import userService from '@shared/services/userService';
-import studentService from '@shared/services/studentService';
-import offlineGradeService from '@shared/services/offlineGradeService';
 import offlineAssessmentService from '@shared/services/offlineAssessmentService';
+import authService from '@shared/services/authService';
+import gradeService from '@shared/services/gradeService';
+import { useParams } from 'react-router-dom';
 import ScoreInput from '../components/ScoreInput';
+
+const MONTHS = [
+  "September", "October", "November", "December",
+  "January", "February", "March", "April", "May", "June"
+];
+
+function getEthiopianYear() {
+    const today = new Date();
+    const gregYear = today.getFullYear();
+    const gregMonth = today.getMonth() + 1;
+    return gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
+}
 
 const GradeSheetPage = () => {
     const { t } = useTranslation();
@@ -47,10 +57,7 @@ const GradeSheetPage = () => {
                     subjectsToDisplay = res.data.subjectsTaught.map(a => a.subject).filter(Boolean);
                 }
 
-                // Ethiopian Year Logic
-                const now = new Date();
-                const ethYear = (now.getMonth() + 1) > 8 ? now.getFullYear() - 7 : now.getFullYear() - 8;
-                
+                const ethYear = getEthiopianYear();
                 setAcademicYear(String(ethYear));
                 setSubjects(subjectsToDisplay);
             } catch (err) {
@@ -77,7 +84,6 @@ const GradeSheetPage = () => {
             }
 
             const local = offlineAssessmentService.getLocalAssessments().filter(a => a.subject === selectedSubject);
-            // Merge & unique by ID
             const combined = [...assessments, ...local];
             const unique = Array.from(new Map(combined.map(item => [item._id, item])).values());
             
@@ -85,7 +91,6 @@ const GradeSheetPage = () => {
         };
         fetchAssessments();
     }, [selectedSubject]);
-
     // --- 3. Load Grade Sheet ---
     const handleLoadSheet = async () => {
         if (!selectedAssessment) return;
@@ -93,7 +98,6 @@ const GradeSheetPage = () => {
         setError(null);
 
         try {
-            // Handle Offline/Local Assessments
             if (selectedAssessment.toString().startsWith('TEMP_')) {
                 const currentAssessment = assessmentTypes.find(a => a._id === selectedAssessment);
                 const studentRes = await studentService.getAllStudents();
@@ -112,7 +116,6 @@ const GradeSheetPage = () => {
                 classStudents.forEach(s => initialScores[s._id] = '');
                 setScores(initialScores);
             } else {
-                // Online Load
                 const res = await gradeService.getGradeSheet(selectedAssessment);
                 setSheetData(res.data);
                 const initialScores = {};
@@ -134,7 +137,7 @@ const GradeSheetPage = () => {
         setScores(prev => ({ ...prev, [studentId]: value }));
     };
 
-    // --- 5. Save Logic (Sync/Offline) ---
+    // --- 5. Save Logic ---
     const handleSave = async () => {
         if (saveDisabled || !sheetData) return;
         setSaveDisabled(true);
@@ -161,7 +164,7 @@ const GradeSheetPage = () => {
             } else {
                 await gradeService.saveGradeSheet(payload);
                 alert(`🚀 ${t('saved_online_msg')}`);
-                setScores({})
+                setScores({});
             }
         } catch (err) {
             offlineGradeService.addToQueue(payload);
@@ -202,7 +205,10 @@ const GradeSheetPage = () => {
                         <select value={selectedAssessment} onChange={(e) => setSelectedAssessment(e.target.value)} disabled={!selectedSubject} className="w-full p-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 outline-none bg-white font-bold text-slate-700 disabled:opacity-50">
                             <option value="">-- {t('select_assessment')} --</option>
                             {assessmentTypes.map(at => (
-                                <option key={at._id} value={at._id}>{at._id.startsWith('TEMP_') ? '☁️ ' : ''}{at.month} - {at.name}</option>
+                                <option key={at._id} value={at._id}>
+                                    {at._id.startsWith('TEMP_') ? '☁️ ' : ''}
+                                    {at.month} - {typeof at.name === 'object' ? at.name?.name : at.name}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -219,7 +225,11 @@ const GradeSheetPage = () => {
                     <div className="p-4">
                         <div className="flex justify-between items-center mb-8 bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
                             <div>
-                                <h3 className="text-lg font-black text-indigo-900 uppercase">{sheetData.assessmentType.name}</h3>
+                                <h3 className="text-lg font-black text-indigo-900 uppercase">
+                                    {typeof sheetData.assessmentType.name === 'object' 
+                                        ? sheetData.assessmentType.name?.name 
+                                        : sheetData.assessmentType.name}
+                                </h3>
                                 {currentSubjectObj?.gradingType !== 'descriptive' && (
                                     <p className="text-xs font-bold text-indigo-500">{t('total_marks')}: {sheetData.assessmentType.totalMarks}</p>
                                 )}

@@ -25,7 +25,7 @@ const SubjectRosterPage = () => {
     const [subjects, setSubjects] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState(location.state?.subjectId || '');
     const [semester, setSemester] = useState('First Semester');
-    const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear()); // Used dynamic year here
+    const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
     const [rosterData, setRosterData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -36,9 +36,7 @@ const SubjectRosterPage = () => {
     const[isSaving, setIsSaving] = useState(false);
 
     // --- Memoized Helpers ---
-    const currentSubjectDetails = useMemo(() => 
-        subjects.find(s => s._id === selectedSubject) || {}, 
-    [subjects, selectedSubject]);
+    const currentSubjectDetails = useMemo(() => subjects.find(s => s._id === selectedSubject) || {}, [subjects, selectedSubject]);
 
     // --- 1. Load Initial Data ---
     useEffect(() => {
@@ -76,9 +74,7 @@ const SubjectRosterPage = () => {
         setIsEditMode(false); 
         setUpdatedScores({});
         try {
-            // Find subject from the passed array to prevent stale state bugs on first load
             const targetSubject = fetchedSubjects.find(s => s._id === targetId);
-
             const response = await rosterService.getSubjectRoster({
                 gradeLevel: currentSubjectDetails.gradeLevel || targetSubject?.gradeLevel,
                 subjectId: targetId,
@@ -129,9 +125,7 @@ const SubjectRosterPage = () => {
                     .filter(([_, value]) => value !== null && value !== '')
                     .map(([assessmentId, value]) => ({
                         assessmentType: assessmentId,
-                        score: currentSubjectDetails?.gradingType === 'descriptive'
-                        ? value
-                        : Number(value)
+                        score: currentSubjectDetails?.gradingType === 'descriptive' ? value : Number(value)
                     }));
 
                     return gradeService.saveGradeSheet({
@@ -183,7 +177,7 @@ const SubjectRosterPage = () => {
         <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-sans print:bg-white print:p-0">
             {/* PRINT ENGINE */}
             
- <style>{`
+        <style>{`
 
                 @media print {
                     @page { size: A4 landscape; margin: 0mm !important; }

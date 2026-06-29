@@ -17,7 +17,6 @@ exports.getAssessmentTypesBySubject = async (req, res) => {
     }
 
     try {
-        // ⚠️ ማስተካከያ፦ የፈተናውን ስም በጽሁፍ ለማውጣት populate ተጨምሯል [2]
         const assessmentTypes = await AssessmentType.find(filter)
             .populate('name', 'name')
             .sort({ createdAt: 1 });

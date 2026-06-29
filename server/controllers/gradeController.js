@@ -42,7 +42,10 @@ exports.getGradesByStudent = async (req, res) => {
     // 2. Fetch Raw Grades
     const rawGrades = await Grade.find({ student: studentId })
       .populate('subject', 'name gradeLevel')
-      .populate('assessments.assessmentType', 'name totalMarks month')
+      .populate({
+          path: 'assessments.assessmentType',
+          populate: { path: 'name', select: 'name'}
+      })
       .lean();
 
     if (!rawGrades.length) return res.status(200).json({ success: true, count: 0, data: [] });
@@ -128,9 +131,12 @@ exports.getGradeDetails = async (req, res) => {
   const { studentId, subjectId, semester, academicYear } = req.query;
   try {
     const grade = await Grade.findOne({ student: studentId, subject: subjectId, semester, academicYear })
-      .populate('assessments.assessmentType', 'name totalMarks');
+        .populate({
+            path: 'assessments.assessmentType',
+            populate: {path: 'name', select: 'name'}
+        });
 
-    res.json({ success: true, data: grade });
+    res.json({ success: true, data: grade }); 
   } catch (error) {
     console.error("Error fetching grade details:", error);
     res.status(500).json({ message: 'Server Error' });
@@ -216,7 +222,7 @@ exports.getGradeSheet = async (req, res) => {
   if (!assessmentTypeId) return res.status(400).json({ message: 'Assessment Type ID is required.' });
 
   try {
-    const assessmentType = await AssessmentType.findById(assessmentTypeId);
+    const assessmentType = await AssessmentType.findById(assessmentTypeId).populate('name', 'name');;
     if (!assessmentType) return res.status(404).json({ message: 'Assessment Type not found.' });
 
     const students = await Student.find({ gradeLevel: assessmentType.gradeLevel, status: 'Active' })
