@@ -191,12 +191,11 @@ exports.generateRoster = async (req, res) => {
 
 exports.generateSubjectRoster = async (req, res) => {
     const { gradeLevel, subjectId, semester, academicYear } = req.query;
-    // 1. Validation
+    
     if (!gradeLevel || !subjectId || !semester || !academicYear) {
         return res.status(400).json({ message: 'Grade Level, Subject, Semester, and Year are required.' });
     }
 
-    // 2. Define Semester Logic
     const SEMESTER_CONFIG = {
         "First Semester": ["September", "October", "November", "December", "January"],
         "Second Semester": ["February", "March", "April", "May", "June"]
@@ -214,7 +213,7 @@ exports.generateSubjectRoster = async (req, res) => {
             year: { $in: [academicYear, Number(academicYear)] },
             semester: semester,
             month: { $in: validMonths } 
-        });
+        }).populate('name','name');
 
         if (allAssessmentsForSubject.length === 0) {
             return res.status(404).json({ message: 'No assessment types found for this semester.' });

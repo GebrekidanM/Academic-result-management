@@ -35,7 +35,6 @@ const studentSchema = new mongoose.Schema({
 studentSchema.pre('save', async function (next) {
     if (!this.isNew) return next();
 
-    // ⚠️ ከአሁን በኋላ አመቱን ከቀን አናሰላም፣ በቀጥታ የተሞላውን የተማሪውን year እንወስዳለን
     const currentYear = this.year; 
     const counterId = `studentId_${currentYear}`;
     let counter;
@@ -66,7 +65,6 @@ studentSchema.pre('save', async function (next) {
                     seq: lastSeq + 1
                 });
             } catch (createError) {
-                // Race condition መከላከያ፦ ሌላው ሪኩዌስት ቀድሞ ከፈጠረው በድጋሚ findOneAndUpdate መሞከር
                 if (createError.code === 11000) {
                     counter = await Counter.findOneAndUpdate(
                         { id: counterId },

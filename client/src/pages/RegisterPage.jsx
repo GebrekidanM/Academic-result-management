@@ -1,24 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // <--- Import Hook
+import { useTranslation } from 'react-i18next';
 import authService from '@shared/services/authService';
 
 const RegisterPage = () => {
-    const { t } = useTranslation(); // <--- Initialize
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const currentUser = authService.getCurrentUser();
     
-    // Check if the user is allowed to be here
     const isAuthorized = currentUser && (currentUser.role === 'admin' || currentUser.role === 'staff');
 
-    // --- Redirect if not authorized ---
     useEffect(() => {
         if (!isAuthorized) {
             navigate('/login');
         }
     }, [isAuthorized, navigate]);
 
-    // --- State Management ---
     const [formData, setFormData] = useState({
         fullName: '', 
         username: '', 

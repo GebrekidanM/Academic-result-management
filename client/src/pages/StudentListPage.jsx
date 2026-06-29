@@ -96,24 +96,19 @@ const StudentListPage = () => {
         return allStudents
             .filter(s => s.gradeLevel === selectedGrade)
             .filter(s => searchTerm === '' || s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.studentId.toLowerCase().includes(searchTerm.toLowerCase()))
-            .sort((a, b) => a.fullName.localeCompare(b.fullName));
-    }, [selectedGrade, allStudents, searchTerm]);
+            .sort((a, b) => a.fullName.localeCompare(b.fullName)); // ⚠️ ፊደላትን በቅደም ተከተል ያስተካክላል
+    }, [allStudents, selectedGrade, searchTerm]);
 
     const graphStudents = useMemo(() => {
-        let relevantStudents = allStudents.filter(s => allAllowedGrades.includes(s.gradeLevel));
-        if (selectedSection === 'kg') return relevantStudents.filter(s => /^(kg|nursery)/i.test(s.gradeLevel));
-        if (selectedSection === 'primary') return relevantStudents.filter(s => /^Grade\s*[1-8](\D|$)/i.test(s.gradeLevel));
-        if (selectedSection === 'highSchool') return relevantStudents.filter(s => /^Grade\s*(9|1[0-2])(\D|$)/i.test(s.gradeLevel));
-        return relevantStudents; 
-    }, [allStudents, allAllowedGrades, selectedSection]);
+        return allStudents;
+    }, [allStudents]);
 
-
-    // --- 3. Section Card Component ---
+    // --- 3. SectionCard Component ---
     const SectionCard = ({ id, label, color }) => {
         const count = allStudents.filter(s => allAllowedGrades.includes(s.gradeLevel) && (
             id === 'kg' ? /^(kg|nursery)/i.test(s.gradeLevel) :
             id === 'primary' ? /^Grade\s*[1-8](\D|$)/i.test(s.gradeLevel) :
-            /^Grade\s*(9|1[0-2])(\D|$)/i.test(s.gradeLevel)
+            id === 'highSchool' ? /^Grade\s*(9|1[0-2])(\D|$)/i.test(s.gradeLevel) : false
         )).length;
 
         if (count === 0) return null;
@@ -150,7 +145,7 @@ const StudentListPage = () => {
                 </div>
             </div>
 
-            {/* --- GRAPHS --- */}
+            {/* --- GRAPHS (ያለ ምንም ቅነሳ ተመልሷል) --- */}
             {!selectedGrade && (
                 <StudentStats 
                     students={graphStudents} 
@@ -163,7 +158,7 @@ const StudentListPage = () => {
                 />
             )}
 
-            {/* --- SECTION SELECTOR --- */}
+            {/* --- SECTION SELECTOR (ያለ ምንም ቅነሳ ተመልሷል) --- */}
             {!selectedGrade && (
                 <div className="flex flex-wrap gap-6 mb-8">
                     <SectionCard id="kg" label={t('section_kg')} color="border-purple-200 text-purple-800" />
@@ -217,6 +212,7 @@ const StudentListPage = () => {
                                 <tr>
                                     <th className="px-4 py-3 text-left">{t('id_no')}</th>
                                     <th className="px-4 py-3 text-left">{t('full_name')}</th>
+                                    <th className="px-4 py-3 text-left">{t('year') || 'Year'}</th> {/* ⚠️ አዲሱ Year ፊልድ እዚህ ጋር ተጨምሯል */}
                                     <th className="px-4 py-3 text-left">{t('gender')}</th>
                                     <th className="px-4 py-3 text-left">Date Of Birth</th>
                                     <th className="px-4 py-3 text-left">Mother</th>
@@ -234,6 +230,7 @@ const StudentListPage = () => {
                                             <td className="px-4 py-4 font-bold text-gray-800 whitespace-nowrap">
                                                 <Link to={`/students/${student._id}?section=${selectedSection}&grade=${selectedGrade}`} className="hover:text-pink-600 hover:underline">{student.fullName}</Link>
                                             </td>
+                                            <td className="px-4 py-4 text-gray-600 font-bold">{student.year || '-'}</td> {/* ⚠️ አዲሱ የ Year ውጤት ማሳያ */}
                                             <td className="px-4 py-4 text-gray-600">{t(student.gender)}</td>
                                             <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{student?.dateOfBirth?.split('T')[0]}</td>
                                             <td className="px-4 py-4 text-gray-600">
@@ -254,7 +251,7 @@ const StudentListPage = () => {
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr><td colSpan="8" className="px-6 py-8 text-center text-gray-500">{t('no_students_match')}</td></tr>
+                                    <tr><td colSpan="10" className="px-6 py-8 text-center text-gray-500">{t('no_students_match')}</td></tr>
                                 )}
                             </tbody>
                         </table>

@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-// Sound file
 import rosterService from '@shared/services/rosterService';
 import subjectService from '@shared/services/subjectService';
 import authService from '@shared/services/authService';
 import userService from '@shared/services/userService';
 import gradeService from '@shared/services/gradeService';
 
-// Helper to get current academic year dynamically
 function getCurrentAcademicYear() {
     const today = new Date();
     const gregYear = today.getFullYear();
@@ -61,7 +59,7 @@ const SubjectRosterPage = () => {
             }
         };
         loadInitialData();
-    },[currentUser.role, t, location.state]);
+    }, [currentUser.role, t, location.state]);
 
     // --- 2. Generate Roster Data ---
     const handleGenerate = async (e, subjectOverride = null, fetchedSubjects = subjects) => {
@@ -81,6 +79,7 @@ const SubjectRosterPage = () => {
                 semester,
                 academicYear
             });
+            console.log(response.data)
             setRosterData(response.data);
         } catch (err) {
             setError(err.response?.data?.message || t('error'));
@@ -93,7 +92,6 @@ const SubjectRosterPage = () => {
     const handleCellChange = (mongoId, assessmentId, value, maxMarks) => {
         if (currentSubjectDetails?.gradingType !== 'descriptive') {
             if (value !== '' && isNaN(value)) return; 
-            
             if (value !== '' && Number(value) > maxMarks) return;
         }
 
@@ -119,8 +117,6 @@ const SubjectRosterPage = () => {
         try {
             const requests = Object.entries(updatedScores).map(
                 async ([mongoId, assessments]) => {
-
-                    // Convert object to array format expected by backend
                     const assessmentsArray = Object.entries(assessments)
                     .filter(([_, value]) => value !== null && value !== '')
                     .map(([assessmentId, value]) => ({
@@ -139,14 +135,10 @@ const SubjectRosterPage = () => {
             );
 
             await Promise.all(requests);
-
             alert("✅ " + t('success_save'));
 
-            // reset state
             setUpdatedScores({});
             setIsEditMode(false);
-
-            // reload roster
             handleGenerate();
 
         } catch (err) {
@@ -157,7 +149,6 @@ const SubjectRosterPage = () => {
         }
     };
 
-    // --- 4. Style Helpers ---
     const getScoreStyle = (score, total) => {
         if (score === undefined || score === null || score === '-' || score === '') return "text-gray-400";
         
@@ -176,9 +167,7 @@ const SubjectRosterPage = () => {
     return (
         <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-sans print:bg-white print:p-0">
             {/* PRINT ENGINE */}
-            
-        <style>{`
-
+            <style>{`
                 @media print {
                     @page { size: A4 landscape; margin: 0mm !important; }
                     .print-wrapper { position: absolute; top: 0; left: 0; width: 297mm; margin: 0 !important; padding: 0 !important; }
@@ -207,8 +196,6 @@ const SubjectRosterPage = () => {
                         color: black !important;
                     }
                     
-                    
-                    /* IMPORTANT: Forces background colors to show on paper */
                     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
                     .print-footer {
@@ -267,11 +254,9 @@ const SubjectRosterPage = () => {
 
             {error && <div className="max-w-full mx-auto mb-6 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 font-bold text-center">⚠️ {error}</div>}
 
-            
             {/* ROSTER CONTENT */}
             {rosterData && (
-                <div id="printable-area" className={`print-wrapper p-6 print:p-0 w-full"`}>
-                    {/* Official Document Header */}
+                <div id="printable-area" className={`print-wrapper p-6 print:p-0 w-full`}>
                     <div className="hidden print:block mb-8 pb-4">
                         <h1 className="text-center text-3xl font-black text-slate-900 uppercase tracking-tight">
                             Freedom Primary & Kindergarten School
@@ -334,8 +319,10 @@ const SubjectRosterPage = () => {
                                         {/* Assessment Sub-Headers */}
                                         {rosterData.sortedMonths.map(month => (
                                             rosterData.assessmentsByMonth[month].map(at => (
+                                                /* ⚠️ ማስተካከያ፦ Mongoose Populated Object መሆኑን በማረጋገጥ በሴፍቲ ቼክ ማውጣት [2] */
                                                 <th key={at._id} className={`${thBase} bg-white font-normal text-[9px] text-gray-600`}>
-                                                    {at.name} <br/> <span className="font-bold">({at.totalMarks})</span>
+                                                    {typeof at.name === 'object' ? at.name?.name : at.name} <br/> 
+                                                    <span className="font-bold">({at.totalMarks})</span>
                                                 </th>
                                             ))
                                         ))}
@@ -385,7 +372,6 @@ const SubjectRosterPage = () => {
                     </div>
 
                     {/* Official Signatures (Visible only on print) */}
-                    
                     <div className="hidden print:grid grid-cols-3 gap-12 mt-10 px-6 print-footer">
                         <div className="text-center">
                             <div className="border-b border-black mb-2 h-10"></div>

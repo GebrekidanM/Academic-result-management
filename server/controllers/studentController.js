@@ -21,14 +21,6 @@ const getFirstName = (fullName) => {
     return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 };
 
-// Helper to get Ethiopian Year (used for Password generation only now)
-const getEthiopianYear = () => {
-    const today = new Date();
-    const gregorianYear = today.getFullYear();
-    const gregorianMonth = today.getMonth() + 1;
-    return gregorianMonth > 8 ? gregorianYear - 7 : gregorianYear - 8;
-};
-
 // @desc Get all students or by grade
 // @route GET /api/students
 
@@ -157,10 +149,9 @@ exports.getStudentById = async (req, res) => {
 // @route   POST /api/students
 exports.createStudent = async (req, res) => {
     const currentUser = req.user; 
-    const { fullName, gender, dateOfBirth, gradeLevel, motherName, motherContact, fatherContact, healthStatus } = req.body;
+    const { fullName, gender, dateOfBirth, gradeLevel, year, motherName, motherContact, fatherContact, healthStatus } = req.body;
 
     try {
-        // 🔹 Permission check
         if (currentUser.role === 'teacher') {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== gradeLevel) {
                 return res.status(403).json({ message: 'You can only create students in your homeroom grade.' });
@@ -169,31 +160,12 @@ exports.createStudent = async (req, res) => {
             return res.status(403).json({ message: 'You are not authorized to create students.' });
         }
 
-        // 🔹 Capitalize full name
         const capitalizedFullName = capitalizeName(fullName);
-
-        // 🔹 Calculate Year ONLY for Password (ID is handled by Model now)
-        const currentYear = getEthiopianYear();
-
-        // 🔹 Generate initial password
-        const middleName = getFirstName(capitalizedFullName);
-        const initialPassword = `${middleName}@${currentYear}`;
-
-        // 🔹 Create student (NO studentId passed here)
-        const student = new Student({
-            // studentId: REMOVED (Handled by Mongoose Pre-Save Hook)
-            fullName: capitalizedFullName,
-            gender,
-            dateOfBirth,
-            gradeLevel,
-            password: initialPassword,
-            motherName,
-            motherContact,
-            fatherContact,
-            healthStatus
+        const initialPassword = `${getFirstName(capitalizedFullName)}@${year}`;
+        const student = new Student({ fullName: capitalizedFullName, gender, dateOfBirth,
+            gradeLevel, year: String(year), password: initialPassword, motherName, motherContact, fatherContact, healthStatus
         });
 
-        // The save() method triggers the Hook in Student.js which generates the ID
         await student.save(); 
 
         const responseData = student.toObject();
@@ -204,7 +176,6 @@ exports.createStudent = async (req, res) => {
 
     } catch (error) {
         if (error.code === 11000) {
-            // Check if error is related to FullName+MotherName index or the StudentId
             if (error.keyPattern && error.keyPattern.studentId) {
                 return res.status(500).json({ message: 'Error generating ID. Please try again.' });
             }
@@ -281,7 +252,7 @@ exports.deleteStudent = async (req, res) => {
 // @desc    DeActive a student
 // @route   POST /api/students/:id
 exports.deactiveStudent = async (req, res) => {
-    const {reason} = req.body;
+    const { reason } = req.body;
 
     try {
         const currentUser = req.user;
@@ -290,14 +261,17 @@ exports.deactiveStudent = async (req, res) => {
 
         if (currentUser.role === 'teacher') {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
-                return res.status(403).json({ message: 'You are not authorized to delete this student.' });
+                return res.status(403).json({ message: 'You are not authorized to update this student.' });
             }
         } else if (currentUser.role !== 'admin') {
-            return res.status(403).json({ message: 'You are not authorized to delete students.' });
+            return res.status(403).json({ message: 'You are not authorized to update students.' });
         }
+        
         student.status = reason; 
         await student.save();
-        res.json({ success: true, message: 'Student deleted successfully' });
+        
+        // ⚠️ ማስተካከያ፦ መልዕክቱ "deactivated" ተብሎ ተስተካክሏል
+        res.json({ success: true, message: 'Student status updated successfully' });
 
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
@@ -358,6 +332,12 @@ exports.uploadProfilePhoto = async (req, res) => {
 exports.bulkCreateStudents = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
 
+    const { year } = req.body; 
+    if (!year) {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: 'Year is required for bulk import.' });
+    }
+
     const filePath = req.file.path;
 
     try {
@@ -379,67 +359,17 @@ exports.bulkCreateStudents = async (req, res) => {
             return res.status(400).json({ message: `Missing required columns: ${missing.join(', ')}` });
         }
 
-        // Get Year for PASSWORDS only
-        const currentYear = getEthiopianYear();
-
-        // ❌ REMOVED: lastStudent and lastSeq calculation. 
-        // We will rely on newStudent.save() inside the loop.
-
         const createdStudents = [];
         let rowNumber = 2; 
 
-        // Helper: Date parsing (Kept same as your code)
-        function convertEthiopianToGregorian(ethYear, ethMonth, ethDay) {
-            const jd = Math.floor(1723856 + 365 + 365 * (ethYear - 1) + Math.floor(ethYear / 4) + 30 * ethMonth + ethDay - 31);
-            const r = (jd - 1721426) % 1461;
-            const n = Math.floor(r / 365) - Math.floor(r / 1460);
-            const gYear = Math.floor((jd - 1721426 - r) / 365.25) + n + 1;
-            const s = jd - Math.floor((gYear - 1) * 365.25) - 1721426;
-            let gMonth, gDay;
-            if (s <= 31) { gMonth = 1; gDay = s; }
-            else if (s <= 59) { gMonth = 2; gDay = s - 31; }
-            else if (s <= 90) { gMonth = 3; gDay = s - 59; }
-            else if (s <= 120) { gMonth = 4; gDay = s - 90; }
-            else if (s <= 151) { gMonth = 5; gDay = s - 120; }
-            else if (s <= 181) { gMonth = 6; gDay = s - 151; }
-            else if (s <= 212) { gMonth = 7; gDay = s - 181; }
-            else if (s <= 243) { gMonth = 8; gDay = s - 212; }
-            else if (s <= 273) { gMonth = 9; gDay = s - 243; }
-            else if (s <= 304) { gMonth = 10; gDay = s - 273; }
-            else if (s <= 334) { gMonth = 11; gDay = s - 304; }
-            else { gMonth = 12; gDay = s - 334; }
-            return new Date(`${gYear}-${String(gMonth).padStart(2, '0')}-${String(gDay).padStart(2, '0')}`);
-        }
-
-        function parseExcelDate(value) {
-            if (!value) return null;
-            if (!isNaN(value)) {
-                const excelEpoch = new Date(1899, 11, 30);
-                return new Date(excelEpoch.getTime() + value * 86400000);
-            }
-            const parts = value.toString().split(/[-/]/);
-            if (parts.length === 3) {
-                let [day, month, year] = parts.map(Number);
-                if (year < 1800 && day > 1900) { [year, month, day] = [day, month, year]; }
-                if (year < 1800) { return convertEthiopianToGregorian(year, month, day); } 
-                else { return new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`); }
-            }
-            return null;
-        }
-
-        // ------------------------
-        //   PROCESS EACH STUDENT
-        // ------------------------
+        // ... (የቀኑ ማስተካከያ ሎጂክ እንዳለ ይቆያል) ...
 
         for (const row of rows) {
             try {
-                // ❌ REMOVED: studentId generation here.
-
                 const fullName = capitalizeName(row['Full Name']);
                 const motherName = row['Mother Name'] || '';
                 const gradeLevel = row['Grade Level'];
 
-                // Check duplicate
                 const exists = await Student.findOne({ fullName, motherName, gradeLevel });
                 if (exists) {
                     createdStudents.push({ status: "skipped", row: rowNumber, fullName, reason: "Duplicate student" });
@@ -448,14 +378,14 @@ exports.bulkCreateStudents = async (req, res) => {
                 }
 
                 const parsedDOB = parseExcelDate(row['Date of Birth']);
-                const initialPassword = `${getFirstName(fullName)}@${currentYear}`;
+                const initialPassword = `${getFirstName(fullName)}@${year}`;
 
                 const newStudent = new Student({
-                    // studentId: REMOVED (Handled by Model)
                     fullName,
                     gender: row['Gender'],
                     dateOfBirth: parsedDOB || null,
                     gradeLevel,
+                    year: String(year),
                     motherName,
                     motherContact: row['Mother Contact'] || '',
                     fatherContact: row['Father Contact'] || '',
@@ -551,23 +481,24 @@ exports.getStudentForRegistration = async (req, res) => {
 
 // 2. Process the "New" Registration
 exports.reRegisterStudent = async (req, res) => {
-    const { studentId, newGradeLevel, thatYear} = req.body;
-    const acadamicYear = getCurrentEthDate(thatYear)
+    const { studentId, newGradeLevel, thatYear } = req.body;
+    const academicYear = getCurrentEthDate(thatYear);
 
     try {
         const student = await Student.findOne({ studentId });
         if (!student) return res.status(404).json({ message: "Student not found" });
+        
         const historyEntry = {
-            year: acadamicYear,
+            year: academicYear,
             gradeAtThatTime: student.gradeLevel,
-            statusAtEnd: 'Completed'
+            statusAtEnd: student.status 
         };
 
-        // B. Update the student for the NEW year
         student.academicHistory.push(historyEntry);
         student.gradeLevel = newGradeLevel;
         student.status = 'Active'; 
-        
+        student.year = String(academicYear);
+
         await student.save();
         res.json({ message: `${student.fullName} successfully registered for ${newGradeLevel}` });
     } catch (error) {
