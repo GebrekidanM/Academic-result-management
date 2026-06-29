@@ -30,5 +30,3 @@ const convertYearsToString = async () => {
         console.error("❌ Conversion failed:", error.message);
     }
 };
-
-convertYearsToString();
