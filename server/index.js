@@ -8,7 +8,6 @@ const cron = require('node-cron');
 
 const { sanitizeDatabase } = require('./sanitizeDatabase');
 const {convertYearsToString} = require('./convertYearsToString');
-const {migrateAssessmentNames} = require('./migrateAssessmentNames')
 const app = express();
 
 // --- Middleware ---

@@ -7,11 +7,7 @@ const MONTHS = [
 ];
 
 const assessmentTypeSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-        trim: true
-    },
+    name:{type:mongoose.Schema.Types.ObjectId, ref:'AssessmentName',required:true},
     totalMarks: {
         type: Number,
         required: true,
