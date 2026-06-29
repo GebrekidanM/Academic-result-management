@@ -8,6 +8,7 @@ const cron = require('node-cron');
 
 const { sanitizeDatabase } = require('./sanitizeDatabase');
 const {convertYearsToString} = require('./convertYearsToString');
+const {backfillStudentYears} = require('./backfillStudentYears');
 const app = express();
 
 // --- Middleware ---
