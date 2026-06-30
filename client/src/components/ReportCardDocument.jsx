@@ -1,16 +1,13 @@
 import React, { useMemo } from 'react';
 import ReportCoverPage from '../pages/ReportCoverPage';
 
-// ⚠️ 1. የKG ተማሪ መሆኑን መፈተሻ ረዳት ፈንክሽን
 const isKindergarten = (gradeLevel) => {
     if (!gradeLevel) return false;
     return /^(kg|nursery|pre)/i.test(gradeLevel);
 };
 
-
 const getPromotionTarget = (gradeLevel, promotedToStatus) => {
     const status = promotedToStatus || '';
-    console.log(status)
 
     if (status.toLowerCase() !== 'promoted') {
         return status;
@@ -23,31 +20,25 @@ const getPromotionTarget = (gradeLevel, promotedToStatus) => {
     const nurseryMatch = trimmed.match(/^nursery/i);
     if (nurseryMatch) return "Kg 1";
 
-    // 1. የ Grade ማስተላለፊያ ስሌት (ለምሳሌ Grade 1A -> Grade 2) [2]
     const gradeMatch = trimmed.match(/^grade\s*(\d+)/i);
-    console.log('grade',gradeMatch)
     if (gradeMatch) {
         const currentNum = parseInt(gradeMatch[1], 10);
-        if (currentNum === 12) return "Graduated"; // 12ኛ ክፍል ከሆነ ይመረቃል
+        if (currentNum === 12) return "Graduated";
         return `Grade ${currentNum + 1}`;
     }
 
-    // 2. የ KG ማስተላለፊያ ስሌት (ለምሳሌ Kg 1A -> Kg 2) [2]
     const kgMatch = trimmed.match(/^kg\s*(\d+)/i);
-    console.log('kg',kgMatch)
     if (kgMatch) {
         const currentNum = parseInt(kgMatch[1], 10);
-        console.log(currentNum)
-        if (currentNum === 3) return "Grade 1"; // KG 3 ካጠናቀቀ ወደ Grade 1 ይሻገራል
+        if (currentNum === 3) return "Grade 1";
         return `Kg ${currentNum + 1}`;
     }
 
-    return status; // መገመት ካልተቻለ "Promoted" ብሎ ያልፋል
+    return status;
 };
 
 const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' }) => {
     
-    // --- DATA TRANSFORMATION & SORTING ---
     const processedGrades = useMemo(() => {
         if (!reportData || !reportData.grades) return [];
         const sem1Grades = reportData.grades.filter(g => g.semester === 'First Semester');
@@ -137,7 +128,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
             return typeof semester2?.sum === 'number' ? semester2.sum.toFixed(2) : '0.00';
         }
         const total = (semester1?.sum || 0) + (semester2?.sum || 0);
-        const avgTotal = total/2;
+        const avgTotal = total / 2;
         return avgTotal.toFixed(2);
     };
 
@@ -151,6 +142,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         return typeof finalAverage === 'number' ? finalAverage.toFixed(2) : finalAverage;
     };
 
+    // Automated Comment
     const getAutomatedComment = () => {
         let score = Number(currentAvg() || 0);
         if (score >= 95) return "Excellent achievement! Keep up the outstanding work.";
@@ -276,7 +268,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                 </tbody>
                                 <tfoot>
                                     {validSupportiveList.map((r, i) => (
-                                        r.name !== undefined && <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
+                                        r.name !== "Unknown" && <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
                                             <td className="py-1.5 px-3 font-bold text-slate-700">{r.name}</td>
                                             {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem1 ?? '-'}</td>}
                                             {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem2 ?? '-'}</td>}
