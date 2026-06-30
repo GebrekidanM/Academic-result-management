@@ -265,7 +265,7 @@ exports.generateClassReports = async (req, res) => {
 
                 return {
                     studentInfo: {
-                        _id: student._id, // ⚠️ ማስተካከያ 1፦ የተማሪውን እውነተኛ የዳታቤዝ ID እዚህ ጋር አካትተናል! [2]
+                        _id: student._id,
                         fullName: student.fullName,
                         studentId: student.studentId,
                         gradeLevel: student.gradeLevel,
@@ -274,8 +274,6 @@ exports.generateClassReports = async (req, res) => {
                         photoUrl: student.imageUrl,
                         sex: student.gender,
                         age: calculateAge(student.dateOfBirth),
-                        // ⚠️ ማስተካከያ 2፦ የ "Grade X" ግትር ሎጂክ ጠፍቶ በቀጥታ 'Promoted' እንዲል ተደርጓል [2]
-                        // የፊት ለፊቱ ኮዳችን (getPromotionTarget) በራሱ 'Kg 2' ወይም 'Grade 2' እያለ ይተረጉመዋል [2]
                         promotedTo: finalAverage >= 50 ? 'Promoted' : 'Retained',
                     },
                     grades: cleanedGrades,

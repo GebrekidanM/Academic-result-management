@@ -186,15 +186,13 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                             <thead>
                                 <tr className="text-gray-500 border-b border-gray-200">
                                     <th className="text-left font-bold pb-2">Trait</th>
-                                    {(reportType === 'sem1' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">S1</th>}
-                                    {(reportType === 'sem2' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">S2</th>}
+                                    {(reportType === 'sem2' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">Annual</th>}
                                 </tr>
                             </thead>
                             <tbody>
                                 {behavior.progress && behavior.progress.map((item, index) => (
                                     <tr key={index} className="border-b border-gray-50 last:border-0">
                                         <td className="py-2 text-gray-800 font-medium">{item.area}</td>
-                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-[#0f172a] font-bold">{item.sem1}</td>}
                                         {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-[#0f172a] font-bold">{item.sem2}</td>}
                                     </tr>
                                 ))}
