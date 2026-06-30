@@ -222,11 +222,10 @@ exports.generateStudentReport = async (req, res) => {
   }
 };
 
-/**
- * @desc    Generate Reports for an Entire Class (AGGREGATION APPROACH)
- * @route   GET /api/reports/class/:gradeLevel
- * */
- exports.generateClassReports = async (req, res) => {
+
+// @desc    Generate class reports in batch
+// @route   GET /api/reports/class/:gradeLevel
+exports.generateClassReports = async (req, res) => {
     try {
         const { gradeLevel } = req.params;
         const { academicYear } = req.query; 
@@ -240,8 +239,7 @@ exports.generateStudentReport = async (req, res) => {
 
         const studentIds = students.map(s => s._id);
 
-        // 2. BULK FETCH (Optimization: 3 DB calls instead of 3 * N)
-        // Added SupportiveGrade.find here
+        // 2. BULK FETCH
         const [allGrades, allBehaviors, allSupportive] = await Promise.all([
             Grade.find({ student: { $in: studentIds } }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
             BehavioralReport.find({ student: { $in: studentIds } }),
@@ -251,29 +249,23 @@ exports.generateStudentReport = async (req, res) => {
         // 3. Process in Memory
         const classReports = students.map(student => {
             try {
-                // Filter relevant data for this student from the big lists
                 const rawGrades = allGrades.filter(g => g.student.toString() === student._id.toString());
                 const behaviorDocs = allBehaviors.filter(b => b.student.toString() === student._id.toString());
                 const rawSupportive = allSupportive.filter(s => s.student.toString() === student._id.toString());
 
-                // Process Logic (Same as single report)
                 const cleanedGrades = mergeDuplicateGrades(rawGrades, student.gradeLevel);
                 const statsSem1 = calculateStats(cleanedGrades, 'First Semester');
                 const statsSem2 = calculateStats(cleanedGrades, 'Second Semester');
 
-                // Process Supportive Grades (Letters)
                 const supportiveData = processSupportiveGrades(rawSupportive);
 
                 let finalAverage = 0;
                 if (statsSem1.avg > 0 && statsSem2.avg > 0) finalAverage = (statsSem1.avg + statsSem2.avg) / 2;
                 else finalAverage = statsSem1.avg + statsSem2.avg;
 
-                const gradeNumMatch = student.gradeLevel.match(/\d+/);
-                const nextGrade = gradeNumMatch ? parseInt(gradeNumMatch[0]) + 1 : null;
-                const promotedStr = nextGrade ? `Grade ${nextGrade}` : 'Next Level';
-
                 return {
                     studentInfo: {
+                        _id: student._id, // ⚠️ ማስተካከያ 1፦ የተማሪውን እውነተኛ የዳታቤዝ ID እዚህ ጋር አካትተናል! [2]
                         fullName: student.fullName,
                         studentId: student.studentId,
                         gradeLevel: student.gradeLevel,
@@ -282,10 +274,12 @@ exports.generateStudentReport = async (req, res) => {
                         photoUrl: student.imageUrl,
                         sex: student.gender,
                         age: calculateAge(student.dateOfBirth),
-                        promotedTo: finalAverage >= 50 ? promotedStr : 'Retained',
+                        // ⚠️ ማስተካከያ 2፦ የ "Grade X" ግትር ሎጂክ ጠፍቶ በቀጥታ 'Promoted' እንዲል ተደርጓል [2]
+                        // የፊት ለፊቱ ኮዳችን (getPromotionTarget) በራሱ 'Kg 2' ወይም 'Grade 2' እያለ ይተረጉመዋል [2]
+                        promotedTo: finalAverage >= 50 ? 'Promoted' : 'Retained',
                     },
                     grades: cleanedGrades,
-                    supportiveGrades: supportiveData, // <--- Added this to the batch report
+                    supportiveGrades: supportiveData,
                     semester1: statsSem1,
                     semester2: statsSem2,
                     finalAverage: parseFloat(finalAverage.toFixed(2)),
@@ -298,7 +292,7 @@ exports.generateStudentReport = async (req, res) => {
                 console.error(`Error processing student ${student.fullName}:`, err);
                 return null;
             }
-        }).filter(r => r !== null); // Remove failed entries
+        }).filter(r => r !== null);
 
         res.json({ success: true, count: classReports.length, data: classReports });
 

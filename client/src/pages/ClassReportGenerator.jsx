@@ -32,7 +32,7 @@ const ClassReportGenerator = () => {
         
         setLoading(true);
         setClassReportData([]);
-        setProgress(10);
+        setProgress(10); // የሂደት አሞሌ ማስጀመሪያ
 
         try {
             const res = await reportCardService.getClassReports(selectedGrade);
@@ -53,7 +53,7 @@ const ClassReportGenerator = () => {
             setProgress(70);
 
             const reportsWithRank = reports.map((report) => {
-                const dbStudentId = report.grades && report.grades[0] ? report.grades[0].student : null;
+                const dbStudentId = report.studentInfo?._id; 
                 
                 const rankData = (dbStudentId && batchRanks[dbStudentId]) 
                     ? batchRanks[dbStudentId] 
@@ -66,7 +66,7 @@ const ClassReportGenerator = () => {
             setProgress(100);
 
         } catch (err) {
-            console.error(err);
+            console.error("Error generating reports:", err);
             alert("Error generating reports");
             setProgress(0);
         } finally {

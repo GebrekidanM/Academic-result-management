@@ -79,7 +79,6 @@ const SubjectRosterPage = () => {
                 semester,
                 academicYear
             });
-            console.log(response.data)
             setRosterData(response.data);
         } catch (err) {
             setError(err.response?.data?.message || t('error'));

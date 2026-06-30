@@ -7,28 +7,37 @@ const isKindergarten = (gradeLevel) => {
     return /^(kg|nursery|pre)/i.test(gradeLevel);
 };
 
-// ⚠️ 2. የሚቀጥለውን ማስተላለፊያ ክፍል በራስ-ሰር ማስያ ሎጂክ [2]
+
 const getPromotionTarget = (gradeLevel, promotedToStatus) => {
     const status = promotedToStatus || '';
+    console.log(status)
+
     if (status.toLowerCase() !== 'promoted') {
-        return status; // Retained ወይም ሌላ የመጣውን ስታተስ እንዳለ ያሳያል
+        return status;
     }
+
     if (!gradeLevel) return 'Promoted';
 
     const trimmed = gradeLevel.trim();
 
-    // ሀ. የ Grade ማስተላለፊያ ስሌት (ለምሳሌ Grade 1A -> Grade 2) [2]
+    const nurseryMatch = trimmed.match(/^nursery/i);
+    if (nurseryMatch) return "Kg 1";
+
+    // 1. የ Grade ማስተላለፊያ ስሌት (ለምሳሌ Grade 1A -> Grade 2) [2]
     const gradeMatch = trimmed.match(/^grade\s*(\d+)/i);
+    console.log('grade',gradeMatch)
     if (gradeMatch) {
         const currentNum = parseInt(gradeMatch[1], 10);
         if (currentNum === 12) return "Graduated"; // 12ኛ ክፍል ከሆነ ይመረቃል
         return `Grade ${currentNum + 1}`;
     }
 
-    // ለ. የ KG ማስተላለፊያ ስሌት (ለምሳሌ Kg 1A -> Kg 2) [2]
+    // 2. የ KG ማስተላለፊያ ስሌት (ለምሳሌ Kg 1A -> Kg 2) [2]
     const kgMatch = trimmed.match(/^kg\s*(\d+)/i);
+    console.log('kg',kgMatch)
     if (kgMatch) {
         const currentNum = parseInt(kgMatch[1], 10);
+        console.log(currentNum)
         if (currentNum === 3) return "Grade 1"; // KG 3 ካጠናቀቀ ወደ Grade 1 ይሻገራል
         return `Kg ${currentNum + 1}`;
     }
@@ -267,7 +276,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                 </tbody>
                                 <tfoot>
                                     {validSupportiveList.map((r, i) => (
-                                        r.name && <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
+                                        r.name !== undefined && <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
                                             <td className="py-1.5 px-3 font-bold text-slate-700">{r.name}</td>
                                             {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem1 ?? '-'}</td>}
                                             {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem2 ?? '-'}</td>}
