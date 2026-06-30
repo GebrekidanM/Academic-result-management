@@ -154,7 +154,7 @@ const SemesterDetails = ({ semesterName, subjects, semesterRank,onGenerateAI, ai
       {/* SUBJECTS LIST */}
       <div className="grid grid-cols-1 gap-6">
         {subjects.map((subject) => (
-          <SubjectCard key={subject.id} subject={subject}/>
+          <SubjectCard key={subject._id || subject.id} subject={subject}/>
         ))}
       </div>
     </section>

@@ -62,7 +62,7 @@ const AskAIChat = ({ semesterName, subjects }) => {
         
         {messages.map((msg, index) => (
           <div key={index} className={`flex ${msg.sender === "parent" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed ${
+            <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
               msg.sender === "parent" 
                 ? "bg-indigo-600 text-white rounded-br-none" 
                 : msg.sender === "system"

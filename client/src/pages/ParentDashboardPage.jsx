@@ -1,5 +1,4 @@
 import React, { useEffect, useState, lazy, Suspense } from "react";
-// Import useTranslation to access i18n
 import { useTranslation } from "react-i18next"; 
 
 import useDashboardData from "@shared/hooks/useDashboardData";
@@ -20,27 +19,27 @@ const SemesterDetails = lazy(() => import("../components/parent-dashboard/Semest
 const QuizCenter = lazy(() => import("../components/parent-dashboard/QuizCenter"));
 
 const ParentDashboardPage = () => {
-  const { i18n } = useTranslation(); // 1. Added translation hook
+  const { i18n } = useTranslation(); 
   const { student, grades, reports, ranks, loading, error } = useDashboardData();
   const analytics = useAnalytics(grades);
 
   const [activeTab, setActiveTab] = useState("semester-2");
-  const[availableQuizzes, setAvailableQuizzes] = useState([]);
+  const [availableQuizzes, setAvailableQuizzes] = useState([]);
   const [quizStatuses, setQuizStatuses] = useState({});
   
-  // 2. Fixed AI States (Removed duplicate, added missing setAiInsight)
-  const[aiLoading, setAiLoading] = useState(false);
+  // AI States (ጥቅም የሌለው aiInsight ስቴት ተወግዷል)
+  const [aiLoading, setAiLoading] = useState(false);
   const [activeAiSemester, setActiveAiSemester] = useState(null);
   const [aiInsights, setAiInsights] = useState({});
-  const[aiInsight, setAiInsight] = useState(null); 
 
   useEffect(() => {
     const loadQuizzes = async () => {
       if (!student) return;
       try {
-        const academicYear = grades?.[0]?.academicYear;
+        // ⚠️ ማስተካከያ 1፦ የውጤቱን መጫን ሳይጠበቅብን በቀጥታ የተማሪውን year ፊልድ መውሰድ [2]
+        const academicYear = student.year;
         const response = await quizService.getAvailableQuizzes(student.gradeLevel, academicYear);
-        const quizzes = response.data.data ||[];
+        const quizzes = response.data.data || [];
         setAvailableQuizzes(quizzes);
         
         try {
@@ -65,29 +64,28 @@ const ParentDashboardPage = () => {
       }
     };
     loadQuizzes();
-  }, [student, grades]);
+  }, [student]);
 
   // =========================================
   // AUTO-LOAD SAVED AI INSIGHTS
   // =========================================
   useEffect(() => {
     const checkSavedInsight = async (semesterName) => {
-      // If we already loaded it into state, don't fetch again
-      if (aiInsights[semesterName]) return;
+      if (aiInsights[semesterName] || !student) return;
 
       try {
-        setAiLoading(true); // Optionally show loading skeleton
+        setAiLoading(true);
+        // ⚠️ ማስተካከያ 2፦ በቀጥታ የተማሪውን year ፊልድ መውሰድ [2]
         const response = await aiService.getSavedSemesterInsight({
           studentId: student._id,
           semester: semesterName,
-          academicYear: grades?.[0]?.academicYear,
+          academicYear: student.year,
           language: i18n.language
         });
 
-        // If the database has it, update the state!
         if (response.data.insight) {
           setAiInsights(prev => ({
-            ...prev,[semesterName]: response.data.insight
+            ...prev, [semesterName]: response.data.insight
           }));
         }
       } catch (error) {
@@ -102,7 +100,7 @@ const ParentDashboardPage = () => {
     } else if (activeTab === "semester-2") {
       checkSavedInsight("Second Semester");
     }
-  },[activeTab, student, grades, i18n.language, aiInsights]);
+  }, [activeTab, student, i18n.language, aiInsights]);
 
   const fetchSemesterAI = async (semester, analytics, force = false) => {
     try {
@@ -114,10 +112,11 @@ const ParentDashboardPage = () => {
       setAiLoading(true);
       setActiveAiSemester(semester);
 
+      // ⚠️ ማስተካከያ 3፦ በቀጥታ የተማሪውን year ፊልድ መውሰድ [2]
       const res = await aiService.generateSemesterInsight({
         studentId: student._id,
         semester,
-        academicYear: grades?.[0]?.academicYear,
+        academicYear: student.year,
         analytics,
         language: i18n.language,
         forceRegenerate: force
@@ -142,24 +141,25 @@ const ParentDashboardPage = () => {
   }
 
   const firstSemester = analytics?.semesterDetails?.["First Semester"] || [];
-  const secondSemester = analytics?.semesterDetails?.["Second Semester"] ||[];
+  const secondSemester = analytics?.semesterDetails?.["Second Semester"] || [];
 
   const renderOverview = () => (
     <FadeContainer>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 transition-all hover:-translate-y-1 hover:shadow-md hover:bg-gray-200">
+        {/* ⚠️ ማስተካከያ 4፦ hover:bg-gray-200 የነበረውን ወደ hover:bg-slate-100 ቀይረነዋል (ለበለጠ ውበት) */}
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 transition-all hover:-translate-y-1 hover:shadow-md hover:bg-slate-100">
           <p className="text-sm text-slate-500">Overall Average</p>
           <h2 className="text-3xl font-black text-slate-800 mt-2">{analytics.overallAverage?.toFixed(1)}%</h2>
         </div>
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 transition-all hover:-translate-y-1 hover:shadow-md hover:bg-gray-200">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 transition-all hover:-translate-y-1 hover:shadow-md hover:bg-slate-100">
           <p className="text-sm text-slate-500">Subjects</p>
           <h2 className="text-3xl font-black text-slate-800 mt-2">{analytics.totalSubjects}</h2>
         </div>
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 transition-all hover:-translate-y-1 hover:shadow-md hover:bg-gray-200">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 transition-all hover:-translate-y-1 hover:shadow-md hover:bg-slate-100">
           <p className="text-sm text-slate-500">Assessments</p>
           <h2 className="text-3xl font-black text-slate-800 mt-2">{analytics.totalAssessments}</h2>
         </div>
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 transition-all hover:-translate-y-1 hover:shadow-md hover:bg-gray-200">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 transition-all hover:-translate-y-1 hover:shadow-md hover:bg-slate-100">
           <p className="text-sm text-slate-500">Best Subject</p>
           <h2 className="text-2xl font-black text-slate-800 mt-2">{analytics.bestSubject?.subject}</h2>
           <p className="text-pink-600 font-bold mt-2">{analytics.bestSubject?.percentage?.toFixed(1)}%</p>
@@ -169,7 +169,7 @@ const ParentDashboardPage = () => {
   );
 
   const renderAnalytics = (semesterType) => {
-    let semesterData =[];
+    let semesterData = [];
     let semesterInsights = null;
 
     if (semesterType === "sem1") {
@@ -189,7 +189,6 @@ const ParentDashboardPage = () => {
             </Suspense>
           )}
 
-          {/* 3. Added Suspense Boundary for Lazy AcademicInsights */}
           <Suspense fallback={<div className="h-20 bg-slate-100 animate-pulse rounded-xl" />}>
             {semesterType === "overall" ? (
               <AcademicInsights insights={analytics.insights} />
@@ -198,7 +197,7 @@ const ParentDashboardPage = () => {
                 <AcademicInsights insights={semesterInsights} />
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                   {semesterData.map((subject, index) => (
-                    <div key={index} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:bg-gray-200 transition-all duration-300">
+                    <div key={index} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:bg-slate-100 transition-all duration-300">
                       <p className="text-sm font-bold text-slate-700">{subject.subjectName}</p>
                       <p className="text-pink-600 font-black text-xl mt-2">{subject.percentage?.toFixed(1)}%</p>
                     </div>
@@ -212,7 +211,7 @@ const ParentDashboardPage = () => {
     );
   };
 
-  const renderSemester = (semesterName, subjects, semesterRank,gradeLevel) => (
+  const renderSemester = (semesterName, subjects, semesterRank, gradeLevel) => (
     <FadeContainer>
       <Suspense fallback={<div className="h-64 bg-slate-100 animate-pulse rounded-xl" />}>
         <SemesterDetails 
@@ -249,8 +248,8 @@ const ParentDashboardPage = () => {
         {activeTab === "analytics-overall" && renderAnalytics("overall")}
         {activeTab === "analytics-sem1" && renderAnalytics("sem1")}
         {activeTab === "analytics-sem2" && renderAnalytics("sem2")}
-        {activeTab === "semester-1" && renderSemester("First Semester", firstSemester, ranks.sem1,student.gradeLevel)}
-        {activeTab === "semester-2" && renderSemester("Second Semester", secondSemester, ranks.sem2,student.gradeLevel)}
+        {activeTab === "semester-1" && renderSemester("First Semester", firstSemester, ranks.sem1, student.gradeLevel)}
+        {activeTab === "semester-2" && renderSemester("Second Semester", secondSemester, ranks.sem2, student.gradeLevel)}
 
         {activeTab === "quizzes" && (
           <FadeContainer>

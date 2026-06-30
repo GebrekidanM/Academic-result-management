@@ -64,7 +64,7 @@ const uploadPhoto = (studentId, file) => {
 };
 
 const resetPassword = (studentId) => {
-    return api.get(`${API_URL}/resetpassword/${studentId}`)
+    return api.put(`${API_URL}/resetpassword/${studentId}`)
 }
 
 // --- The final, complete export block ---

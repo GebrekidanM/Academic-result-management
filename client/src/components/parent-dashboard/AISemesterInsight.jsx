@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Sparkles, RefreshCcw, CheckCircle2, AlertTriangle, TrendingUp, Users } from "lucide-react";
-import aiService from "../../services/aiService";
+import aiService from "@shared/services/aiService";
 
 const AISemesterInsight = ({ studentId, semester, academicYear, analytics }) => {
   const { i18n } = useTranslation();
@@ -23,11 +23,16 @@ const AISemesterInsight = ({ studentId, semester, academicYear, analytics }) => 
       setLoading(true);
       const response = await aiService.generateSemesterInsight({studentId,semester,academicYear, analytics,language: i18n.language});
 
-      let parsedInsight = response.data.insight;
-      if (typeof parsedInsight === "string") {
-        parsedInsight = JSON.parse(parsedInsight);
+      try {
+        let parsedInsight = response.data.insight;
+        if (typeof parsedInsight === "string") {
+          parsedInsight = JSON.parse(parsedInsight);
+        }
+        setAiData(parsedInsight);
+      } catch (parseError) {
+        console.error("JSON parsing failed for AI insight:", parseError);
+        setAiData({ summary: response.data.insight });
       }
-      setAiData(parsedInsight);
       setCached(response.data.cached);
     } catch (err) {
       console.error(err);
