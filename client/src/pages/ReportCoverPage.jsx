@@ -22,20 +22,20 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
             `}</style>
 
             {/* === LEFT PANEL (BACK COVER) === */}
-            <div className="w-1/2 h-full bg-[#014450] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
+            <div className="w-1/2 h-full bg-[#176781] bg-navy-dark text-black flex flex-col justify-center items-center p-12 text-center relative z-20">
                 <div className="w-38 h-38 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl">
                     <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-cover " />
                 </div>
                 <h1 className="text-3xl font-montserrat font-bold tracking-widest leading-snug mb-2 uppercase">{schoolInfo.name}</h1>
                 <div className="w-12 h-1 bg-[#06b6d4] my-6 rounded"></div>
-                <p className="text-sm font-montserrat font-light opacity-80 leading-relaxed mb-12 max-w-sm mx-auto">
+                <p className="text-sm font-montserrat font-bold leading-relaxed mb-12 max-w-sm mx-auto">
                     "Empowering the next generation with knowledge, character, and excellence."
                 </p>
-                <div className="text-xs font-montserrat font-medium opacity-70 space-y-3">
-                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📍</span> <span>{schoolInfo.address}</span></div>
-                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📞</span> <span>{schoolInfo.phone}</span></div>
-                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">✉️</span> <span>{schoolInfo.email}</span></div>
-                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">🌐</span> <span>{schoolInfo.website}</span></div>
+                <div className="text-xs font-montserrat font-medium space-y-3">
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📍</span> <span className='text-[#000000]'>{schoolInfo.address}</span></div>
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📞</span> <span className='text-[#000000]'>{schoolInfo.phone}</span></div>
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">✉️</span> <span className='text-[#000000]'>{schoolInfo.email}</span></div>
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">🌐</span> <span className='text-[#000000]'>{schoolInfo.website}</span></div>
                 </div>
             </div>
 
@@ -44,7 +44,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
                 <div className="absolute top-0 right-0 w-[60%] h-full bg-[#CFF0F6] bg-cyan-light cover-diagonal-shape z-0"></div>
                 
                 <div className="relative z-10 h-full flex flex-col pt-24 pr-16 pl-8 text-right">
-                    <h3 className="text-sm font-montserrat font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-[0.3em] mb-2">Official Transcript</h3>
+                    <h3 className="text-sm font-montserrat font-bold text-[#021f24] text-cyan-bold uppercase tracking-[0.3em] mb-2">Official Transcript</h3>
                     <div className="flex flex-col items-end">
                         <h1 className="text-5xl font-oswald font-bold text-[#0f172a] leading-tight mb-2">
                             {getReportTitle()}<br/>

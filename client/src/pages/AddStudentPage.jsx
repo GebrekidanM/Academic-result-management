@@ -3,6 +3,13 @@ import studentService from '@shared/services/studentService';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
+function getCurrentAcademicYear() {
+    const today = new Date();
+    const gregYear = today.getFullYear();
+    const gregMonth = today.getMonth() + 1;
+    return gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
+}
+
 const AddStudentPage = () => {
     const { t } = useTranslation();
     const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -14,11 +21,17 @@ const AddStudentPage = () => {
         gender: 'Male',
         dateOfBirth: '',
         gradeLevel: '',
+        year: getCurrentAcademicYear().toString(), 
         motherName: '',
         motherContact: '',
         fatherContact: '',
         healthStatus: 'No known conditions',
     });
+
+    // ⚠️ 1. ለሶስቱ ሰነዶች የተለዩ የፋይል ስቴቶች (States)
+    const [transferLetter, setTransferLetter] = useState(null);
+    const [certificate, setCertificate] = useState(null);
+    const [nationalId, setNationalId] = useState(null);
 
     // --- State for RETURNING Student ---
     const [searchId, setSearchId] = useState('');
@@ -47,7 +60,7 @@ const AddStudentPage = () => {
 
     // --- Logic: Search for Existing Student ---
     const handleSearchStudent = async () => {
-        const trimmedId = searchId.trim().toUpperCase(); // Trim extra spaces
+        const trimmedId = searchId.trim().toUpperCase(); 
         if (!trimmedId) return;
         setLoading(true);
         setError(null);
@@ -77,11 +90,24 @@ const AddStudentPage = () => {
 
         try {
             if (regMode === 'new') {
-                const formattedData = {
-                    ...studentData,
-                    gradeLevel: studentData.gradeLevel.replace(/\b\w/g, c => c.toUpperCase())
-                };
-                const response = await studentService.createStudent(formattedData);
+                // ⚠️ 2. ፋይሎችን ወደ ሰርቨር ለመላክ ፔይሎዱን ወደ FormData መቀየር ግድ ነው [2]
+                const formDataPayload = new FormData();
+                formDataPayload.append('fullName', studentData.fullName);
+                formDataPayload.append('gender', studentData.gender);
+                formDataPayload.append('dateOfBirth', studentData.dateOfBirth);
+                formDataPayload.append('gradeLevel', studentData.gradeLevel.replace(/\b\w/g, c => c.toUpperCase()));
+                formDataPayload.append('year', studentData.year);
+                formDataPayload.append('motherName', studentData.motherName);
+                formDataPayload.append('motherContact', studentData.motherContact);
+                formDataPayload.append('fatherContact', studentData.fatherContact);
+                formDataPayload.append('healthStatus', studentData.healthStatus);
+
+                // ፋይሎቹ ከተመረጡ ብቻ ማያያዝ
+                if (transferLetter) formDataPayload.append('transferLetter', transferLetter);
+                if (certificate) formDataPayload.append('certificate', certificate);
+                if (nationalId) formDataPayload.append('nationalId', nationalId);
+
+                const response = await studentService.createStudent(formDataPayload);
                 setSuccess(response.data.data);
             } else {
                 if (!newGradeLevel) {
@@ -95,22 +121,19 @@ const AddStudentPage = () => {
                     thatYear: foundStudent.thatYear
                 });
 
-                if(response.ok){
-                    setSuccess({
-                        ...foundStudent,
-                        gradeLevel: newGradeLevel,
-                        isReRegistration: true
-                    });
-                    
-                    setSearchId('');
-                    setFoundStudent(null);
-                    setNewGradeLevel('');
-                    
-                }
+                setSuccess({
+                    ...foundStudent,
+                    gradeLevel: newGradeLevel,
+                    isReRegistration: true
+                });
+                
+                setSearchId('');
+                setFoundStudent(null);
+                setNewGradeLevel('');
             }
         } catch (err) {
             setError(err.response?.data?.message || t('error'));
-        }finally{
+        } finally {
              setLoading(false);
         }
     };
@@ -118,6 +141,7 @@ const AddStudentPage = () => {
     // --- Styling Variables ---
     const inputLabel = "block text-gray-700 text-sm font-bold mb-2";
     const textInput = "shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500";
+    const fileInput = "shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500 bg-gray-50 file:mr-4 file:py-1.5 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100";
     const textAreaInput = `${textInput} h-24 resize-y`;
     const submitButton = `w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 ${loading || !isOnline ? 'opacity-50 cursor-not-allowed' : ''}`;
 
@@ -146,7 +170,6 @@ const AddStudentPage = () => {
                         Returning Student
                     </button>
                 </div>
-                
 
                 <Link to="/students" className="text-pink-600 hover:underline font-bold text-sm">
                     &larr; {t('back')}
@@ -269,6 +292,11 @@ const AddStudentPage = () => {
                                 </div>
 
                                 <div>
+                                    <label htmlFor="year" className={inputLabel}>{t('academic_year') || "Academic Year"}</label>
+                                    <input id="year" type="text" name="year" value={studentData.year} onChange={handleChange} className={textInput} placeholder="e.g. 2018" required />
+                                </div>
+
+                                <div>
                                     <label htmlFor="gender" className={inputLabel}>{t('gender')}</label>
                                     <select id="gender" name="gender" value={studentData.gender} onChange={handleChange} className={textInput}>
                                         <option value="Male">{t('Male')}</option>
@@ -278,7 +306,7 @@ const AddStudentPage = () => {
 
                                 <div>
                                     <label htmlFor="dateOfBirth" className={inputLabel}>{t('dob')}</label>
-                                    <input id="dateOfBirth" type="text" placeholder='dd/mm/yyyy' name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
+                                    <input id="dateOfBirth" type="text" placeholder='yyyy-mm-dd' name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
                                 </div>
                             </div>
 
@@ -287,7 +315,7 @@ const AddStudentPage = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label htmlFor="motherName" className={inputLabel}>{t('parent_name')} (Mother)</label>
-                                        <input id="motherName" type="text" name="motherName" value={studentData.motherName} onChange={handleChange} className={textInput} />
+                                        <input id="motherName" type="text" name="motherName" value={studentData.motherName} onChange={handleChange} className={textInput} required />
                                     </div>
                                     <div>
                                         <label htmlFor="motherContact" className={inputLabel}>{t('contact')} (Mother)</label>
@@ -296,6 +324,56 @@ const AddStudentPage = () => {
                                     <div>
                                         <label htmlFor="fatherContact" className={inputLabel}>{t('contact')} (Father)</label>
                                         <input id="fatherContact" type="tel" name="fatherContact" value={studentData.fatherContact} onChange={handleChange} className={textInput} />
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            {/* ⚠️ 3. አዲሱ የሰነዶች መጫኛ ክፍል (Scanned Documents Section) */}
+                            <fieldset className="mt-8 border-t pt-6">
+                                <legend className="text-lg font-bold text-gray-700 mb-4 uppercase tracking-wide">
+                                    📂 {t('scanned_documents') || 'Scanned Documents (Optional)'}
+                                </legend>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* መሸኛ ደብዳቤ (Transfer Letter) */}
+                                    <div>
+                                        <label htmlFor="transferLetter" className={inputLabel}>
+                                            📄 {t('transfer_letter') || 'Transfer Letter (መሸኛ)'}
+                                        </label>
+                                        <input 
+                                            id="transferLetter" 
+                                            type="file" 
+                                            accept="image/*,application/pdf"
+                                            onChange={(e) => setTransferLetter(e.target.files[0])} 
+                                            className={fileInput} 
+                                        />
+                                    </div>
+
+                                    {/* ሰርተፊኬት (Certificate) */}
+                                    <div>
+                                        <label htmlFor="certificate" className={inputLabel}>
+                                            🎓 {t('prev_certificate') || 'Report Card (ሰርተፊኬት)'}
+                                        </label>
+                                        <input 
+                                            id="certificate" 
+                                            type="file" 
+                                            accept="image/*,application/pdf"
+                                            onChange={(e) => setCertificate(e.target.files[0])} 
+                                            className={fileInput} 
+                                        />
+                                    </div>
+
+                                    {/* ብሄራዊ መታወቂያ (National ID) */}
+                                    <div>
+                                        <label htmlFor="nationalId" className={inputLabel}>
+                                            🪪 {t('national_id') || 'National ID / Birth Cert.'}
+                                        </label>
+                                        <input 
+                                            id="nationalId" 
+                                            type="file" 
+                                            accept="image/*,application/pdf"
+                                            onChange={(e) => setNationalId(e.target.files[0])} 
+                                            className={fileInput} 
+                                        />
                                     </div>
                                 </div>
                             </fieldset>

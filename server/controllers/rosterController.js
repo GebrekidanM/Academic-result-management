@@ -60,7 +60,7 @@ exports.generateRoster = async (req, res) => {
 
                 // --- CALCULATION LOGIC ---
                 if (val1 !== null) {
-                    firstSemester.total += val1; // Math addition (not string)
+                    firstSemester.total += val1;
                     firstSemester.count++;
                     firstSemester.scores[subject.name] = parseFloat(val1.toFixed(2)); // Store pretty value
                 } else {

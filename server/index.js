@@ -40,6 +40,15 @@ app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/assessment-names', require('./routes/assessmentNameRoutes'))
 
+app.use((err, req, res, next) => {
+    console.error("❌ Express Global Error Caught:", err); // ትክክለኛውን ስህተት በተርሚናልህ ላይ ያትማል
+    res.status(500).json({ 
+        success: false, 
+        message: err.message || "An unexpected error occurred inside middleware",
+        error: err
+    });
+});
+
 app.get('/api/admin/temp-sanitize-db', async (req, res) => {
     try {
         await convertYearsToString();

@@ -9,7 +9,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         const sem1Grades = reportData.grades.filter(g => g.semester === 'First Semester');
         const sem2Grades = reportData.grades.filter(g => g.semester === 'Second Semester');
 
-        // Get unique subject names
         const allSubjects = new Set([
             ...sem1Grades.map(g => g.subject?.name),
             ...sem2Grades.map(g => g.subject?.name)
@@ -35,7 +34,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
             };
         });
 
-        // Your custom order
        const SUBJECT_PRIORITY = [
             "አማርኛ",
             "ENGLISH",
@@ -73,29 +71,39 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
         return "ANNUAL REPORT";
     };
 
-    // Safe Destructuring (Updated with your JSON keys)
+    // Safe Destructuring
     const { 
         studentInfo = {}, 
         semester1 = {}, 
         semester2 = {}, 
         finalAverage = '-', 
-        rank = {}, // This comes from the parent component merging it
+        rank = {}, 
         behavior = {},
         footerData = { sem1: {}, sem2: {} },
-        supportiveGrades={sem1:{},sem2:{}}
+        supportiveGrades = []
     } = reportData || {};
 
-    // Helper for Totals
+    const validSupportiveList = Array.isArray(supportiveGrades) ? supportiveGrades : [];
+
     const currentTotal = () => {
-        if (reportType === 'sem1') return semester1?.sum;
-        if (reportType === 'sem2') return semester2?.sum;
-        return (semester1?.sum || 0) + (semester2?.sum.toFixed(2) || 0);
+        if (reportType === 'sem1') {
+            return typeof semester1?.sum === 'number' ? semester1.sum.toFixed(2) : '0.00';
+        }
+        if (reportType === 'sem2') {
+            return typeof semester2?.sum === 'number' ? semester2.sum.toFixed(2) : '0.00';
+        }
+        const total = (semester1?.sum || 0) + (semester2?.sum || 0);
+        return total.toFixed(2);
     };
 
     const currentAvg = () => {
-        if (reportType === 'sem1') return semester1?.avg;
-        if (reportType === 'sem2') return semester2?.avg;
-        return finalAverage;
+        if (reportType === 'sem1') {
+            return typeof semester1?.avg === 'number' ? semester1.avg.toFixed(2) : '0.00';
+        }
+        if (reportType === 'sem2') {
+            return typeof semester2?.avg === 'number' ? semester2.avg.toFixed(2) : '0.00';
+        }
+        return typeof finalAverage === 'number' ? finalAverage.toFixed(2) : finalAverage;
     };
 
     // Automated Comment
@@ -113,20 +121,17 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
 
     return (
         <div className="report-card-container mb-0" style={{ pageBreakAfter: 'always' }}>
-            
             <div className="print-break">
                 <ReportCoverPage studentInfo={studentInfo} schoolInfo={schoolInfoData} getReportTitle={getReportTitle} />
             </div>
 
             <div className="w-[297mm] h-[210mm] bg-white shadow-2xl flex overflow-hidden relative print:shadow-none print:m-0 print:p-0">
-                
                 {/* --- INSIDE LEFT --- */}
                 <div className="w-1/2 h-full bg-[#f8fafc] p-8 flex flex-col border-r border-gray-200 relative z-10">
-                    {/* Student Header */}
                     <div className="flex gap-4 items-center mb-6">
                         <div className="w-20 h-22 rounded-2xl border-2 border-[#06b6d4] overflow-hidden shadow-md shrink-0 bg-white">
-                                {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
-                            </div>
+                            {studentInfo?.photoUrl ? <img src={studentInfo.photoUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-gray-200"></div>}
+                        </div>
                         <div>
                             <h2 className="text-xl font-montserrat font-bold text-[#0f172a]">{studentInfo?.fullName || '...'}</h2>
                             <div className="flex gap-2 text-xs font-bold text-gray-600 uppercase mt-1">
@@ -137,36 +142,31 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                         </div>
                     </div>
 
-                    {/* Behavior Table */}
                     <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 mb-4">
-                        <h3 className="text-[#06b6d4] text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#06b6d4]"></span> Behavioral Evaluation
+                        <h3 className="text-[#011a1f] text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#01161a]"></span> Behavioral Evaluation
                         </h3>
                         <table className="w-full text-xs border-collapse mb-2">
                             <thead>
                                 <tr className="text-gray-500 border-b border-gray-200">
                                     <th className="text-left font-bold pb-2">Trait</th>
-                                    {(reportType === 'sem1' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">S1</th>}
-                                    {(reportType === 'sem2' || reportType === 'year')&&<th className="text-center font-bold pb-2 w-10">S2</th>}
+                                    {(reportType === 'sem2' || reportType === 'year') && <th className="text-center font-bold pb-2 w-10">Annual</th>}
                                 </tr>
                             </thead>
                             <tbody>
-                                {/* Using 'behavior.progress' array from your JSON */}
                                 {behavior.progress && behavior.progress.map((item, index) => (
                                     <tr key={index} className="border-b border-gray-50 last:border-0">
                                         <td className="py-2 text-gray-800 font-medium">{item.area}</td>
-                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-[#0f172a] font-bold">{item.sem1}</td>}
                                         {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-[#0f172a] font-bold">{item.sem2}</td>}
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                        <div className="text-[10px] text-gray-500 text-center border-t border-gray-100 pt-1">
+                        <div className="text-[10px] text-gray-900 text-center border-t border-gray-100 pt-1">
                             <strong>Key:</strong> E=Excellent, VG=Very Good, G=Good, NI=Needs Improvement
                         </div>
                     </div>
 
-                    {/* Teacher's Note */}
                     <div className="mb-4">
                         <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Teacher's Note</h4>
                         <div className="p-3 bg-cyan-50 rounded text-xs text-cyan-900 leading-snug italic border border-cyan-100 h-10 print:bg-cyan-50 flex items-center">
@@ -174,7 +174,6 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                         </div>
                     </div>
 
-                    {/* Parent's Feedback */}
                     <div className="flex-1 flex flex-col">
                         <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">Parent's Feedback & Signature</h4>
                         <div className="flex-1 bg-white border border-gray-300 rounded relative overflow-hidden">
@@ -202,34 +201,25 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                 <thead>
                                     <tr className="bg-slate-900 text-white uppercase text-[10px] print:bg-slate-900">
                                         <th className="py-2 px-3 text-left w-1/2 rounded-l">Subject</th>
-                                        {(reportType === 'sem1' || reportType === 'year') && <th className="py-2 text-center">Sem 1</th>}
-                                        {(reportType === 'sem2' || reportType === 'year') && <th className="py-2 text-center">Sem 2</th>}
+                                        {(reportType === 'sem1' || reportType === 'year') && <th className="py-2 text-center">Semester 1</th>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <th className="py-2 text-center">Semester 2</th>}
                                         {reportType === 'year' && <th className="py-2 text-center rounded-r bg-[#06b6d4]">Avg</th>}
                                     </tr>
                                 </thead>
-                                {/* Updated JSX for the Table Body */}
                                 <tbody>
                                     {processedGrades.map((r, i) => (
                                         <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
                                             <td className="py-1.5 px-3 font-bold text-slate-700">{r.subjectName}</td>
-                                            
-                                            {/* Semester 1 */}
                                             {(reportType === 'sem1' || reportType === 'year') && (
                                                 <td className="text-center text-slate-700 font-medium border-l border-gray-100">
-                                                    {/* Safe check: is it a number? */}
                                                     {typeof r.firstSemester === 'number' ? r.firstSemester.toFixed(2) : (r.firstSemester || '-')}
                                                 </td>
                                             )}
-
-                                            {/* Semester 2 */}
                                             {(reportType === 'sem2' || reportType === 'year') && (
                                                 <td className="text-center text-slate-700 font-medium border-l border-gray-100">
-                                                    {/* Safe check: is it a number? */}
                                                     {typeof r.secondSemester === 'number' ? r.secondSemester.toFixed(2) : (r.secondSemester || '-')}
                                                 </td>
                                             )}
-
-                                            {/* Average */}
                                             {reportType === 'year' && (
                                                 <td className="text-center font-bold text-[#06b6d4] bg-cyan-50/30 border-l border-gray-100">
                                                     {typeof r.average === 'number' ? r.average.toFixed(2) : '-'}
@@ -239,41 +229,37 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                     ))}
                                 </tbody>
                                 <tfoot>
-                                    {supportiveGrades && supportiveGrades.map((r,i)=>(
-                                            <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
-                                                <td className="py-1.5 px-3 font-bold text-slate-700">{r.name}</td>
-                                                {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem1 ?? '-'}</td>}
-                                                {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem2 ?? '-'}</td>}
-                                            </tr>
-                                        ))}
+                                    {validSupportiveList.map((r, i) => (
+                                        <tr key={i} className="border-b border-gray-100 hover:bg-cyan-50">
+                                            <td className="py-1.5 px-3 font-bold text-slate-700">{r.name}</td>
+                                            {(reportType === 'sem1' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem1 ?? '-'}</td>}
+                                            {(reportType === 'sem2' || reportType === 'year') && <td className="text-center text-slate-700 font-medium">{r.sem2 ?? '-'}</td>}
+                                        </tr>
+                                    ))}
                                     <tr className="bg-white border-t border-gray-300">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
-                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}
-                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent || '-'}</td>}
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent === 0 ?'-' : footerData.sem1?.absent || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent === 0 ?'-' : footerData.sem1?.absent || '-'}</td>}
                                         {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
                                     </tr>
-                                    {/* Conduct */}
                                     <tr className="bg-white border-t border-gray-200">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-blue-900 tracking-wider">Conduct</td>
                                         {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem1?.conduct || '-'}</td>}
                                         {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-bold border-l border-gray-200">{footerData.sem2?.conduct || '-'}</td>}
                                         {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
                                     </tr>
-                                    {/* Total */}
                                     <tr className="bg-gray-50 border-t-2 border-slate-200 font-bold text-slate-800">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Total Score</td>
-                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.sum.toFixed(2) || 0}</td>}
-                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.sum.toFixed(2) || 0}</td>}
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{typeof semester1?.sum === 'number' ? semester1.sum.toFixed(2) : 0}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{typeof semester2?.sum === 'number' ? semester2.sum.toFixed(2) : 0}</td>}
                                         {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{currentTotal()}</td>}
                                     </tr>
-                                    {/* Average */}
                                     <tr className="bg-gray-50 border-t border-gray-200 font-bold text-slate-800">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider">Average</td>
-                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester1?.avg || 0}</td>}
-                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{semester2?.avg || 0}</td>}
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-gray-200">{typeof semester1?.avg === 'number' ? semester1.avg.toFixed(2) : 0}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center border-l border-gray-200">{typeof semester2?.avg === 'number' ? semester2.avg.toFixed(2) : 0}</td>}
                                         {reportType === 'year' && <td className="text-center border-l border-gray-200 text-[#0f172a]">{currentAvg()}</td>}
                                     </tr>
-                                    {/* Rank */}
                                     <tr className="bg-[#0f172a] text-white font-bold print:bg-[#0f172a] print:text-white">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] tracking-wider rounded-bl">Rank</td>
                                         {(reportType === 'sem1' || reportType === 'year') && <td className="text-center border-l border-slate-600">{rank?.sem1 || '-'}</td>}
@@ -292,7 +278,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                         </div>}
 
                         <div className="flex justify-between items-end">
-                            {['Homeroom', 'Director', 'Parent'].map((role) => (
+                            {['Homeroom', 'Director'].map((role) => (
                                 <div key={role} className="text-center w-1/3">
                                     <div className="h-4 border-b border-gray-300 w-2/3 mx-auto"></div>
                                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 block">{role}</span>

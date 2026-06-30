@@ -10,9 +10,8 @@ const isKindergarten = (gradeLevel) => {
 // --- Helper: Calculate Rank with Tie-Breaking ---
 const findRankInList = (sortedList, targetStudentId, scoreField) => {
     let rank = 0;
-    
+
     for (let i = 0; i < sortedList.length; i++) {
-        // If first student OR score is lower than previous, update rank
         if (i === 0 || sortedList[i][scoreField] < sortedList[i - 1][scoreField]) {
             rank = i + 1;
         }
@@ -37,14 +36,20 @@ exports.getSemesterRank = async (req, res) => {
 
     try {
         const rankedList = await Grade.aggregate([
+            // ⚠️ ማስተካከያ 1፦ መጀመሪያ በ Grade ላይ ፊልተር ማድረግ (እጅግ በጣም ፈጣን ያደርገዋል) [1]
+            {
+                $match: {
+                    academicYear: academicYear,
+                    semester: semester
+                }
+            },
+            // ⚠️ ጆይኑ የሚሰራው ፊልተር ከተደረጉት ጥቂት መቶ ሰነዶች ጋር ብቻ ነው [1]
             { $lookup: { from: 'students', localField: 'student', foreignField: '_id', as: 'studentInfo' } },
             { $unwind: '$studentInfo' },
             {
                 $match: {
                     'studentInfo.gradeLevel': gradeLevel,
-                    'studentInfo.status': 'Active',
-                    academicYear: academicYear,
-                    semester: semester
+                    'studentInfo.status': 'Active'
                 }
             },
             {
@@ -78,13 +83,18 @@ exports.getOverallRank = async (req, res) => {
 
     try {
         const rankedList = await Grade.aggregate([
+            // ⚠️ ማስተካከያ 2፦ መጀመሪያ በ Grade ላይ ፊልተር ማድረግ (እጅግ በጣም ፈጣን ያደርገዋል) [1]
+            {
+                $match: {
+                    academicYear: academicYear
+                }
+            },
             { $lookup: { from: 'students', localField: 'student', foreignField: '_id', as: 'studentInfo' } },
             { $unwind: '$studentInfo' },
             {
                 $match: {
                     'studentInfo.gradeLevel': gradeLevel,
-                    'studentInfo.status': 'Active',
-                    academicYear: academicYear,
+                    'studentInfo.status': 'Active'
                 }
             },
             {
@@ -105,3 +115,75 @@ exports.getOverallRank = async (req, res) => {
     }
 };
 
+// @desc    Get ranks for all students in a class at once (Batch Rank)
+// @route   GET /api/ranks/class-batch
+// @desc    Get all ranks (Sem 1, Sem 2, Overall) for all students in a class at once (Enterprise Batch API)
+// @route   GET /api/ranks/class-batch-all
+exports.getClassRanksBatchAll = async (req, res) => {
+    const { gradeLevel, academicYear } = req.query;
+
+    if (!gradeLevel || !academicYear) {
+        return res.status(400).json({ message: 'Grade level and Academic Year are required.' });
+    }
+
+    try {
+        // ⚠️ 1. የክፍሉን ተማሪዎች በሙሉ መፈለግ
+        const students = await Student.find({ gradeLevel, status: 'Active' }).select('_id');
+        const studentIds = students.map(s => s._id);
+
+        // ⚠️ 2. የሰሚስተር 1 ደረጃዎችን በጅምላ ማስላት [1]
+        const sem1List = await Grade.aggregate([
+            { $match: { academicYear, semester: 'First Semester', student: { $in: studentIds } } },
+            { $group: { _id: '$student', score: { $sum: '$finalScore' } } },
+            { $sort: { score: -1 } }
+        ]);
+
+        // ⚠️ 3. የሰሚስተር 2 ደረጃዎችን በጅምላ ማስላት [1]
+        const sem2List = await Grade.aggregate([
+            { $match: { academicYear, semester: 'Second Semester', student: { $in: studentIds } } },
+            { $group: { _id: '$student', score: { $sum: '$finalScore' } } },
+            { $sort: { score: -1 } }
+        ]);
+
+        // ⚠️ 4. የዓመታዊ (Overall) ደረጃዎችን በጅምላ ማስላት [1]
+        const overallList = await Grade.aggregate([
+            { $match: { academicYear, student: { $in: studentIds } } },
+            { $group: { _id: '$student', score: { $avg: '$finalScore' } } },
+            { $sort: { score: -1 } }
+        ]);
+
+        // ደረጃዎችን የማዘጋጃ ረዳት ፈንክሽን
+        const buildRankMap = (sortedList, scoreField) => {
+            const map = {};
+            let rank = 0;
+            for (let i = 0; i < sortedList.length; i++) {
+                if (i === 0 || sortedList[i][scoreField] < sortedList[i - 1][scoreField]) {
+                    rank = i + 1;
+                }
+                map[sortedList[i]._id.toString()] = `${rank} / ${sortedList.length}`;
+            }
+            return map;
+        };
+
+        const sem1Map = buildRankMap(sem1List, 'score');
+        const sem2Map = buildRankMap(sem2List, 'score');
+        const overallMap = buildRankMap(overallList, 'score');
+
+        // ⚠️ 5. ሁሉንም ደረጃዎች በአንድ ላይ ማዋሃድ (የተማሪ ID ➡️ {sem1, sem2, overall}) [2]
+        const finalRanksMap = {};
+        studentIds.forEach(id => {
+            const idStr = id.toString();
+            finalRanksMap[idStr] = {
+                sem1: sem1Map[idStr] || '-',
+                sem2: sem2Map[idStr] || '-',
+                overall: overallMap[idStr] || '-'
+            };
+        });
+
+        res.status(200).json({ success: true, ranks: finalRanksMap });
+
+    } catch (error) {
+        console.error("Batch Rank Controller Error:", error);
+        res.status(500).json({ message: 'Server error calculating batch ranks' });
+    }
+};

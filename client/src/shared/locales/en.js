@@ -82,7 +82,7 @@ export const en = {
     promoted_to: "Promoted To",
     date: "Date",
     conduct: "Conduct",
-    teacher_comment: "Teacher's Comment",
+    teacher_comment: "Homeroom's Signature",
     director_sign: "Director's Signature",
     parent_sign: "Parent's Signature",
     homeroom_teacher: "Homeroom Teacher",

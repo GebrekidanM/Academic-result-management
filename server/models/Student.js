@@ -21,11 +21,13 @@ const studentSchema = new mongoose.Schema({
     motherContact: { type: String, trim: true, default: '' },
     fatherContact: { type: String, trim: true, default: '' },
     healthStatus: { type: String, trim: true, default: 'No known conditions' },
-    academicHistory: [{
-            year: String,
-            gradeAtThatTime: String,
-            statusAtEnd: String,
-        }],
+    academicHistory: [{year: String, gradeAtThatTime: String, statusAtEnd: String,}],
+    transferLetterUrl: { type: String, default: '' },
+    transferLetterPublicId: { type: String, default: '' },
+    certificateUrl: { type: String, default: '' },
+    certificatePublicId: { type: String, default: '' },
+    nationalIdUrl: { type: String, default: '' },
+    nationalIdPublicId: { type: String, default: '' }
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

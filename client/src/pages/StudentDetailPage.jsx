@@ -19,7 +19,7 @@ const StudentDetailPage = () => {
     const [reports, setReports] = useState([]);
     const [ranks, setRanks] = useState({ sem1: '-', sem2: '-', overall: '-' });
     
-    // ⚠️ 1. አዲሱ ንቁ ሴሚስተር መቆጣጠሪያ ስቴት (Default: First Semester)
+    // ንቁ ሴሚስተር መቆጣጠሪያ ስቴት (Default: First Semester)
     const [activeSemester, setActiveSemester] = useState('First Semester');
     
     const [loading, setLoading] = useState(true);
@@ -56,9 +56,9 @@ const StudentDetailPage = () => {
 
                 if (studentData) {
                     const gradeLevel = studentData.gradeLevel;
-                    const academicYear = fetchedGrades.length > 0 ? fetchedGrades[0].academicYear 
-                                     : reports.length > 0 ? reports[0].academicYear 
-                                     : '2017';
+                    
+                    // ⚠️ ማስተካከያ፦ ግምቶችን በሙሉ በማጥፋት በቀጥታ የተማሪውን year ፊልድ መውሰድ [2]
+                    const academicYear = studentData.year || '2018';
 
                     const rankResult = await rankService.getRankByStudent(id, gradeLevel, academicYear);
                     setRanks(rankResult);
@@ -81,19 +81,24 @@ const StudentDetailPage = () => {
     const isHomeroomTeacher = currentUser?.role === 'teacher' && student && currentUser.homeroomGrade === student.gradeLevel;
     const canViewFullInsights = isAdmin || isHomeroomTeacher;
 
-    // ⚠️ 2. ውጤቶችን በሴሚስተር ብቻ መለየት
+    // ውጤቶችን በሴሚስተር ብቻ መለየት
     const semesterGrades = useMemo(() => {
         return grades.filter(g => g.semester === activeSemester);
     }, [grades, activeSemester]);
 
-    // ⚠️ 3. የክፍል ደረጃን በሴሚስተር መለየት
+    // ⚠️ 1. አዲሱ የባህሪ ሪፖርቶች በሴሚስተር የመለያ ሎጂክ
+    const semesterReports = useMemo(() => {
+        return reports.filter(r => r.semester === activeSemester);
+    }, [reports, activeSemester]);
+
+    // የክፍል ደረጃን በሴሚስተር መለየት
     const displayRank = useMemo(() => {
         if (activeSemester === 'First Semester') return ranks.sem1;
         if (activeSemester === 'Second Semester') return ranks.sem2;
         return ranks.overall;
     }, [ranks, activeSemester]);
 
-    // ⚠️ 4. አማካይ ውጤትን በሴሚስተር ብቻ ማስላት
+    // አማካይ ውጤትን በሴሚስተር ብቻ ማስላት
     const academicStats = useMemo(() => {
         if (!semesterGrades || semesterGrades.length === 0) return { average: 0 };
         let grandTotal = 0;
@@ -126,7 +131,7 @@ const StudentDetailPage = () => {
         });
     }, [semesterGrades, currentUser, isAdmin, isHomeroomTeacher]);
 
-    // ⚠️ 5. የአካዳሚክ ግንዛቤዎችን በሴሚስተር መለየት
+    // የአካዳሚክ ግንዛቤዎችን በሴሚስተር መለየት
     const insights = useMemo(() => {
         if (!semesterGrades || semesterGrades.length === 0) return null;
         const categories = { critical: [], average: [], good: [], excellent: [] };
@@ -226,9 +231,9 @@ const StudentDetailPage = () => {
                                     {t(student.status.toLowerCase()) || student.status}
                                 </span>
                             </h2>
-                            <p className="text-gray-500 mt-1 text-sm font-mono">{t('id_no')}: {student.studentId}</p>
+                            <p className="text-gray-500 mt-1 text-sm font-mono">{t('id_no')}: {student.studentId} | {t('academic_year')}: {student.year || '-'}</p>
                             
-                            {/* ⚠️ 6. የሴሚስተር ስም በአማካኝ እና በደረጃ ካርዶች ላይ ተጨምሯል */}
+                            {/* የሴሚስተር ስም በአማካኝ እና በደረጃ ካርዶች ላይ ተጨምሯል */}
                             <div className="flex gap-4 mt-3">
                                 <div className="bg-blue-50 px-3 py-1 rounded border border-blue-200 text-center">
                                     <span className="block text-xs text-blue-500 font-bold uppercase">
@@ -276,7 +281,7 @@ const StudentDetailPage = () => {
                 </div>
             </div>
 
-            {/* ⚠️ 7. አዲሱ የሴሚስተር ታብ መቀያየሪያ (Semester Tab Switcher) */}
+            {/* የሴሚስተር ታብ መቀያየሪያ */}
             <div className="flex gap-2 border-b pb-4 mb-4">
                 <button
                     onClick={() => setActiveSemester('First Semester')}
@@ -360,6 +365,55 @@ const StudentDetailPage = () => {
                 </div>
             )}
 
+            {/* ⚠️ 3. አዲሱ የአባሪ ሰነዶች ክፍል (Scanned Attachments Section) */}
+            {canViewFullInsights && (student.transferLetterUrl || student.certificateUrl || student.nationalIdUrl) && (
+                <div className={sectionWrapper}>
+                    <h3 className={`${sectionTitle} mb-4 flex items-center gap-2`}>
+                        📂 {t('student_attachments') || 'Scanned Attachments'}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {/* መሸኛ ደብዳቤ (Transfer Letter) */}
+                        {student.transferLetterUrl && (
+                            <a 
+                                href={student.transferLetterUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:border-slate-300 transition-all font-bold text-sm text-slate-700"
+                            >
+                                <span>📄 {t('transfer_letter') || 'Transfer Letter (መሸኛ)'}</span>
+                                <span className="text-pink-600">View &rarr;</span>
+                            </a>
+                        )}
+
+                        {/* ሰርተፊኬት (Certificate) */}
+                        {student.certificateUrl && (
+                            <a 
+                                href={student.certificateUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:border-slate-300 transition-all font-bold text-sm text-slate-700"
+                            >
+                                <span>🎓 {t('prev_certificate') || 'Report Card (ሰርተፊኬት)'}</span>
+                                <span className="text-pink-600">View &rarr;</span>
+                            </a>
+                        )}
+
+                        {/* ብሄራዊ መታወቂያ (National ID) */}
+                        {student.nationalIdUrl && (
+                            <a 
+                                href={student.nationalIdUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:border-slate-300 transition-all font-bold text-sm text-slate-700"
+                            >
+                                <span>🪪 {t('national_id') || 'National ID / Birth Cert.'}</span>
+                                <span className="text-pink-600">View &rarr;</span>
+                            </a>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* 3. Grades Table */}
             <div className={sectionWrapper}>
                 <h3 className={sectionTitle}>{t('detailed_grades')} ({activeSemester === 'First Semester' ? t('sem_1') : t('sem_2')})</h3>
@@ -396,12 +450,14 @@ const StudentDetailPage = () => {
             {/* 4. Behavioral Reports */}
             <div className={sectionWrapper}>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className={sectionTitle}>{t('behavioral_traits')}</h3>
+                    <h3 className={sectionTitle}>{t('behavioral_traits')} ({activeSemester === 'First Semester' ? t('sem_1') : t('sem_2')})</h3>
                     {canViewFullInsights && <Link to={`/reports/add/${student._id}`} className={`${buttonBase} bg-blue-500 hover:bg-blue-600 text-white`}>{t('add_new_report')}</Link>}
                 </div>
-                {reports.length ? (
+                
+                {/* ⚠️ 4. የባህሪ ሪፖርቶች በ Memoized semesterReports ተተክተው በሴሚስተር እንዲለዩ ተደርጓል [2] */}
+                {semesterReports && semesterReports.length ? (
                     <div className="space-y-4">
-                        {reports.map(report => (
+                        {semesterReports.map(report => (
                             <div key={report._id} className="bg-gray-50 p-4 rounded-lg border border-pink-300">
                                 <div className="flex justify-between items-center">
                                     <h4 className="font-bold text-gray-700">
@@ -426,10 +482,9 @@ const StudentDetailPage = () => {
                                     }
                                 </ul>
                             </div>
-
                         ))}
                     </div>
-                ) : <p className="text-gray-500 text-center py-4">{t('no_comments')}</p>}
+                ) : <p className="text-gray-500 text-center py-4">{t('no_comments') || 'No behavioral reports found for this semester.'}</p>}
             </div>
 
             <Link to="/students" className="text-pink-500 hover:underline">← {t('back')}</Link>

@@ -156,8 +156,31 @@ exports.createStudent = async (req, res) => {
 
         const capitalizedFullName = capitalizeName(fullName);
         const initialPassword = `${getFirstName(capitalizedFullName)}@${year}`;
-        const student = new Student({ fullName: capitalizedFullName, gender, dateOfBirth,
-            gradeLevel, year: String(year), password: initialPassword, motherName, motherContact, fatherContact, healthStatus
+
+        // ⚠️ 1. የሰነዶቹን ፋይሎች ከ req.files ላይ በደህንነት መለየት [2]
+        const transferLetter = req.files && req.files['transferLetter'] ? req.files['transferLetter'][0] : null;
+        const certificate = req.files && req.files['certificate'] ? req.files['certificate'][0] : null;
+        const nationalId = req.files && req.files['nationalId'] ? req.files['nationalId'][0] : null;
+
+        const student = new Student({
+            fullName: capitalizedFullName,
+            gender,
+            dateOfBirth,
+            gradeLevel,
+            year: String(year),
+            password: initialPassword,
+            motherName,
+            motherContact,
+            fatherContact,
+            healthStatus,
+
+            // ⚠️ 2. የሰነዶቹን የፋይል አድራሻዎች በሞዴሉ ውስጥ መጫን [2]
+            transferLetterUrl: transferLetter ? transferLetter.path : '',
+            transferLetterPublicId: transferLetter ? transferLetter.filename : '',
+            certificateUrl: certificate ? certificate.path : '',
+            certificatePublicId: certificate ? certificate.filename : '',
+            nationalIdUrl: nationalId ? nationalId.path : '',
+            nationalIdPublicId: nationalId ? nationalId.filename : ''
         });
 
         await student.save(); 
