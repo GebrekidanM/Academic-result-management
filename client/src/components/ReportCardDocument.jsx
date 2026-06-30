@@ -193,7 +193,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{schoolInfoData.name}</h3>
                                 <h2 className="text-xl font-black text-[#0f172a] uppercase">Academic Results</h2>
                             </div>
-                            <span className="text-xs font-bold bg-[#06b6d4] text-white px-2 py-0.5 rounded print:bg-[#06b6d4]">{getReportTitle()}</span>
+                            <span className="text-xs font-bold bg-[#06b6d4] text-[#0f172a] px-2 py-0.5 rounded print:bg-[#06b6d4]">{getReportTitle()}</span>
                         </div>
 
                         <div className="flex-1 overflow-hidden">

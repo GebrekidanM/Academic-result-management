@@ -48,7 +48,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
                     <div className="flex flex-col items-end">
                         <h1 className="text-5xl font-oswald font-bold text-[#0f172a] leading-tight mb-2">
                             {getReportTitle()}<br/>
-                            <span className="text-[#06b6d4]">CARD</span>
+                            <span className="text-[#0f172a]">CARD</span>
                         </h1>
                     </div>
                     <div className="mt-6 flex justify-end">
@@ -59,7 +59,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
                         <div className="flex flex-col items-end border-r-4 border-[#06b6d4] pr-4">
                             <h2 className="text-4xl font-montserrat font-bold text-[#0f172a] mb-1">{studentName}</h2>
                             <p className="text-sm font-bold text-gray-500 font-mono tracking-wide">ID: {studentId}</p>
-                            <p className="text-sm font-bold text-[#06b6d4] text-cyan-bold uppercase tracking-wide">{grade}</p>
+                            <p className="text-sm font-bold text-[#0f172a] text-cyan-bold uppercase tracking-wide">{grade}</p>
                         </div>
                     </div>
                 </div>
