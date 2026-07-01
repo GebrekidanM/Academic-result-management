@@ -2,18 +2,7 @@ import React, { useMemo } from 'react';
 import { Link } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { Line, Bar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Filler,
-  Legend,
-} from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Filler, Legend} from 'chart.js';
 import ActionCard from './ActionCard';
 import StatCard from './StatCard';
 
@@ -84,7 +73,7 @@ function IsAdmin({ currentUser, profileData, stats }) {
     <div className="space-y-8 mb-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <StatCard 
                     title={t('active_students')} 
                     link='/students' 

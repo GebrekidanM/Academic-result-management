@@ -22,7 +22,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
             `}</style>
 
             {/* === LEFT PANEL (BACK COVER) === */}
-            <div className="w-1/2 h-full bg-[#176781] bg-navy-dark text-black flex flex-col justify-center items-center p-12 text-center relative z-20">
+            <div className="w-1/2 h-full bg-[#0f4e63] bg-navy-dark text-white flex flex-col justify-center items-center p-12 text-center relative z-20">
                 <div className="w-38 h-38 mb-6 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-2xl">
                     <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-cover " />
                 </div>
@@ -31,11 +31,11 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
                 <p className="text-sm font-montserrat font-bold leading-relaxed mb-12 max-w-sm mx-auto">
                     "Empowering the next generation with knowledge, character, and excellence."
                 </p>
-                <div className="text-xs font-montserrat font-medium space-y-3">
-                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📍</span> <span className='text-[#000000]'>{schoolInfo.address}</span></div>
-                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📞</span> <span className='text-[#000000]'>{schoolInfo.phone}</span></div>
-                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">✉️</span> <span className='text-[#000000]'>{schoolInfo.email}</span></div>
-                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">🌐</span> <span className='text-[#000000]'>{schoolInfo.website}</span></div>
+                <div className="text-xs font-montserrat font-bold space-y-3">
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📍</span> <span className='text-[#ffffff]'>{schoolInfo.address}</span></div>
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">📞</span> <span className='text-[#ffffff]'>{schoolInfo.phone}</span></div>
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">✉️</span> <span className='text-[#ffffff]'>{schoolInfo.email}</span></div>
+                    <div className="flex items-center justify-center gap-2"><span className="text-[#06b6d4]">🌐</span> <span className='text-[#ffffff]'>{schoolInfo.website}</span></div>
                 </div>
             </div>
 

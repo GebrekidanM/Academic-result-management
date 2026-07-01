@@ -274,8 +274,8 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                                     ))}
                                     <tr className="bg-white border-t border-gray-300">
                                         <td className="py-2 px-3 text-right uppercase text-[9px] font-bold text-red-600 tracking-wider">Absent</td>
-                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent || '-'}</td>}
-                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent || '-'}</td>}
+                                        {(reportType === 'sem1' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem1?.absent === "0" ? '-' : footerData.sem1?.absent || '-'}</td>}
+                                        {(reportType === 'sem2' || reportType === 'year') && <td className="text-center font-medium border-l border-gray-200">{footerData.sem2?.absent === "0" ? '-' : footerData.sem2?.absent || '-'}</td>}
                                         {reportType === 'year' && <td className="text-center border-l border-gray-200 bg-gray-50">-</td>}
                                     </tr>
                                     <tr className="bg-white border-t border-gray-200">
@@ -322,7 +322,7 @@ const ReportCardDocument = ({ reportData, schoolInfoData, reportType = 'year' })
                             {['Homeroom', 'Director'].map((role) => (
                                 <div key={role} className="text-center w-1/3">
                                     <div className="h-4 border-b border-gray-300 w-2/3 mx-auto"></div>
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 block">{role}</span>
+                                    <span className="text-[9px] font-bold text-gray-700 uppercase tracking-widest mt-1 block">{role}</span>
                                 </div>
                             ))}
                         </div>

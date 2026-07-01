@@ -11,7 +11,6 @@ const ParentAttendanceTracker = ({ studentId }) => {
     useEffect(() => {
         const fetchStudentAttendance = async () => {
             try {
-                // የተማሪውን መገኘት መረጃዎች መጫን
                 const res = await attendanceService.getStudentAttendance(studentId);
                 setStats(res.data.stats);
                 setHistory(res.data.history);

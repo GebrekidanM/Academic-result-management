@@ -8,7 +8,7 @@ const evaluationSchema = new mongoose.Schema({
     result: {
         type: String,
         required: true,
-        enum: ['E', 'VG', 'G', 'NI'] // Excellent, Very Good, Good, Needs Improvement
+        enum: ['E', 'VG', 'G', 'NI']
     }
 }, { _id: false });
 
