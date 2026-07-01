@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import userService from '@shared/services/userService';
 import authService from '@shared/services/authService';
-import studentAuthService from '@shared/services/studentAuthService';
 import dashboardService from '@shared/services/dashboardService';
-import LoggedOut from "./HomePage/LoggedOut"
 import IsAdmin from './HomePage/IsAdmin';
 import IsStaff from './HomePage/IsStaff';
-import LandingPage from './LandingPage';
 import LoginPage from './LoginPage';
 
 // --- Premium SaaS-Style Level Badge ---
@@ -45,10 +42,15 @@ const HomePage = ({ currentUser }) => {
     const { t } = useTranslation();
 
     const [profileData, setProfileData] = useState(null);
-    const[stats, setStats] = useState(null);
+    const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // --- Data Fetching (Untouched logic) ---
+    // Initials for avatar
+    const getInitials = (name) => {
+        if (!name) return 'A';
+        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    };
+
     useEffect(() => {
         const loadDashboardData = async () => {
             if (!currentUser) {
@@ -84,7 +86,6 @@ const HomePage = ({ currentUser }) => {
         loadDashboardData();
     }, [currentUser]);
 
-    // --- Elegant Loading State ---
     if (loading) {
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
@@ -94,17 +95,14 @@ const HomePage = ({ currentUser }) => {
         );
     }
     
-    // --- Visitor View ---
     if (!currentUser) {
         return <LoginPage />;
     }
 
-    // --- Parent Redirect ---
     if (currentUser.role === 'parent') {
         return <Navigate to="/parent/dashboard" replace />;
     }
 
-    // Safety check just in case profileData didn't load
     if (!profileData) return null;
 
     const { role, schoolLevel } = profileData;
@@ -113,12 +111,27 @@ const HomePage = ({ currentUser }) => {
     if (role === 'admin') {
         return (
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-                <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-6 mb-8">
+                {/* ⚠️ ማስተካከያ፦ አጠቃላይ የአስተዳዳሪው መረጃ እዚህ ጋር በትንሹ ቀኝ ማዕዘን (Corner) ላይ ተቀምጧል */}
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-8">
                     <div>
                         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('Admin dashboard')}</h1>
                         <p className="mt-1 text-sm text-slate-500">{t('manage institution overview')}</p>
                     </div>
-                    <LevelBadge level={schoolLevel} />
+                    
+                    {/* Compact Corner Profile & Level Badge [2] */}
+                    <div className="flex items-center gap-3">
+                        <LevelBadge level={schoolLevel} />
+                        <Link 
+                            to="/profile" 
+                            state={{ profileData }} 
+                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm"
+                        >
+                            <div className="w-6 h-6 rounded-full bg-blue-50 text-pink-600 flex items-center justify-center text-[10px] font-black">
+                                {getInitials(currentUser.fullName)}
+                            </div>
+                            <span>{currentUser.fullName?.split(' ')[0]}</span>
+                        </Link>
+                    </div>
                 </header>
                 <IsAdmin stats={stats} profileData={profileData} currentUser={currentUser} />
             </div>
@@ -138,26 +151,35 @@ const HomePage = ({ currentUser }) => {
     if (role === 'staff') {
         return (
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in flex flex-col gap-10">
-                
-                {/* Header */}
-                <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-6">
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
                     <div>
                         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('staff_dashboard')}</h1>
                         <p className="mt-1 text-sm text-slate-500">{t('overview_and_management')}</p>
                     </div>
-                    <LevelBadge level={schoolLevel} />
+                    
+                    {/* Compact Corner Profile & Level Badge for Staff [2] */}
+                    <div className="flex items-center gap-3">
+                        <LevelBadge level={schoolLevel} />
+                        <Link 
+                            to="/profile" 
+                            state={{ profileData }} 
+                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm"
+                        >
+                            <div className="w-6 h-6 rounded-full bg-blue-50 text-pink-600 flex items-center justify-center text-[10px] font-black">
+                                {getInitials(currentUser.fullName)}
+                            </div>
+                            <span>{currentUser.fullName?.split(' ')[0]}</span>
+                        </Link>
+                    </div>
                 </header>
 
-                {/* Admin Module */}
                 <section>
                     <IsAdmin stats={stats} profileData={profileData} currentUser={currentUser} />
                 </section>
 
-                {/* Teaching Module */}
                 {(profileData.subjectsTaught?.length > 0 || profileData.homeroomGrade) && (
                     <section className="pt-8 border-t border-slate-200">
                         <div className="flex items-center gap-3 mb-6">
-                            {/* Subtle Icon Box */}
                             <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-pink-600">
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
@@ -170,7 +192,6 @@ const HomePage = ({ currentUser }) => {
                         <IsStaff profileData={profileData} />
                     </section>
                 )}
-                
             </div>
         );
     }

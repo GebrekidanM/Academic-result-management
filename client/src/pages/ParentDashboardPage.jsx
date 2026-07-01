@@ -17,6 +17,8 @@ const PerformanceChart = lazy(() => import("../components/parent-dashboard/Perfo
 const AcademicInsights = lazy(() => import("../components/parent-dashboard/AcademicInsights"));
 const SemesterDetails = lazy(() => import("../components/parent-dashboard/SemesterDetails"));
 const QuizCenter = lazy(() => import("../components/parent-dashboard/QuizCenter"));
+const ParentAttendanceTracker = lazy(() => import("../components/parent-dashboard/ParentAttendanceTracker"));
+const ScheduleForClass = lazy(() => import("./ScheduleForClass"));
 
 const ParentDashboardPage = () => {
   const { i18n } = useTranslation(); 
@@ -250,6 +252,21 @@ const ParentDashboardPage = () => {
         {activeTab === "analytics-sem2" && renderAnalytics("sem2")}
         {activeTab === "semester-1" && renderSemester("First Semester", firstSemester, ranks.sem1, student.gradeLevel)}
         {activeTab === "semester-2" && renderSemester("Second Semester", secondSemester, ranks.sem2, student.gradeLevel)}
+        {activeTab === "attendance" && (
+          <FadeContainer>
+            <Suspense fallback={<div className="h-64 bg-slate-100 animate-pulse rounded-xl" />}>
+              <ParentAttendanceTracker studentId={student._id} />
+            </Suspense>
+          </FadeContainer>
+        )}
+
+        {activeTab === "schedule" && (
+          <FadeContainer>
+            <Suspense fallback={<div className="h-64 bg-slate-100 animate-pulse rounded-xl" />}>
+              <ScheduleForClass gradeLevel={student.gradeLevel} />
+            </Suspense>
+          </FadeContainer>
+        )}
 
         {activeTab === "quizzes" && (
           <FadeContainer>

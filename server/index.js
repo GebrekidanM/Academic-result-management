@@ -39,6 +39,7 @@ app.use('/api/schedule',require('./routes/scheduleRoutes'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/assessment-names', require('./routes/assessmentNameRoutes'))
+app.use('/api/attendance', require("./routes/attendanceRoutes"));
 
 app.use((err, req, res, next) => {
     console.error("❌ Express Global Error Caught:", err); // ትክክለኛውን ስህተት በተርሚናልህ ላይ ያትማል

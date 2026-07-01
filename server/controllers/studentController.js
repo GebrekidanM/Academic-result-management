@@ -6,7 +6,7 @@ const User = require('../models/User');
 const calculateAge = require('../utils/calculateAge');
 const getCurrentEthDate = require('../utils/thatYear') 
 const cloudinary = require('cloudinary').v2; 
-
+const { logActivity } = require('../utils/logger'); 
 
 // --- HELPER FUNCTIONS ---
 const capitalizeName = (name) => {
@@ -185,6 +185,13 @@ exports.createStudent = async (req, res) => {
 
         await student.save(); 
 
+        await logActivity(
+            currentUser._id, 
+            "Student Registration", 
+            `Registered a new student: ${capitalizedFullName} (${student.studentId}) for ${gradeLevel}`, 
+            req
+        );
+
         const responseData = student.toObject();
         responseData.initialPassword = initialPassword;
         delete responseData.password;
@@ -286,8 +293,14 @@ exports.deactiveStudent = async (req, res) => {
         
         student.status = reason; 
         await student.save();
+
+        await logActivity(
+            currentUser._id, 
+            "Student Deactivation", 
+            `Deactivated student: ${student.fullName} (${student.studentId}). Status changed to: ${reason}`, 
+            req
+        );
         
-        // ⚠️ ማስተካከያ፦ መልዕክቱ "deactivated" ተብሎ ተስተካክሏል
         res.json({ success: true, message: 'Student status updated successfully' });
 
     } catch (error) {
@@ -467,6 +480,13 @@ exports.resetPassword = async (req,res)=>{
 
 
         await student.save();
+
+        await logActivity(
+            currentUser._id, 
+            "Password Reset", 
+            `Reset password for student: ${student.fullName} (${student.studentId})`, 
+            req
+        );
 
         res.status(200).json({ success: true, message: 'Password reset successfully.' });
         

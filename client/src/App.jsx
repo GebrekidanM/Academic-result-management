@@ -78,6 +78,8 @@ import TeacherQuizzesPage from './pages/TeacherQuizzesPage';
 import QuizResultPage from './pages/QuizResultPage';
 import TeacherQuizResults from './pages/TeacherQuizResults';
 import TeacherEditQuiz from './pages/TeacherEditQuiz';
+import AdminAttendancePage from './pages/AdminAttendancePage';
+import TakeAttendancePage from './pages/TakeAttendancePage';
 
 
 function App() {
@@ -158,6 +160,7 @@ function App() {
             <Route path='/master' element={<MasterSchedulePage/>}/>
             <Route path="/certificates" element={<CertificatePage />} />
             <Route path="/id-cards" element={<StudentIDPage />} />
+            <Route path='/teacher/attendance' element={<TakeAttendancePage/>}/>
             <Route path="/events/generator" element={<EventCardGenerator />} />
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
@@ -174,6 +177,7 @@ function App() {
               <Route path="/admin/users" element={<UserManagementPage />} />
               <Route path="/admin/users/:id" element={<UserEditPage />} />
               <Route path="/admin/users/import" element={<ImportUsersPage />} />
+              <Route path='/admin/attendance' element={<AdminAttendancePage/>}/>
               <Route path='/schedule' element={<ScheduleManager/>}/>
             </Route>
           </Route>

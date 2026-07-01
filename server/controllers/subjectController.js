@@ -7,8 +7,9 @@ const AssessmentType = require('../models/AssessmentType')
 // @route   POST /api/subjects
 exports.createSubject = async (req, res) => {
     try {
-        const { name, code, gradeLevel,load } = req.body;
-        const subject = await Subject.create({ name, code, gradeLevel,sessionsPerWeek:load });
+        const { name, code, gradeLevel, sessionsPerWeek, load } = req.body;
+        const finalSessions = sessionsPerWeek !== undefined ? Number(sessionsPerWeek) : (load !== undefined ? Number(load) : 3);
+        const subject = await Subject.create({ name, code, gradeLevel, sessionsPerWeek: finalSessions });
         res.status(201).json({ success: true, data: subject });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
