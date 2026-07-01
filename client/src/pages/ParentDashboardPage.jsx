@@ -19,7 +19,7 @@ const SemesterDetails = lazy(() => import("../components/parent-dashboard/Semest
 const QuizCenter = lazy(() => import("../components/parent-dashboard/QuizCenter"));
 const ParentAttendanceTracker = lazy(() => import("../components/parent-dashboard/ParentAttendanceTracker"));
 const ScheduleForClass = lazy(() => import("./ScheduleForClass"));
-
+const ParentStudentProfile = lazy(() => import("../components/parent-dashboard/ParentStudentProfile"));
 const ParentDashboardPage = () => {
   const { i18n } = useTranslation(); 
   const { student, grades, reports, ranks, loading, error } = useDashboardData();
@@ -264,6 +264,14 @@ const ParentDashboardPage = () => {
           <FadeContainer>
             <Suspense fallback={<div className="h-64 bg-slate-100 animate-pulse rounded-xl" />}>
               <ScheduleForClass gradeLevel={student.gradeLevel} />
+            </Suspense>
+          </FadeContainer>
+        )}
+
+        {activeTab === "profile" && (
+          <FadeContainer>
+            <Suspense fallback={<div className="h-64 bg-slate-100 animate-pulse rounded-xl" />}>
+              <ParentStudentProfile student={student} />
             </Suspense>
           </FadeContainer>
         )}

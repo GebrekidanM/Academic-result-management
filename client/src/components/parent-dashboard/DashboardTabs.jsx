@@ -6,8 +6,9 @@ import {
   GraduationCap,
   ClipboardList,
   ChevronDown,
-  CalendarDays, // ⚠️ አዲስ የሰሌዳ አይኮን
-  Clock // ⚠️ አዲስ የመገኘት አይኮን
+  CalendarDays,
+  User,
+  Clock
 } from "lucide-react";
 
 const DashboardTabs = ({ activeTab, setActiveTab }) => {
@@ -111,6 +112,15 @@ const DashboardTabs = ({ activeTab, setActiveTab }) => {
       >
         <CalendarDays size={18} />
         <span className="hidden md:block">{t('schedule') || 'Schedule'}</span>
+      </button>
+
+       <button
+        onClick={() => { setActiveTab("profile"); setOpenMenu(null); }}
+        className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 py-3 rounded-xl text-xs md:text-sm font-bold transition-all
+          ${activeTab === "profile" ? "bg-pink-600 text-white shadow" : "text-slate-600 hover:bg-slate-50"}`}
+      >
+        <User size={18} />
+        <span className="hidden md:block">Profile</span>
       </button>
 
       {/* 6. Quizzes */}
