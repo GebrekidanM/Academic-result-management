@@ -27,7 +27,7 @@ const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
                     <img src={schoolInfo.logo} alt="Logo" className="w-full h-full object-cover " />
                 </div>
                 <h1 className="text-3xl font-montserrat font-bold tracking-widest leading-snug mb-2 uppercase">{schoolInfo.name}</h1>
-                <div className="w-12 h-1 bg-[#06b6d4] my-6 rounded"></div>
+                <div className="w-12 h-1 bg-[#eb05a6] my-6 rounded"></div>
                 <p className="text-sm font-montserrat font-bold leading-relaxed mb-12 max-w-sm mx-auto">
                     "Empowering the next generation with knowledge, character, and excellence."
                 </p>
