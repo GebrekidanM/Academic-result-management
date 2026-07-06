@@ -1,25 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
-  BookOpen,
-  LayoutDashboard,
-  Users,
-  BarChart3,
-  Settings,
-  ChevronDown,
-  GraduationCap,
-  ClipboardList,
-  Bell
-} from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, BarChart3, Settings, ChevronDown, GraduationCap, ClipboardList, Bell} from 'lucide-react';
 
 import authService from '@shared/services/authService';
 import studentAuthService from '@shared/services/studentAuthService';
 import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
-import MobileSidebar from './MobileSideBar'; // Ensure this path is correct
+import MobileSidebar from './MobileSideBar';
 
-// --- Premium SaaS Mega Dropdown ---
 const MegaMenu = ({ title, items }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef();
@@ -30,7 +19,7 @@ const MegaMenu = ({ title, items }) => {
     };
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
-  },[]);
+  }, []);
 
   return (
     <div ref={ref} className="relative">
@@ -80,7 +69,7 @@ const Navbar = () => {
   useEffect(() => {
     setUser(authService.getCurrentUser());
     setStudent(studentAuthService.getCurrentStudent());
-  },[]);
+  }, []);
 
   const logout = () => {
     authService.logout();
@@ -89,12 +78,71 @@ const Navbar = () => {
     window.location.reload();
   };
 
-  const navLink = ({ isActive }) =>
-    `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-      isActive
-        ? 'bg-blue-50 text-blue-700'
-        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-    }`;
+  const navLink = ({ isActive }) => `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${ isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`;
+
+  const studentItems = useMemo(() => {
+    const baseItems = [
+        { to: '/students', label: 'Student List', desc: 'Manage enrolled students', icon: Users },
+    ];
+    if (user && ['admin', 'staff'].includes(user.role)) {
+        baseItems.push(
+            { to: '/reports/batch', label: 'Report Cards', desc: 'Generate terminal reports', icon: ClipboardList },
+            { to: '/id-cards', label: 'ID Cards', desc: 'Print student ID badges', icon: GraduationCap },
+            { to: '/high-scorers', label: 'High Scorers', desc: 'Top performing students', icon: GraduationCap },
+            { to: '/certificates', label: 'Certificates', desc: 'Issue official certificates', icon: GraduationCap },
+            { to: '/events/generator', label: 'Event Cards', desc: 'Design invitation cards', icon: GraduationCap }
+        );
+    }
+    // አካውንታንትም በጅምላ በኤክሴል ተማሪዎችን ማስገባት ይችላል [2]
+    if (user && ['admin', 'staff', 'accountant'].includes(user.role)) {
+        baseItems.push({ to: '/students/import', label: 'Import Excel', desc: 'Bulk import students', icon: ClipboardList });
+    }
+    return baseItems;
+  }, [user]);
+
+  // ⚠️ 2. የተስተካከለው የአናሊቲክስ ዝርዝር ሜኑ (ለአካውንታንትም ክፍት ተደርጓል) [2]
+  const analyticsItems = useMemo(() => {
+    const baseItems = [
+        { to: '/analytics', label: t('overview') || 'Overview', desc: 'General performance insights', icon: BarChart3 },
+        { to: '/subject-performance', label: t('subjects') || 'Subjects', desc: 'Track subject metrics', icon: BarChart3 },
+        { to: '/at-risk', label: t('at_risk') || 'At Risk', desc: 'Identify struggling students', icon: BarChart3 },
+    ];
+    if (user && ['admin', 'staff', 'accountant'].includes(user.role)) {
+        baseItems.push({
+            to: '/analytics/retention',
+            label: t('retention_analytics') || 'Enrollment & Retention',
+            desc: 'Track student retention & attrition rates',
+            icon: BarChart3
+        });
+    }
+    return baseItems;
+  }, [user, t]);
+
+
+  const adminItems = useMemo(() => {
+    if (!user) return [];
+
+    if (user.role === 'accountant') {
+        return [
+            { to: '/admin/payments', label: t('payment_registry') || 'Record Payments', desc: 'Manage student manual payments', icon: LayoutDashboard },
+            { to: '/admin/payments/analytics', label: t('payment_analytics') || 'Payment Analytics', desc: 'Track collected revenue & defaulters', icon: BarChart3 } // ⚠️ አዲስ የተጨመረ [2]
+        ];
+    }
+
+    if (user.role === 'admin') {
+        return [
+            { to: '/admin/payments', label: t('payment_registry') || 'Record Payments', desc: 'Manage student manual payments', icon: LayoutDashboard },
+            { to: '/admin/payments/analytics', label: t('payment_analytics') || 'Payment Analytics', desc: 'Track collected revenue & defaulters', icon: BarChart3 }, // ⚠️ አዲስ የተጨመረ [2]
+            { to: '/schedule', label: 'Schedule', desc: 'Manage timetable', icon: LayoutDashboard },
+            { to: '/subjects', label: 'Subjects', desc: 'Manage curriculum', icon: Settings },
+            { to: '/admin/users', label: 'Staff', desc: 'Manage system users', icon: Users },
+            { to: '/supportivelist', label: 'Supportive Subjects', desc: 'Manage curriculum', icon: Settings },
+            { to: '/send_notification', label: 'Notifications', desc: 'Send mass alerts', icon: Bell },
+        ];
+    }
+
+    return [];
+  }, [user, t]);
 
   return (
     <>
@@ -119,23 +167,16 @@ const Navbar = () => {
               )}
 
               {/* Students */}
-              {(user.role === 'admin' || user.role === 'staff') && (
+              {/* ⚠️ ማስተካከያ፦ የ "Students" ሜኑ አሁን ለአካውንታንትም ክፍት ሆኗል */}
+              {(user.role === 'admin' || user.role === 'staff' || user.role === 'accountant') && (
                 <MegaMenu
                   title="Students"
-                  items={[
-                    { to: '/students', label: 'Student List', desc: 'Manage enrolled students', icon: Users },
-                    { to: '/reports/batch', label: 'Report Cards', desc: 'Generate terminal reports', icon: ClipboardList },
-                    { to: '/id-cards', label: 'ID Cards', desc: 'Print student ID badges', icon: GraduationCap },
-                    { to: '/high-scorers', label: 'High Scorers', desc: 'Top performing students', icon: GraduationCap },
-                    { to: '/certificates', label: 'Certificates', desc: 'Issue official certificates', icon: GraduationCap },
-                    { to: '/events/generator', label: 'Event Cards', desc: 'Design invitation cards', icon: GraduationCap },
-                  ]}
+                  items={studentItems} // ⚠️ ማስተካከያ፦ አዲሱ ኖርማላይዝድ የሆነው ዝርዝር እዚህ ገብቷል [2]
                 />
               )}
 
               {/* Academics */}
-              <MegaMenu
-                title="Academics"
+              <MegaMenu title="Academics"
                 items={[
                   { to: '/grade-sheet', label: 'Enter Grades', desc: 'Manage student scores', icon: ClipboardList },
                   { to: '/manage-assessments', label: 'Assessments', desc: 'Control exam types', icon: ClipboardList },
@@ -145,27 +186,14 @@ const Navbar = () => {
                 ]}
               />
 
-              {/* Analytics */}
-              <MegaMenu
-                title="Analytics"
-                items={[
-                  { to: '/analytics', label: 'Overview', desc: 'General performance insights', icon: BarChart3 },
-                  { to: '/subject-performance', label: 'Subjects', desc: 'Track subject metrics', icon: BarChart3 },
-                  { to: '/at-risk', label: 'At Risk', desc: 'Identify struggling students', icon: BarChart3 },
-                ]}
-              />
+              <MegaMenu title="Analytics" items={analyticsItems} />
 
-              {/* Admin */}
-              {user.role === 'admin' && (
+              {/* Admin / Finance */}
+              {/* ⚠️ ማስተካከያ፦ የአስተዳዳሪ/የክፍያ ሜኑ አሁን ለአካውንታንትም ክፍት ሆኗል (በደህንነት የተገደበ) [2] */}
+              {(user.role === 'admin' || user.role === 'accountant') && (
                 <MegaMenu
-                  title="Admin"
-                  items={[
-                    { to: '/schedule', label: 'Schedule', desc: 'Manage timetable', icon: LayoutDashboard },
-                    { to: '/subjects', label: 'Subjects', desc: 'Manage curriculum', icon: Settings },
-                    { to: '/admin/users', label: 'Staff', desc: 'Manage system users', icon: Users },
-                    {to:'/supportivelist', label:'Supportive Subjects', desc: 'Manage curriculum', icon: Settings},
-                    { to: '/send_notification', label: 'Notifications', desc: 'Send mass alerts', icon: Bell },
-                  ]}
+                  title={user.role === 'accountant' ? "Finance" : "Admin"} // የሂሳብ ሹሙ የሜኑ ስም Finance ሆኖ ይታያል [2]
+                  items={adminItems} // ⚠️ የተጣራው ዝርዝር እዚህ ገብቷል [2]
                 />
               )}
             </div>

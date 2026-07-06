@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import behavioralReportService from '@shared/services/behavioralReportService';
 
-// Predefined areas for evaluation
 const EVALUATION_AREAS = [
     "Punctuality", "Responsibility",
     'Communication book usage',	"T-book & E-book condition", "Personal hygiene", 

@@ -7,6 +7,7 @@ import dashboardService from '@shared/services/dashboardService';
 import IsAdmin from './HomePage/IsAdmin';
 import IsStaff from './HomePage/IsStaff';
 import LoginPage from './LoginPage';
+import IsAccountant from '../pages/HomePage/IsAccountant';
 
 // --- Premium SaaS-Style Level Badge ---
 const LevelBadge = ({ level }) => {
@@ -68,7 +69,7 @@ const HomePage = ({ currentUser }) => {
                 const userProfile = profileRes.data;
                 setProfileData(userProfile);
 
-                if (['admin', 'staff'].includes(userProfile.role)) {
+                if (['admin', 'staff','accountant'].includes(userProfile.role)) {
                     try {
                         const statsRes = await dashboardService.getStats();
                         setStats(statsRes.data);
@@ -111,14 +112,12 @@ const HomePage = ({ currentUser }) => {
     if (role === 'admin') {
         return (
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-                {/* ⚠️ ማስተካከያ፦ አጠቃላይ የአስተዳዳሪው መረጃ እዚህ ጋር በትንሹ ቀኝ ማዕዘን (Corner) ላይ ተቀምጧል */}
                 <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-8">
                     <div>
                         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('Admin dashboard')}</h1>
                         <p className="mt-1 text-sm text-slate-500">{t('manage institution overview')}</p>
                     </div>
                     
-                    {/* Compact Corner Profile & Level Badge [2] */}
                     <div className="flex items-center gap-3">
                         <LevelBadge level={schoolLevel} />
                         <Link 
@@ -147,7 +146,6 @@ const HomePage = ({ currentUser }) => {
         );
     }
 
-    // --- Mixed Staff View ---
     if (role === 'staff') {
         return (
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in flex flex-col gap-10">
@@ -192,6 +190,34 @@ const HomePage = ({ currentUser }) => {
                         <IsStaff profileData={profileData} />
                     </section>
                 )}
+            </div>
+        );
+    }
+
+    if (role === 'accountant') {
+        return (
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-8">
+                    <div>
+                        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('accountant_dashboard') || 'Accountant Dashboard'}</h1>
+                        <p className="mt-1 text-sm text-slate-500">{t('finance_and_enrollment_overview') || 'Manage student records, fees, and demographics'}</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                        <LevelBadge level={schoolLevel} />
+                        <Link 
+                            to="/profile" 
+                            state={{ profileData }} 
+                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm"
+                        >
+                            <div className="w-6 h-6 rounded-full bg-blue-50 text-pink-600 flex items-center justify-center text-[10px] font-black">
+                                {getInitials(currentUser.fullName)}
+                            </div>
+                            <span>{currentUser.fullName?.split(' ')[0]}</span>
+                        </Link>
+                    </div>
+                </header>
+                <IsAccountant stats={stats} profileData={profileData} currentUser={currentUser} />
             </div>
         );
     }

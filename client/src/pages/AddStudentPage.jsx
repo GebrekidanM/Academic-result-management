@@ -28,13 +28,12 @@ const AddStudentPage = () => {
         healthStatus: 'No known conditions',
     });
 
-    // ⚠️ 1. ለሶስቱ ሰነዶች የተለዩ የፋይል ስቴቶች (States)
     const [transferLetter, setTransferLetter] = useState(null);
     const [certificate, setCertificate] = useState(null);
     const [nationalId, setNationalId] = useState(null);
 
-    // --- State for RETURNING Student ---
     const [searchId, setSearchId] = useState('');
+    const [year,setYear] = useState('');
     const [foundStudent, setFoundStudent] = useState(null);
     const [newGradeLevel, setNewGradeLevel] = useState('');
 
@@ -90,7 +89,6 @@ const AddStudentPage = () => {
 
         try {
             if (regMode === 'new') {
-                // ⚠️ 2. ፋይሎችን ወደ ሰርቨር ለመላክ ፔይሎዱን ወደ FormData መቀየር ግድ ነው [2]
                 const formDataPayload = new FormData();
                 formDataPayload.append('fullName', studentData.fullName);
                 formDataPayload.append('gender', studentData.gender);
@@ -102,7 +100,6 @@ const AddStudentPage = () => {
                 formDataPayload.append('fatherContact', studentData.fatherContact);
                 formDataPayload.append('healthStatus', studentData.healthStatus);
 
-                // ፋይሎቹ ከተመረጡ ብቻ ማያያዝ
                 if (transferLetter) formDataPayload.append('transferLetter', transferLetter);
                 if (certificate) formDataPayload.append('certificate', certificate);
                 if (nationalId) formDataPayload.append('nationalId', nationalId);
@@ -118,7 +115,7 @@ const AddStudentPage = () => {
                 const response = await studentService.reRegisterStudent({
                     studentId: foundStudent.studentId,
                     newGradeLevel: newGradeLevel.replace(/\b\w/g, c => c.toUpperCase()),
-                    thatYear: foundStudent.thatYear
+                    newYear: year
                 });
 
                 setSuccess({
@@ -229,6 +226,7 @@ const AddStudentPage = () => {
                                         value={searchId}
                                         onChange={(e) => setSearchId(e.target.value.toUpperCase())}
                                     />
+                                    
                                     <button 
                                         type="button" 
                                         onClick={handleSearchStudent}
@@ -264,6 +262,15 @@ const AddStudentPage = () => {
                                             required
                                         />
                                         <p className="text-xs text-gray-400 mt-2">Example: If they were in 2A, put 3A.</p>
+                                        
+                                        <label className={inputLabel}>Step 3: Assign New Grade Level</label> 
+                                        <input
+                                            type='text'
+                                            className={textInput} 
+                                            value={year}
+                                            placeholder="e.g. 2019"   
+                                            onChange={(e) => setYear(e.target.value)}
+                                        />
                                         <button 
                                             onClick={handleSubmit}
                                             disabled={loading || !newGradeLevel}

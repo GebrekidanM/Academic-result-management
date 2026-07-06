@@ -80,6 +80,7 @@ function UserProfileEditPage() {
                     <option value="admin">Admin</option>
                     <option value="teacher">Teacher</option>
                     <option value="staff">Staff</option>
+                    <option value="accountant">Accountant</option>
                 </select>
             </div>
             <div>

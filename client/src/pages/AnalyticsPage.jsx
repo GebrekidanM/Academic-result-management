@@ -40,7 +40,6 @@ const AnalyticsPage = () => {
           const res = await subjectService.getAllSubjects();
           subjects = res.data.data || res.data;
 
-          // Filter by School Level for Staff
           if (currentUser.role === 'staff' && currentUser.schoolLevel) {
               const level = currentUser.schoolLevel.toLowerCase();
               if (level === 'kg') {
@@ -63,7 +62,7 @@ const AnalyticsPage = () => {
       }
     };
     loadSubjects();
-  }, [currentUser]);
+  }, [currentUser, t]);
 
   // --- Load assessment types ---
   useEffect(() => {
@@ -78,7 +77,7 @@ const AnalyticsPage = () => {
       .catch(() => setError(t('error')))
       .finally(() => setLoadingAssessments(false));
     setSelectedAssessment('');
-  }, [selectedSubject]);
+  }, [selectedSubject, t]);
 
   // --- Fetch analysis ---
   const handleFetchAnalysis = () => {
@@ -94,7 +93,11 @@ const AnalyticsPage = () => {
       .finally(() => setLoadingAnalysis(false));
   };
 
-  const gradeLevels = [...new Set(availableSubjects.map(s => s.gradeLevel))].sort();
+  // ⚠️ ማስተካከያ 1፦ የክፍል ደረጃዎችን በቁጥር ቅደም ተከተል (Grade 2 ከ Grade 10 በፊት እንዲመጣ) ማሰለፍ
+  const gradeLevels = [...new Set(availableSubjects.map(s => s.gradeLevel))].sort(
+    (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  );
+  
   const subjectsForGrade = selectedGrade ? availableSubjects.filter(s => s.gradeLevel === selectedGrade) : [];
 
   const thStyle = "p-2 border border-black text-center align-middle text-xs font-medium uppercase";
@@ -124,7 +127,7 @@ const AnalyticsPage = () => {
           <select
             onChange={(e) => { setSelectedGrade(e.target.value); setSelectedSubject(''); }}
             value={selectedGrade}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-2 border rounded-md bg-white text-gray-800"
           >
             <option value="">{t('select_class')}</option>
             {gradeLevels.map(g => <option key={g} value={g}>{g}</option>)}
@@ -135,7 +138,7 @@ const AnalyticsPage = () => {
           <select
             onChange={(e) => setSelectedSubject(e.target.value)}
             value={selectedSubject}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-2 border rounded-md bg-white text-gray-800"
             disabled={!selectedGrade}
           >
             <option value="">{t('subject')}</option>
@@ -147,7 +150,7 @@ const AnalyticsPage = () => {
           <select
             onChange={(e) => setSelectedAssessment(e.target.value)}
             value={selectedAssessment}
-            className="w-full p-2 border rounded-md"
+            className="w-full p-2 border rounded-md bg-white text-gray-800"
             disabled={!selectedSubject}
           >
             <option value="">{t('assessment')}</option>
@@ -155,7 +158,8 @@ const AnalyticsPage = () => {
               ? <option>{t('loading')}</option>
               : assessmentTypes.map(at => (
                 <option key={at._id} value={at._id}>
-                  {at.month} - {at.name} ({at.semester})
+                  {/* ⚠️ ማስተካከያ 2፦ የፈተናውን ስም (at.name) በሴፍቲ ቼክ ማውጣት [2] */}
+                  {at.month} - {typeof at.name === 'object' ? at.name?.name : at.name} ({at.semester})
                 </option>
               ))}
           </select>
@@ -176,7 +180,14 @@ const AnalyticsPage = () => {
       {analysisResult && analysisResult.analysis && (
         <div className="animate-fade-in space-y-8 mt-6">
           <h3 className="text-xl font-bold text-gray-800">
-            {t('score')}: <span className="text-pink-600">{analysisResult.assessmentType.month} - {analysisResult.assessmentType.name} ({analysisResult.assessmentType.totalMarks})</span>
+            {/* ⚠️ ማስተካከያ 3፦ ራስጌው ላይ የፈተናውን ስም በሴፍቲ ቼክ ማውጣት [2] */}
+            {t('score')}: <span className="text-pink-600">
+              {analysisResult.assessmentType.month} - {
+                typeof analysisResult.assessmentType.name === 'object' 
+                  ? analysisResult.assessmentType.name?.name 
+                  : analysisResult.assessmentType.name
+              } ({analysisResult.assessmentType.totalMarks})
+            </span>
           </h3>
 
           {/* General Summary */}

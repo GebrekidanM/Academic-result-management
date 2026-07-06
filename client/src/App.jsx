@@ -80,6 +80,9 @@ import TeacherQuizResults from './pages/TeacherQuizResults';
 import TeacherEditQuiz from './pages/TeacherEditQuiz';
 import AdminAttendancePage from './pages/AdminAttendancePage';
 import TakeAttendancePage from './pages/TakeAttendancePage';
+import EnrollmentAnalyticsPage from './pages/EnrollmentAnalyticsPage';
+import PaymentRegistryPage from './pages/PaymentRegistryPage';
+import PaymentAnalyticsPage from './pages/PaymentAnalyticsPage';
 
 
 function App() {
@@ -162,11 +165,13 @@ function App() {
             <Route path="/id-cards" element={<StudentIDPage />} />
             <Route path='/teacher/attendance' element={<TakeAttendancePage/>}/>
             <Route path="/events/generator" element={<EventCardGenerator />} />
+
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
               <Route path="/reports/batch" element={<ClassReportGenerator />} />
-              <Route path='send_notification' element={<SendNotificationPage/>}/>
-              
+              <Route path='/send_notification' element={<SendNotificationPage/>}/>
+              <Route path='/admin/payments' element={<PaymentRegistryPage/>}/>
+              <Route path='/admin/payments/analytics' element={<PaymentAnalyticsPage/>}/>
               <Route path='/otherprofile' element={<UserProfileEditPage/>}/>
               <Route path="/subjects" element={<SubjectListPage />} />
               <Route path="/subjects/add" element={<AddSubjectPage />} />
@@ -178,6 +183,7 @@ function App() {
               <Route path="/admin/users/:id" element={<UserEditPage />} />
               <Route path="/admin/users/import" element={<ImportUsersPage />} />
               <Route path='/admin/attendance' element={<AdminAttendancePage/>}/>
+              <Route path='/analytics/retention' element={<EnrollmentAnalyticsPage/>}/>
               <Route path='/schedule' element={<ScheduleManager/>}/>
             </Route>
           </Route>

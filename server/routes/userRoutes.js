@@ -14,7 +14,7 @@ const protectUniversal = async (req, res, next) => {
         } 
         
         try {
-            await protectStudent(req, res, () => {}); // Try protectStudent
+            await protectStudent(req, res, () => {});
             if (req.student) {
                 req.user = { ...req.student.toObject(), role: 'parent' }; 
                 return next();
@@ -33,11 +33,11 @@ router.post('/subscribe', protectUniversal,saveSubscription);
 router.post('/upload', protect, authorize('admin','staff'), upload.single('usersFile'), bulkCreateUsers);
 router.route('/profile')
     .get(protect, getUserProfile)
-    .put(protect, authorize('admin','staff'), updateUserProfile);
+    .put(protect, updateUserProfile);
 router.get("/teachers",protect,authorize('admin','staff'),getTeachers)
-router.put('/otherprofile/:id',protect,authorize('admin','staff'),updateOtherUserProfile)
+router.put('/otherprofile/:id',protect,authorize('admin','staff','accountant'),updateOtherUserProfile)
 router.get('/', protect, authorize('admin','staff'), getUsersBySchoolLevel);
-router.put('/:id', protect, authorize('admin','staff'), updateUser);
+router.put('/:id', protect, authorize('admin','staff','accountant'), updateUser);
 router.get('/:id', protect, authorize('admin','staff'), getUserById);
 router.delete('/:id', protect, authorize('admin','staff'), deleteUser);
 

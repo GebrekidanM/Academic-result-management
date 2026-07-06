@@ -4,11 +4,11 @@ import authService from '@shared/services/authService';
 
 const AdminRoute = () => {
     const currentUser = authService.getCurrentUser();
-    if(currentUser){
-        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'staff'
-        return isAdmin ? <Outlet /> : <Navigate to="/" />;
-    }else{
-        return <Navigate to='/login'/>;
+    if (currentUser) {
+        const isAdmin = ['admin', 'staff', 'accountant'].includes(currentUser.role);
+        return isAdmin ? <Outlet /> : <Navigate to="/" replace />;
+    } else {
+        return <Navigate to="/login" replace />;
     }
 };
 

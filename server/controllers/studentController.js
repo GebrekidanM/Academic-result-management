@@ -150,14 +150,13 @@ exports.createStudent = async (req, res) => {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== gradeLevel) {
                 return res.status(403).json({ message: 'You can only create students in your homeroom grade.' });
             }
-        } else if (currentUser.role !== 'admin') {
+        } else if (!['admin', 'accountant'].includes(currentUser.role)) {
             return res.status(403).json({ message: 'You are not authorized to create students.' });
         }
 
         const capitalizedFullName = capitalizeName(fullName);
         const initialPassword = `${getFirstName(capitalizedFullName)}@${year}`;
 
-        // ⚠️ 1. የሰነዶቹን ፋይሎች ከ req.files ላይ በደህንነት መለየት [2]
         const transferLetter = req.files && req.files['transferLetter'] ? req.files['transferLetter'][0] : null;
         const certificate = req.files && req.files['certificate'] ? req.files['certificate'][0] : null;
         const nationalId = req.files && req.files['nationalId'] ? req.files['nationalId'][0] : null;
@@ -224,7 +223,7 @@ exports.updateStudent = async (req, res) => {
             if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
                 return res.status(403).json({ message: 'You are not authorized to update this student.' });
             }
-        } else if (currentUser.role !== 'admin') {
+        } else if (!['admin', 'accountant'].includes(currentUser.role)) {
             return res.status(403).json({ message: 'You are not authorized to update students.' });
         }
 
@@ -503,7 +502,7 @@ exports.getStudentForRegistration = async (req, res) => {
         if (!student) {
             return res.status(404).json({ message: "Student not found" });
         }
-        // Return only what the user needs to see for verification
+
         res.json({
             _id: student._id,
             studentId: student.studentId,
@@ -518,15 +517,14 @@ exports.getStudentForRegistration = async (req, res) => {
 
 // 2. Process the "New" Registration
 exports.reRegisterStudent = async (req, res) => {
-    const { studentId, newGradeLevel, thatYear } = req.body;
-    const academicYear = getCurrentEthDate(thatYear);
+    const { studentId, newGradeLevel, newYear } = req.body;
 
     try {
         const student = await Student.findOne({ studentId });
         if (!student) return res.status(404).json({ message: "Student not found" });
         
         const historyEntry = {
-            year: academicYear,
+            year: student.year,
             gradeAtThatTime: student.gradeLevel,
             statusAtEnd: student.status 
         };
@@ -534,7 +532,7 @@ exports.reRegisterStudent = async (req, res) => {
         student.academicHistory.push(historyEntry);
         student.gradeLevel = newGradeLevel;
         student.status = 'Active'; 
-        student.year = String(academicYear);
+        student.year = newYear;
 
         await student.save();
         res.json({ message: `${student.fullName} successfully registered for ${newGradeLevel}` });

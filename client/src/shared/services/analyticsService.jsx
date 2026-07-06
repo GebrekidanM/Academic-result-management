@@ -28,9 +28,15 @@ const getAtRiskStudents = (filters) => {
     return api.get('/analytics/at-risk', { params: filters });
 };
 
+
+const getYearlyEnrollmentAnalytics = (year) => {
+    return api.get(`/analytics/retention`, { params: { targetYear: year } });
+}
+
 export default {
     getAnalysis,
     getSubjectPerformance,
     getClassAnalytics,
-    getAtRiskStudents
+    getAtRiskStudents,
+    getYearlyEnrollmentAnalytics
 };

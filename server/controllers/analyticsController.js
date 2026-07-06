@@ -3,34 +3,33 @@ const Grade = require('../models/Grade');
 const Student = require('../models/Student');
 const AssessmentType = require('../models/AssessmentType');
 const Subject = require('../models/Subject')
-// Controller to get assessment analysis
+const AssessmentName = require('../models/AssessmentName');
 
 exports.getAssessmentAnalysis = async (req, res) => {
-  const { selectedAssessment} = req.query;
+  const { selectedAssessment } = req.query;
   const gradeLevel = req.query.selectedGrade;
 
-  if (!selectedAssessment) {
-    return res.status(400).json({ message: 'Assessment Type ID is required.' });
-  }
-  if (!gradeLevel) {
-    return res.status(400).json({ message: 'Grade Level is required to get class-level analytics.' });
+  if (!selectedAssessment || !gradeLevel) {
+    return res.status(400).json({ message: 'Missing selectedAssessment or selectedGrade.' });
   }
 
   try {
     const assessmentType = await AssessmentType.findById(selectedAssessment);
     if (!assessmentType) return res.status(404).json({ message: 'Assessment Type not found.' });
 
-    // 1️⃣ Get all students in the class
     const allStudents = await Student.find({ gradeLevel });
     const studentIds = allStudents.map(s => s._id);
-    const totalStudents = allStudents.length;
 
-    // 2️⃣ Get grades for those students for this assessment
     const analysis = await Grade.aggregate([
-      { $unwind: '$assessments' },
+      // ⚠️ ማስተካከያ 1፦ ዩኒዊንድ ከመደረጉ በፊት መጀመሪያ ፊልተር በማድረግ ዳታቤዝ እንዳይጨናነቅ መከላከል [1]
       { $match: {
-          'assessments.assessmentType': new mongoose.Types.ObjectId(selectedAssessment),
-          student: { $in: studentIds }
+          student: { $in: studentIds },
+          'assessments.assessmentType': new mongoose.Types.ObjectId(selectedAssessment)
+      }},
+      { $unwind: '$assessments' },
+      // ዩኒዊንድ ከተደረገ በኋላ የዚህን ፈተና ውጤት ብቻ ማጣራት
+      { $match: {
+          'assessments.assessmentType': new mongoose.Types.ObjectId(selectedAssessment)
       }},
       { $addFields: {
           normalizedScore: { $multiply: [{ $divide: ['$assessments.score', assessmentType.totalMarks] }, 100] }
@@ -55,13 +54,11 @@ exports.getAssessmentAnalysis = async (req, res) => {
       return res.status(200).json({ message: 'No students have taken this assessment yet.', assessmentType, analysis: null });
     }
 
-    // 3️⃣ Participation info
     const studentsWhoTookAssessment = analysis.length;
-    const studentsWhoMissedAssessment = totalStudents - studentsWhoTookAssessment;
+    const studentsWhoMissedAssessment = allStudents.length - studentsWhoTookAssessment;
     const maleStudents = analysis.filter(s => s.gender === 'Male').length;
     const femaleStudents = analysis.filter(s => s.gender === 'Female').length;
 
-    // 4️⃣ Score stats
     const scores = analysis.map(s => s.score);
     const normalizedScores = analysis.map(s => s.normalizedScore);
 
@@ -78,7 +75,6 @@ exports.getAssessmentAnalysis = async (req, res) => {
     const passPercentage = ((passCount / studentsWhoTookAssessment) * 100).toFixed(1);
     const failPercentage = ((failCount / studentsWhoTookAssessment) * 100).toFixed(1);
 
-    // 5️⃣ Distribution buckets
     const buckets = [
       { label: 'under50', min: 0, max: 50 },
       { label: 'between50and75', min: 50, max: 75 },
@@ -89,53 +85,31 @@ exports.getAssessmentAnalysis = async (req, res) => {
     const processedDistribution = {};
     for (const { label, min, max } of buckets) {
       const group = analysis.filter(a => a.normalizedScore >= min && a.normalizedScore < max);
-      const femaleCount = group.filter(s => s.gender === 'Female').length;
-      const maleCount = group.filter(s => s.gender === 'Male').length;
-      const totalCount = group.length;
-      const percentage = studentsWhoTookAssessment > 0 ? (totalCount / studentsWhoTookAssessment) * 100 : 0;
-
       processedDistribution[label] = {
-        F: femaleCount,
-        M: maleCount,
-        T: totalCount,
-        P: percentage.toFixed(1)
+        F: group.filter(s => s.gender === 'Female').length,
+        M: group.filter(s => s.gender === 'Male').length,
+        T: group.length,
+        P: studentsWhoTookAssessment > 0 ? ((group.length / studentsWhoTookAssessment) * 100).toFixed(1) : '0.0'
       };
     }
 
-    const finalAnalysis = {
-      general: {
-        totalStudents,
-        studentsWhoTookAssessment,
-        studentsWhoMissedAssessment,
-        maleStudents,
-        femaleStudents
-      },
-      scoreStats: {
-        highestScore,
-        lowestScore,
-        averageScore,
-        highestPercent,
-        lowestPercent,
-        averagePercent,
-        passCount,
-        failCount,
-        passPercentage,
-        failPercentage
-      },
-      distribution: processedDistribution,
-      scores: analysis
-    };
-
-    res.status(200).json({ assessmentType, analysis: finalAnalysis });
+    res.status(200).json({
+      assessmentType,
+      analysis: {
+        general: { totalStudents: allStudents.length, studentsWhoTookAssessment, studentsWhoMissedAssessment, maleStudents, femaleStudents },
+        scoreStats: { highestScore, lowestScore, averageScore, highestPercent, lowestPercent, averagePercent, passCount, failCount, passPercentage, failPercentage },
+        distribution: processedDistribution,
+        scores: analysis
+      }
+    });
   } catch (err) {
-    console.error('Error in assessment analysis:', err);
-    res.status(500).json({ message: 'Server Error', details: err.message });
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// @desc    Get Class Analysis (Gender, Ranges, Participation) for an Assessment Name across all Subjects
+// @desc    Get Class Analysis for an Assessment Name across all Subjects
 // @route   GET /api/grades/analysis/class-analytics
-// @query   gradeLevel, assessmentName, semester, academicYear
 exports.getClassAnalytics = async (req, res) => {
     const { gradeLevel, assessmentName, semester, academicYear } = req.query;
 
@@ -144,10 +118,10 @@ exports.getClassAnalytics = async (req, res) => {
     }
 
     try {
-        // 1. Fetch ALL Active Students in this Grade (to know Gender and Total Count)
+        // 1. የክፍሉን ንቁ ተማሪዎች መፈለግ
         const students = await Student.find({ gradeLevel, status: 'Active' });
+        const studentIds = students.map(s => s._id);
         
-        // Create a fast lookup map for Student Gender: { "studentId": "Male", ... }
         const studentMap = {};
         let totalMalesInClass = 0;
         let totalFemalesInClass = 0;
@@ -158,12 +132,16 @@ exports.getClassAnalytics = async (req, res) => {
             else totalFemalesInClass++;
         });
 
-        const totalStudentsInClass = students.length;
+        // 2. የፈተና መታወቂያዎችን (nameIds) መፈለግ
+        const matchingNames = await AssessmentName.find({
+            name: { $regex: new RegExp(`^${assessmentName.trim()}$`, 'i') }
+        }).select('_id');
+        const nameIds = matchingNames.map(n => n._id);
+        const nameStrings = matchingNames.map(n => n._id.toString());
 
-        // 2. Find the Assessment Types (The Subjects) that match the name (e.g., "Test 1")
         const assessmentTypes = await AssessmentType.find({
             gradeLevel,
-            name: { $regex: new RegExp(`^${assessmentName.trim()}$`, 'i') },
+            name: { $in: [...nameIds, ...nameStrings] },
             semester,
             year: academicYear
         }).populate('subject', 'name');
@@ -172,57 +150,49 @@ exports.getClassAnalytics = async (req, res) => {
             return res.status(404).json({ message: `No assessments found with name '${assessmentName}' for ${gradeLevel}.` });
         }
 
-        // 3. Prepare the Analysis Array
+        const matchedTypeIds = assessmentTypes.map(t => t._id);
+        const allGrades = await Grade.find({
+            "assessments.assessmentType": { $in: matchedTypeIds },
+            student: { $in: studentIds }
+        });
+
         const analysisResults = [];
 
-        // 4. Iterate through each Subject (AssessmentType)
         for (const type of assessmentTypes) {
             const subjectName = type.subject ? type.subject.name : "Unknown Subject";
             const totalMarks = type.totalMarks;
 
-            // Fetch all grades for this specific assessment type
-            const grades = await Grade.find({
-                "assessments.assessmentType": type._id,
-                student: { $in: students.map(s => s._id) } // Only active students
-            });
+            const grades = allGrades.filter(g => 
+                g.assessments.some(a => a.assessmentType && a.assessmentType.toString() === type._id.toString())
+            );
 
-            // Initialize Counters
             const stats = {
                 subject: subjectName,
                 totalMarks: totalMarks,
-                students: {
-                    total: totalStudentsInClass,
-                    male: totalMalesInClass,
-                    female: totalFemalesInClass
-                },
+                students: { total: students.length, male: totalMalesInClass, female: totalFemalesInClass },
                 attended: { total: 0, male: 0, female: 0 },
                 missed: { total: 0, male: 0, female: 0 },
-                below50: { total: 0, male: 0, female: 0 }, // < 50%
-                below75: { total: 0, male: 0, female: 0 }, // 50% - 74%
-                below90: { total: 0, male: 0, female: 0 }, // 75% - 89%
-                above90: { total: 0, male: 0, female: 0 }, // >= 90%
+                below50: { total: 0, male: 0, female: 0 },
+                below75: { total: 0, male: 0, female: 0 },
+                below90: { total: 0, male: 0, female: 0 },
+                above90: { total: 0, male: 0, female: 0 },
             };
 
-            // Process Grades
             grades.forEach(gradeDoc => {
-                // Find the specific score within the grade document
                 const assessmentData = gradeDoc.assessments.find(a => 
                     a.assessmentType && a.assessmentType.toString() === type._id.toString()
                 );
 
-                const studentGender = studentMap[gradeDoc.student.toString()] || 'Male'; // Default to Male if unknown
-                const genderKey = studentGender.toLowerCase(); // 'male' or 'female'
+                const studentGender = studentMap[gradeDoc.student.toString()] || 'Male';
+                const genderKey = studentGender.toLowerCase();
 
-                // Check if student attended (score exists and is not null)
                 if (assessmentData && assessmentData.score !== null && assessmentData.score !== undefined) {
                     const score = assessmentData.score;
                     const percentage = (score / totalMarks) * 100;
 
-                    // Increment Attended
                     stats.attended.total++;
                     stats.attended[genderKey]++;
 
-                    // Classify into ranges
                     if (percentage < 50) {
                         stats.below50.total++;
                         stats.below50[genderKey]++;
@@ -239,7 +209,6 @@ exports.getClassAnalytics = async (req, res) => {
                 }
             });
 
-            // Calculate Missed (Total Class - Attended)
             stats.missed.total = stats.students.total - stats.attended.total;
             stats.missed.male = stats.students.male - stats.attended.male;
             stats.missed.female = stats.students.female - stats.attended.female;
@@ -247,26 +216,15 @@ exports.getClassAnalytics = async (req, res) => {
             analysisResults.push(stats);
         }
 
-        res.status(200).json({
-            success: true,
-            meta: {
-                gradeLevel,
-                assessmentName,
-                semester,
-                academicYear
-            },
-            data: analysisResults
-        });
+        res.status(200).json({ success: true, meta: { gradeLevel, assessmentName, semester, academicYear }, data: analysisResults });
 
     } catch (error) {
         console.error("Class Analytics Error:", error);
         res.status(500).json({ message: "Server error generating analytics." });
     }
 };
-
     
-// backend/controllers/gradeController.js
-
+// @desc    Get Subject Performance Analysis (Optimized Bulk Query)
 exports.getSubjectPerformanceAnalysis = async (req, res) => {
     const { gradeLevel, semester, academicYear } = req.query;
 
@@ -279,23 +237,22 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
         const students = await Student.find({ gradeLevel, status: 'Active' }).select('_id');
         const studentIds = students.map(s => s._id);
 
+        // ⚠️ ማስተካከያ 3፦ ሁሉንም የክፍሉን ፈተናዎች እና ውጤቶች ከሉፕ ውጪ በ2 የጅምላ ኳየሪዎች ብቻ መጫን (የ24 ኳየሪ ጫናን ያስቀራል!) [1, 2]
+        const allAssessmentTypes = await AssessmentType.find({ gradeLevel, semester });
+        const allGrades = await Grade.find({
+            student: { $in: studentIds },
+            semester,
+            academicYear
+        }).populate('student', 'gender');
+
         const analysis = [];
 
         for (const subject of subjects) {
-            // 1. Calculate Total Possible Score
-            const assessmentTypes = await AssessmentType.find({
-                subject: subject._id,
-                gradeLevel, semester
-            });
-            const totalPossible = assessmentTypes.reduce((sum, a) => sum + a.totalMarks, 0);
+            // በጃቫስክሪፕት ሜሞሪ ላይ ከዝርዝሩ ውስጥ የዚህን ትምህርት ፈተናዎች እና ውጤቶች መለየት [2]
+            const subjectAssessments = allAssessmentTypes.filter(a => a.subject.toString() === subject._id.toString());
+            const totalPossible = subjectAssessments.reduce((sum, a) => sum + a.totalMarks, 0);
 
-            // 2. Fetch Grades WITH Student Info (Gender)
-            const grades = await Grade.find({
-                subject: subject._id,
-                student: { $in: studentIds },
-                semester,
-                academicYear
-            }).populate('student', 'gender'); // <--- CRITICAL: Get Gender
+            const subjectGrades = allGrades.filter(g => g.subject.toString() === subject._id.toString());
 
             let totalScore = 0;
             let highest = 0;
@@ -303,20 +260,13 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
             let passedCount = 0;
             let count = 0;
 
-            // --- NEW: Complex Counters ---
-            // Structure: { total: 0, male: 0, female: 0 }
             const initRange = () => ({ total: 0, m: 0, f: 0 });
-            let ranges = {
-                below50: initRange(),
-                below75: initRange(),
-                below90: initRange(),
-                above90: initRange()
-            };
+            let ranges = { below50: initRange(), below75: initRange(), below90: initRange(), above90: initRange() };
 
-            grades.forEach(g => {
+            subjectGrades.forEach(g => {
                 if (g.finalScore !== undefined && g.finalScore !== null && g.student) {
                     const score = g.finalScore;
-                    const gender = g.student.gender; // Assuming 'Male' or 'Female'
+                    const gender = g.student.gender;
                     const isMale = gender === 'Male' || gender === 'M';
 
                     totalScore += score;
@@ -327,10 +277,8 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
                     if (score >= passMark) passedCount++;
                     count++;
 
-                    // Calculate Percentage relative to Total Marks
                     const percentage = totalPossible > 0 ? (score / totalPossible) * 100 : 0;
 
-                    // Helper to increment correct bucket
                     const increment = (bucket) => {
                         bucket.total++;
                         if (isMale) bucket.m++; else bucket.f++;
@@ -354,13 +302,12 @@ exports.getSubjectPerformanceAnalysis = async (req, res) => {
                 highestScore: highest,
                 lowestScore: lowest,
                 passRate: passRate + '%',
-                ranges: ranges, // Now contains m/f breakdown
+                ranges: ranges,
                 totalPossibleScore: totalPossible
             });
         }
 
         analysis.sort((a, b) => b.averageScore - a.averageScore);
-
         res.status(200).json({ success: true, data: analysis });
 
     } catch (error) {
@@ -428,5 +375,66 @@ exports.getAtRiskStudents = async (req, res) => {
     } catch (error) {
         console.error("At Risk Error:", error);
         res.status(500).json({ message: "Server error." });
+    }
+};
+
+// @route   GET /api/analytics/retention
+exports.getYearlyEnrollmentAnalytics = async (req, res) => {
+    const { targetYear } = req.query; // ለምሳሌ: "2018" ወይም "2019"
+
+    if (!targetYear) {
+        return res.status(400).json({ message: 'Target year is required.' });
+    }
+
+    try {
+        const prevYear = String(Number(targetYear) - 1);
+
+        const totalEnrolled = await Student.countDocuments({ year: targetYear, status: 'Active' });
+
+        const newStudents = await Student.countDocuments({
+            year: targetYear,
+            status: 'Active',
+            $or: [
+                { academicHistory: { $size: 0 } },
+                { academicHistory: { $exists: false } }
+            ]
+        });
+
+        const returningStudents = await Student.countDocuments({
+            year: targetYear,
+            status: 'Active',
+            academicHistory: { $not: { $size: 0 } } 
+        });
+
+        const stayedFromPrevYear = await Student.countDocuments({
+            year: targetYear,
+            "academicHistory.year": prevYear
+        });
+
+        const droppedOutPrevYear = await Student.countDocuments({
+            $or: [
+                { year: prevYear, status: { $in: ["Withdrawn", "Changed"] } },
+                { academicHistory: { $elemMatch: { year: prevYear, statusAtEnd: { $in: ["Withdrawn", "Changed"] } } } }
+            ]
+        });
+
+        res.status(200).json({
+            success: true,
+            year: targetYear,
+            stats: {
+                totalEnrolled,
+                newStudents,
+                returningStudents,
+                retainedFromPrevYear: stayedFromPrevYear,
+                droppedOutFromPrevYear: droppedOutPrevYear,
+                retentionRate: (stayedFromPrevYear + droppedOutPrevYear) > 0 
+                    ? parseFloat(((stayedFromPrevYear / (stayedFromPrevYear + droppedOutPrevYear)) * 100).toFixed(1)) 
+                    : 100
+            }
+        });
+
+    } catch (error) {
+        console.error("Analytics Error:", error);
+        res.status(500).json({ message: 'Server error generating enrollment analytics' });
     }
 };

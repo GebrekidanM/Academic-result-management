@@ -137,7 +137,7 @@ const StudentListPage = () => {
                     <p className="text-sm text-gray-500">{t('manage_records_desc')}</p>
                 </div>
                 <div className="flex gap-3">
-                    {['admin', 'staff'].includes(currentUser.role) && (
+                    {['admin', 'staff', 'accountant'].includes(currentUser.role) && (
                         <>
                             <Link to="/students/add" className="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded shadow transition-colors">+ {t('add')}</Link>
                             <Link to="/students/import" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow transition-colors">{t('import_excel')}</Link>

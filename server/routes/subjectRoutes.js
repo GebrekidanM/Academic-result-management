@@ -4,14 +4,7 @@ const multer = require('multer');
 
 const upload = multer({ dest: 'uploads/' });
 
-const { 
-    createSubject, 
-    getSubjects, 
-    getSubjectById, 
-    updateSubject, 
-    deleteSubject,
-    bulkCreateSubjects
-} = require('../controllers/subjectController');
+const { createSubject, getSubjects, getSubjectById, updateSubject, deleteSubject, bulkCreateSubjects } = require('../controllers/subjectController');
 
 const { protect, authorize } = require('../middleware/authMiddleware');
 

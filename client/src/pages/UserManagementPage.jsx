@@ -101,7 +101,7 @@ const UserManagementPage = () => {
 
                 {/* --- Search & Filter Bar --- */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-grow">
+                    <div className="relative grow">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
                         <input 
                             type="text" 

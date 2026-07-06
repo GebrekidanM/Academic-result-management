@@ -36,7 +36,7 @@ const RegisterPage = () => {
         setError(null);
         try {
             await authService.adminRegister(formData);
-            alert(t('user_created_success')); // Translated alert
+            alert(t('user_created_success'));
             navigate('/admin/users');
         } catch (err)  {
             setError(err.response?.data?.message || t('user_creation_failed'));
@@ -87,6 +87,7 @@ const RegisterPage = () => {
                             <option value="teacher">{t('teachers')}</option>
                             <option value="admin">{t('admin')}</option>
                             <option value="staff">{t('staff')}</option>
+                            <option value="accountant">{t('accountant')}</option>
                         </select>
                     </div>
 
