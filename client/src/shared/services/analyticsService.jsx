@@ -33,10 +33,17 @@ const getYearlyEnrollmentAnalytics = (year) => {
     return api.get(`/analytics/retention`, { params: { targetYear: year } });
 }
 
+const getClassOverallAverageAnalysis = (gradeLevel, academicYear) => {
+        return api.get(`/analytics/overall-average-analysis`, { 
+            params: { gradeLevel, academicYear } 
+        });
+    }
+
 export default {
     getAnalysis,
     getSubjectPerformance,
     getClassAnalytics,
     getAtRiskStudents,
-    getYearlyEnrollmentAnalytics
+    getYearlyEnrollmentAnalytics,
+    getClassOverallAverageAnalysis
 };

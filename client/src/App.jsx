@@ -83,6 +83,7 @@ import TakeAttendancePage from './pages/TakeAttendancePage';
 import EnrollmentAnalyticsPage from './pages/EnrollmentAnalyticsPage';
 import PaymentRegistryPage from './pages/PaymentRegistryPage';
 import PaymentAnalyticsPage from './pages/PaymentAnalyticsPage';
+import OverallAverageAnalysisPage from './pages/OverallAverageAnalysisPage';
 
 
 function App() {
@@ -168,6 +169,7 @@ function App() {
 
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
+              <Route path='/admin/allgradeAnalysis' element={<OverallAverageAnalysisPage/>}/>
               <Route path="/reports/batch" element={<ClassReportGenerator />} />
               <Route path='/send_notification' element={<SendNotificationPage/>}/>
               <Route path='/admin/payments' element={<PaymentRegistryPage/>}/>

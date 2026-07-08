@@ -93,7 +93,6 @@ const Navbar = () => {
             { to: '/events/generator', label: 'Event Cards', desc: 'Design invitation cards', icon: GraduationCap }
         );
     }
-    // አካውንታንትም በጅምላ በኤክሴል ተማሪዎችን ማስገባት ይችላል [2]
     if (user && ['admin', 'staff', 'accountant'].includes(user.role)) {
         baseItems.push({ to: '/students/import', label: 'Import Excel', desc: 'Bulk import students', icon: ClipboardList });
     }
@@ -113,7 +112,14 @@ const Navbar = () => {
             label: t('retention_analytics') || 'Enrollment & Retention',
             desc: 'Track student retention & attrition rates',
             icon: BarChart3
-        });
+        },
+        {
+            to: '/admin/allgradeAnalysis',
+            label: t('all_gradeLevel_analytics') || 'All Grade Level',
+            desc: 'Track all grade levels performance',
+            icon: BarChart3
+        }
+      );
     }
     return baseItems;
   }, [user, t]);
