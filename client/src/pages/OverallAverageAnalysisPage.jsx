@@ -11,13 +11,11 @@ function getCurrentAcademicYear() {
     return gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
 }
 
-// KG እና Nursery ክፍሎችን ለመለየት የሚያግዝ ሎጂክ
 const isKindergarten = (gradeLevel) => {
     if (!gradeLevel) return false;
     return /^(kg|nursery|pre)/i.test(gradeLevel);
 };
 
-// ⚠️ የሰንጠረዥ የጋራ ዲዛይን አወቃቀር (Reusable Sub-Component for Clean Code)
 const MatrixTable = ({ title, statusData, totals }) => {
     return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-md p-6 overflow-x-auto print:p-0 print:border-none print:shadow-none animate-slide-up space-y-4">
@@ -105,7 +103,6 @@ const OverallAverageAnalysisPage = () => {
     const [fetching, setFetching] = useState(false);
     const [error, setError] = useState(null);
 
-    // 1. የክፍሎችን ዝርዝር መጫን
     useEffect(() => {
         const loadGrades = async () => {
             try {
@@ -124,7 +121,6 @@ const OverallAverageAnalysisPage = () => {
         loadGrades();
     }, []);
 
-    // 2. የአናሊቲክስ መረጃ መጫን
     const handleFetchAnalysis = async () => {
         setFetching(true);
         setError(null);
@@ -145,7 +141,6 @@ const OverallAverageAnalysisPage = () => {
         handleFetchAnalysis();
     }, []);
 
-    // ⚠️ 3. ዳታዎቹን ለመዋለ ሕፃናት (KG) እና ለመደበኛ (Grades) ለሁለት መክፈያ ሎጂክ [2]
     const { kgMatrix, gradeMatrix } = useMemo(() => {
         const kg = [];
         const grade = [];
@@ -159,7 +154,6 @@ const OverallAverageAnalysisPage = () => {
         return { kgMatrix: kg, gradeMatrix: grade };
     }, [matrixData]);
 
-    // ⚠️ 4. የእያንዳንዱን ክፍል ጠቅላላ ድምር ለየብቻው ማስያ ረዳት ሎጂክ [2]
     const calculateTotals = (data) => {
         const totals = {
             under50: { m: 0, f: 0 },
@@ -240,14 +234,12 @@ const OverallAverageAnalysisPage = () => {
 
             {matrixData.length > 0 && (
                 <div className="space-y-12">
-                    {/* Official Print Header */}
                     <div className="hidden print:block text-center border-b pb-4 mb-6">
                         <h1 className="text-3xl font-black uppercase">Freedom Primary School</h1>
                         <h2 className="text-lg font-bold text-slate-600 uppercase mt-1">Class-Wide Student Performance Matrix</h2>
                         <p className="text-xs text-slate-500 font-mono mt-1">Academic Year: {academicYear}</p>
                     </div>
 
-                    {/* ⚠️ 5. የኪንደርጋርተን (KG) የተማሪዎች ዝርዝር ሰንጠረዥ (ካለ ብቻ ይወጣል) [2] */}
                     {(!selectedGrade || isKindergarten(selectedGrade)) && kgMatrix.length > 0 && (
                         <div className="space-y-4">
                             <MatrixTable 
@@ -258,7 +250,6 @@ const OverallAverageAnalysisPage = () => {
                         </div>
                     )}
 
-                    {/* ⚠️ 6. የመደበኛ ክፍሎች (Grade 1-12) የተማሪዎች ሰንጠረዥ (ካለ ብቻ ይወጣል) [2] */}
                     {(!selectedGrade || !isKindergarten(selectedGrade)) && gradeMatrix.length > 0 && (
                         <div className="space-y-4 print:mt-10">
                             <MatrixTable 
@@ -269,7 +260,6 @@ const OverallAverageAnalysisPage = () => {
                         </div>
                     )}
 
-                    {/* Signatures for Print (Visible only on print) */}
                     <div className="hidden print:grid grid-cols-2 gap-12 mt-16 px-6 page-break-inside-avoid">
                         <div className="text-center">
                             <div className="border-b border-black mb-2 h-10"></div>
