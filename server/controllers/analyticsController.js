@@ -440,131 +440,96 @@ exports.getYearlyEnrollmentAnalytics = async (req, res) => {
 };
 
 
-// @desc    Analyze students' overall average score distributions in a class
+// @desc    Get School-Wide Performance Matrix (Grouped by Grade Levels and Performance Buckets)
 // @route   GET /api/analytics/overall-average-analysis
 exports.getClassOverallAverageAnalysis = async (req, res) => {
-    const { gradeLevel, academicYear } = req.query;
+    const { academicYear } = req.query;
 
-    if (!gradeLevel || !academicYear) {
-        return res.status(400).json({ message: "Grade Level and Academic Year are required." });
+    if (!academicYear) {
+        return res.status(400).json({ message: "Academic Year is required." });
     }
 
     try {
-        // 1. በክፍሉ ውስጥ ያሉትን ሁሉንም ንቁ ተማሪዎች መፈለግ
-        const students = await Student.find({ gradeLevel, status: 'Active' })
-            .select('_id studentId fullName gender')
-            .lean();
-
-        if (!students.length) {
-            return res.status(404).json({ message: `No active students found in ${gradeLevel}.` });
-        }
-
-        const studentIds = students.map(s => s._id);
-
-        // ⚠️ 2. የእያንዳንዱን ተማሪ አጠቃላይ አማካይ ውጤት (Overall Average) በዳታቤዝ ደረጃ ማስላት [1]
-        const averages = await Grade.aggregate([
-            {
-                $match: {
-                    academicYear: academicYear,
-                    student: { $in: studentIds }
-                }
-            },
+        // ⚠️ 1. የሁሉም ተማሪዎች አጠቃላይ አማካይ ውጤት በየክፍላቸው በጅምላ መደብደብ [1, 2]
+        const matrix = await Grade.aggregate([
+            // ሀ. የአካዳሚክ አመቱን ፊልተር ማድረግ
+            { $match: { academicYear: academicYear } },
+            // ለ. የተማሪውን ሁሉንም የትምህርት ውጤቶች አማካይ መስራት
             {
                 $group: {
-                    _id: '$student',
-                    overallAverage: { $avg: '$finalScore' } // የተማሪውን ሁሉንም የትምህርት ውጤቶች አማካይ መስራት
+                    _id: "$student",
+                    overallAverage: { $avg: "$finalScore" }
+                }
+            },
+            // ሐ. የተማሪውን ክፍል እና ፆታ መረጃ ማገናኘት
+            {
+                $lookup: {
+                    from: "students",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "studentInfo"
+                }
+            },
+            { $unwind: "$studentInfo" },
+            // መ. ንቁ የሆኑትን ተማሪዎች ብቻ መለየት
+            { $match: { "studentInfo.status": "Active" } },
+            // ሠ. ሁሉንም ተማሪዎች በክፍላቸው (gradeLevel) ስር ግሩፕ ማድረግ
+            {
+                $group: {
+                    _id: "$studentInfo.gradeLevel",
+                    students: {
+                        $push: {
+                            gender: "$studentInfo.gender",
+                            avg: "$overallAverage"
+                        }
+                    }
                 }
             }
         ]);
 
-        // ፈጣን የተማሪዎች መረጃ ማግኛ ማፕ (Map) ማዘጋጀት
-        const studentMap = new Map(students.map(s => [s._id.toString(), s]));
-
-        // 3. የተማሪዎችን ውጤት መረጃ ማደራጀት
-        const compiledData = averages.map(av => {
-            const studentDoc = studentMap.get(av._id.toString());
-            return {
-                _id: av._id,
-                studentId: studentDoc ? studentDoc.studentId : '-',
-                fullName: studentDoc ? studentDoc.fullName : 'Unknown Student',
-                gender: studentDoc ? studentDoc.gender : 'Male',
-                overallAverage: parseFloat(av.overallAverage.toFixed(2))
+        // ⚠️ 2. በደብተሩ ምስል ላይ ባሉት 5 ምድቦች መሠረት ወንድና ሴት ተማሪዎችን በየክፍሉ መመደብ [2]
+        const formattedMatrix = matrix.map(row => {
+            const gradeLevel = row._id;
+            const stats = {
+                gradeLevel,
+                under50: { m: 0, f: 0 },
+                between50And70: { m: 0, f: 0 },
+                between70And80: { m: 0, f: 0 },
+                between80And90: { m: 0, f: 0 },
+                above90: { m: 0, f: 0 }
             };
-        });
 
-        // ⚠️ 4. በጥያቄህ መሠረት ተማሪዎችን በየደረጃቸው የሚከፋፍል ባልዲ (Buckets) ማዘጋጀት [2]
-        const buckets = {
-            above90: { label: 'Above 90% (ከ90% በላይ)', min: 90, max: 101, students: [], maleCount: 0, femaleCount: 0 },
-            between80And90: { label: '80% - 90% (ከ80% እስከ 90%)', min: 80, max: 90, students: [], maleCount: 0, femaleCount: 0 },
-            between70And80: { label: '70% - 80% (ከ70% እስከ 80%)', min: 70, max: 80, students: [], maleCount: 0, femaleCount: 0 },
-            between50And70: { label: '50% - 70% (ከ50% እስከ 70%)', min: 50, max: 70, students: [], maleCount: 0, femaleCount: 0 },
-            below50: { label: 'Below 50% (ከ50% በታች)', min: 0, max: 50, students: [], maleCount: 0, femaleCount: 0 }
-        };
-
-        // ተማሪዎችን በየደረጃቸው መመደብ [2]
-        compiledData.forEach(student => {
-            const avg = student.overallAverage;
-            for (const key in buckets) {
-                const b = buckets[key];
-                if (avg >= b.min && avg < b.max) {
-                    b.students.push(student);
-                    if (student.gender === 'Male') b.maleCount++;
-                    else b.femaleCount++;
-                    break; // ምድቡ ከተገኘ ሉፑን ማቆም
+            row.students.forEach(s => {
+                const avg = s.avg;
+                const isMale = s.gender === 'Male';
+                
+                if (avg < 50) {
+                    if (isMale) stats.under50.m++; else stats.under50.f++;
+                } else if (avg >= 50 && avg < 70) {
+                    if (isMale) stats.between50And70.m++; else stats.between50And70.f++;
+                } else if (avg >= 70 && avg < 80) {
+                    if (isMale) stats.between70And80.m++; else stats.between70And80.f++;
+                } else if (avg >= 80 && avg < 90) {
+                    if (isMale) stats.between80And90.m++; else stats.between80And90.f++;
+                } else if (avg >= 90) {
+                    if (isMale) stats.above90.m++; else stats.above90.f++;
                 }
-            }
+            });
+
+            return stats;
         });
 
-        // ስሞችን በፊደል ቅደም ተከተል መደርደር
-        for (const key in buckets) {
-            buckets[key].students.sort((a, b) => b.overallAverage - a.overallAverage);
-        }
+        // ⚠️ 3. ክፍሎችን በቁጥር ቅደም ተከተል መደርደር (Grade 1 -> Grade 12)
+        formattedMatrix.sort((a, b) => a.gradeLevel.localeCompare(b.gradeLevel, undefined, { numeric: true, sensitivity: 'base' }));
 
         res.status(200).json({
             success: true,
-            meta: { gradeLevel, academicYear },
-            totalAnalyzed: compiledData.length,
-            distribution: {
-                above90: {
-                    label: buckets.above90.label,
-                    male: buckets.above90.maleCount,
-                    female: buckets.above90.femaleCount,
-                    total: buckets.above90.students.length,
-                    students: buckets.above90.students
-                },
-                between80And90: {
-                    label: buckets.between80And90.label,
-                    male: buckets.between80And90.maleCount,
-                    female: buckets.between80And90.femaleCount,
-                    total: buckets.between80And90.students.length,
-                    students: buckets.between80And90.students
-                },
-                between70And80: {
-                    label: buckets.between70And80.label,
-                    male: buckets.between70And80.maleCount,
-                    female: buckets.between70And80.femaleCount,
-                    total: buckets.between70And80.students.length,
-                    students: buckets.between70And80.students
-                },
-                between50And70: {
-                    label: buckets.between50And70.label,
-                    male: buckets.between50And70.maleCount,
-                    female: buckets.between50And70.femaleCount,
-                    total: buckets.between50And70.students.length,
-                    students: buckets.between50And70.students
-                },
-                below50: {
-                    label: buckets.below50.label,
-                    male: buckets.below50.maleCount,
-                    female: buckets.below50.femaleCount,
-                    total: buckets.below50.students.length,
-                    students: buckets.below50.students
-                }
-            }
+            academicYear,
+            data: formattedMatrix
         });
 
     } catch (error) {
-        console.error("Overall Average Analysis Error:", error);
-        res.status(500).json({ message: "Server error generating average analysis." });
+        console.error("School Matrix Aggregation Error:", error);
+        res.status(500).json({ message: "Server error generating performance matrix." });
     }
 };
