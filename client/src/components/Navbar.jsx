@@ -6,7 +6,6 @@ import { BookOpen, LayoutDashboard, Users, BarChart3, Settings, ChevronDown, Gra
 import authService from '@shared/services/authService';
 import studentAuthService from '@shared/services/studentAuthService';
 import LanguageSwitcher from './LanguageSwitcher';
-import NotificationBell from './NotificationBell';
 import MobileSidebar from './MobileSideBar';
 
 const MegaMenu = ({ title, items }) => {
@@ -214,9 +213,6 @@ const Navbar = () => {
                   <NavLink to="/library" className="text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-slate-50">
                     <BookOpen className="w-5 h-5" />
                   </NavLink>
-                  <div className="text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-slate-50">
-                    <NotificationBell />
-                  </div>
                 </>
               )}
 

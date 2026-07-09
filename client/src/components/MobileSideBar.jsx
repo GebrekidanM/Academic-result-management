@@ -2,7 +2,6 @@ import React from 'react';
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { BookOpen, LogOut } from "lucide-react";
-import NotificationBell from "./NotificationBell";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 const MobileSidebar = ({ open, setOpen, user, student, logout }) => {
@@ -122,10 +121,6 @@ const MobileSidebar = ({ open, setOpen, user, student, logout }) => {
                 <BookOpen className="w-4 h-4 mr-2" />
                 Library
               </Link>
-              <div className="flex items-center justify-between px-3 py-3">
-                <span className="text-slate-600 text-sm font-medium">Notifications</span>
-                <NotificationBell />
-              </div>
             </>
           )}
 
