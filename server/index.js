@@ -42,12 +42,18 @@ app.use('/api/assessment-names', require('./routes/assessmentNameRoutes'))
 app.use('/api/attendance', require("./routes/attendanceRoutes"));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use((err, req, res, next) => {
-    console.error("❌ Express Global Error Caught:", err); // ትክክለኛውን ስህተት በተርሚናልህ ላይ ያትማል
+    console.error("❌ Express Global Error Caught:", err);
     res.status(500).json({ 
         success: false, 
         message: err.message || "An unexpected error occurred inside middleware",
         error: err
     });
+});
+
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../client', 'dist', 'index.html'));
 });
 
 app.get('/api/admin/temp-sanitize-db', async (req, res) => {
