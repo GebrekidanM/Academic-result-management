@@ -117,7 +117,15 @@ const Navbar = () => {
             label: t('all_gradeLevel_analytics') || 'All Grade Level',
             desc: 'Track all grade levels performance',
             icon: BarChart3
+        },
+        {
+            to: '/admin/regionalAnalysis',
+            label: t('regional') || 'Regional report',
+            desc: 'Track all grade levels subject performance',
+            icon: BarChart3
         }
+
+
       );
     }
     return baseItems;

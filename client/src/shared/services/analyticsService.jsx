@@ -39,11 +39,18 @@ const getClassOverallAverageAnalysis = (gradeLevel, academicYear) => {
         });
     }
 
+const getRegionalPerformance = (program, semester, academicYear) => {
+        return api.get(`/analytics/regional-performance`, { 
+            params: { program, semester, academicYear } 
+        });
+    }
+
 export default {
     getAnalysis,
     getSubjectPerformance,
     getClassAnalytics,
     getAtRiskStudents,
     getYearlyEnrollmentAnalytics,
-    getClassOverallAverageAnalysis
+    getClassOverallAverageAnalysis,
+    getRegionalPerformance
 };

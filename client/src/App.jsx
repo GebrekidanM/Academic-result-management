@@ -84,7 +84,7 @@ import EnrollmentAnalyticsPage from './pages/EnrollmentAnalyticsPage';
 import PaymentRegistryPage from './pages/PaymentRegistryPage';
 import PaymentAnalyticsPage from './pages/PaymentAnalyticsPage';
 import OverallAverageAnalysisPage from './pages/OverallAverageAnalysisPage';
-
+import RegionalPerformancePage from './pages/RegionalPerformancePage';
 
 function App() {
   const [isOpen, setIsOpen] = useState(false);
@@ -170,6 +170,8 @@ function App() {
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
               <Route path='/admin/allgradeAnalysis' element={<OverallAverageAnalysisPage/>}/>
+              <Route path='/admin/regionalAnalysis' element={<RegionalPerformancePage/>}/>
+
               <Route path="/reports/batch" element={<ClassReportGenerator />} />
               <Route path='/send_notification' element={<SendNotificationPage/>}/>
               <Route path='/admin/payments' element={<PaymentRegistryPage/>}/>

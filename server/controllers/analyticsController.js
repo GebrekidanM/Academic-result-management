@@ -533,3 +533,202 @@ exports.getClassOverallAverageAnalysis = async (req, res) => {
         res.status(500).json({ message: "Server error generating performance matrix." });
     }
 };
+
+
+// @desc    Get regional performance matrix grouped by base grade levels and subjects
+// @route   GET /api/analytics/regional-performance
+exports.getRegionalPerformanceMatrix = async (req, res) => {
+    const { program, semester, academicYear } = req.query;
+
+    
+    if (!program || !semester || !academicYear) {
+        return res.status(400).json({ message: "Missing program, semester, or academicYear query parameters." });
+    }
+
+    try {
+        let targetBaseGrades = [];
+        const programLower = program.toLowerCase();
+
+        if (programLower === 'kg') {
+            targetBaseGrades = ['Kg 1', 'Kg 2', 'Kg 3', 'Nursery']; 
+        } else if (programLower === 'grade') {
+            targetBaseGrades = [
+                'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6',
+                'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'
+            ];
+        } else {
+            return res.status(400).json({ message: "Invalid program type. Must be 'Kg' or 'Grade'." });
+        }
+
+        const students = await Student.find({ status: 'Active' }).select('_id gender gradeLevel').lean();
+
+        const studentMap = new Map();
+        const baseGradeStudentIdsMap = new Map();
+
+        students.forEach(s => {
+            const baseGrade = s.gradeLevel ? s.gradeLevel.replace(/[A-Z]$/i, '').trim() : '';
+            
+            if (targetBaseGrades.includes(baseGrade)) {
+                studentMap.set(s._id.toString(), { gender: s.gender, baseGrade });
+                if (!baseGradeStudentIdsMap.has(baseGrade)) {
+                    baseGradeStudentIdsMap.set(baseGrade, []);
+                }
+                baseGradeStudentIdsMap.get(baseGrade).push(s._id);
+            }
+        });
+
+        const allSubjects = await Subject.find({}).lean();
+        const gradesReport = [];
+
+        for (const baseGrade of targetBaseGrades) {
+            const studentIdsInBaseGrade = baseGradeStudentIdsMap.get(baseGrade) || [];
+            
+            const subjectsInGrade = allSubjects.filter(sub => {
+                const subBase = sub.gradeLevel ? sub.gradeLevel.replace(/[A-Z]$/i, '').trim() : '';
+                return subBase === baseGrade;
+            });
+
+            const uniqueSubjectNames = [...new Set(subjectsInGrade.map(s => s.name))];
+            const subjectRows = [];
+
+            for (const subName of uniqueSubjectNames) {
+                const matchedSubjectIds = subjectsInGrade.filter(s => s.name === subName).map(s => s._id);
+
+                const grades = await Grade.find({
+                    subject: { $in: matchedSubjectIds },
+                    student: { $in: studentIdsInBaseGrade },
+                    semester,
+                    academicYear
+                }).lean();
+
+                const stats = {
+                    subject: subName,
+                    enrolled: { m: 0, f: 0, t: 0 },
+                    sitting: { m: 0, f: 0, t: 0 },
+                    under50: { m: 0, f: 0, t: 0, pct: 0 },         // A (< 50)
+                    between50And64: { m: 0, f: 0, t: 0, pct: 0 },   // B (50 - 64)
+                    between65And79: { m: 0, f: 0, t: 0, pct: 0 },   // C (65 - 79)
+                    between80And89: { m: 0, f: 0, t: 0, pct: 0 },   // D (80 - 89)
+                    above90: { m: 0, f: 0, t: 0, pct: 0 }           // E (>= 90)
+                };
+
+                studentIdsInBaseGrade.forEach(id => {
+                    const s = studentMap.get(id.toString());
+                    if (s) {
+                        if (s.gender === 'Male') stats.enrolled.m++;
+                        else if (s.gender === 'Female') stats.enrolled.f++;
+                    }
+                });
+                stats.enrolled.t = stats.enrolled.m + stats.enrolled.f;
+
+                grades.forEach(g => {
+                    const studentDetails = studentMap.get(g.student.toString());
+                    if (studentDetails && g.finalScore !== undefined && g.finalScore !== null) {
+                        const isMale = studentDetails.gender === 'Male';
+                        const score = g.finalScore;
+
+                        if (isMale) stats.sitting.m++; else stats.sitting.f++;
+
+                        if (score < 50) {
+                            if (isMale) stats.under50.m++; else stats.under50.f++;
+                        } else if (score >= 50 && score <= 64) {
+                            if (isMale) stats.between50And64.m++; else stats.between50And64.f++;
+                        } else if (score >= 65 && score <= 79) {
+                            if (isMale) stats.between65And79.m++; else stats.between65And79.f++;
+                        } else if (score >= 80 && score <= 89) {
+                            if (isMale) stats.between80And89.m++; else stats.between80And89.f++;
+                        } else if (score >= 90) {
+                            if (isMale) stats.above90.m++; else stats.above90.f++;
+                        }
+                    }
+                });
+
+                stats.sitting.t = stats.sitting.m + stats.sitting.f;
+
+                const totalSitting = stats.sitting.t;
+                const updateBucket = (bucket) => {
+                    bucket.t = bucket.m + bucket.f;
+                    bucket.pct = totalSitting > 0 ? parseFloat(((bucket.t / totalSitting) * 100).toFixed(1)) : 0;
+                };
+
+                updateBucket(stats.under50);
+                updateBucket(stats.between50And64);
+                updateBucket(stats.between65And79);
+                updateBucket(stats.between80And89);
+                updateBucket(stats.above90);
+
+                subjectRows.push(stats);
+            }
+
+            const gradeTotal = {
+                subject: `${baseGrade} Total`,
+                enrolled: { m: 0, f: 0, t: 0 },
+                sitting: { m: 0, f: 0, t: 0 },
+                under50: { m: 0, f: 0, t: 0, pct: 0 },
+                between50And64: { m: 0, f: 0, t: 0, pct: 0 },
+                between65And79: { m: 0, f: 0, t: 0, pct: 0 },
+                between80And89: { m: 0, f: 0, t: 0, pct: 0 },
+                above90: { m: 0, f: 0, t: 0, pct: 0 }
+            };
+
+            subjectRows.forEach(sub => {
+                gradeTotal.enrolled.m += sub.enrolled.m;
+                gradeTotal.enrolled.f += sub.enrolled.f;
+                gradeTotal.enrolled.t += sub.enrolled.t;
+
+                gradeTotal.sitting.m += sub.sitting.m;
+                gradeTotal.sitting.f += sub.sitting.f;
+                gradeTotal.sitting.t += sub.sitting.t;
+
+                gradeTotal.under50.m += sub.under50.m;
+                gradeTotal.under50.f += sub.under50.f;
+                gradeTotal.under50.t += sub.under50.t;
+
+                gradeTotal.between50And64.m += sub.between50And64.m;
+                gradeTotal.between50And64.f += sub.between50And64.f;
+                gradeTotal.between50And64.t += sub.between50And64.t;
+
+                gradeTotal.between65And79.m += sub.between65And79.m;
+                gradeTotal.between65And79.f += sub.between65And79.f;
+                gradeTotal.between65And79.t += sub.between65And79.t;
+
+                gradeTotal.between80And89.m += sub.between80And89.m;
+                gradeTotal.between80And89.f += sub.between80And89.f;
+                gradeTotal.between80And89.t += sub.between80And89.t;
+
+                gradeTotal.above90.m += sub.above90.m;
+                gradeTotal.above90.f += sub.above90.f;
+                gradeTotal.above90.t += sub.above90.t;
+            });
+
+            const totalGradeSitting = gradeTotal.sitting.t;
+            const updateGradeBucketPct = (bucket) => {
+                bucket.pct = totalGradeSitting > 0 ? parseFloat(((bucket.t / totalGradeSitting) * 100).toFixed(1)) : 0;
+            };
+
+            updateGradeBucketPct(gradeTotal.under50);
+            updateGradeBucketPct(gradeTotal.between50And64);
+            updateGradeBucketPct(gradeTotal.between65And79);
+            updateGradeBucketPct(gradeTotal.between80And89);
+            updateGradeBucketPct(gradeTotal.above90);
+
+            if (subjectRows.length > 0) {
+                gradesReport.push({
+                    gradeLevel: baseGrade,
+                    subjects: subjectRows,
+                    totalRow: gradeTotal
+                });
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            meta: { program, semester, academicYear },
+            data: gradesReport
+        });
+
+    } catch (error) {
+        console.error("Regional Performance Matrix Error:", error);
+        res.status(500).json({ message: "Server error." });
+    }
+};
