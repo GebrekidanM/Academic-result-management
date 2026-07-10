@@ -377,22 +377,22 @@ exports.getCertificateData = async (req, res) => {
                 
                 // Semester 1 Stats
                 sem1: {
-                    total: parseFloat(s1Total.toFixed(1)),
-                    avg: parseFloat(s1Avg.toFixed(1)),
+                    total: parseFloat(s1Total.toFixed(2)),
+                    avg: parseFloat(s1Avg.toFixed(2)),
                     rank: 0 // Placeholder
                 },
 
                 // Semester 2 Stats
                 sem2: {
-                    total: parseFloat(s2Total.toFixed(1)),
-                    avg: parseFloat(s2Avg.toFixed(1)),
-                    rank: 0 // Placeholder
+                    total: parseFloat(s2Total.toFixed(2)),
+                    avg: parseFloat(s2Avg.toFixed(2)),
+                    rank: 0 
                 },
 
                 // Overall Stats
                 overall: {
-                    total: parseFloat(finalOverallTotal.toFixed(1)),
-                    avg: parseFloat(finalOverallAvg.toFixed(1)),
+                    total: parseFloat(finalOverallTotal.toFixed(2)),
+                    avg: parseFloat(finalOverallAvg.toFixed(2)),
                     rank: 0 // Placeholder
                 }
             };
