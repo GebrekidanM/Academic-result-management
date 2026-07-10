@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import studentService from '@shared/services/studentService'; // ⚠️ የ student ሰርቪስ
+import studentService from '@shared/services/studentService';
 import analyticsService from '@shared/services/analyticsService';
-import * as XLSX from 'xlsx'; // የኤክሴል ጥቅል
+import * as XLSX from 'xlsx';
 
 function getCurrentAcademicYear() {
     const today = new Date();
@@ -12,13 +12,11 @@ function getCurrentAcademicYear() {
     return gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
 }
 
-// KG እና Nursery ክፍሎችን ለመለየት የሚያግዝ ሎጂክ
 const isKindergarten = (gradeLevel) => {
     if (!gradeLevel) return false;
     return /^(kg|nursery|pre)/i.test(gradeLevel);
 };
 
-// ⚠️ 1. የሰንጠረዥ የጋራ ዲዛይን አወቃቀር (Nested Subjects and totalRow rendering) [2]
 const MatrixTable = ({ title, statusData, totals }) => {
     const thStyle = "p-1.5 border border-slate-400 text-center align-middle text-xs font-black uppercase";
     const subThStyle = "p-1 border border-slate-400 text-center text-[9px] font-bold bg-slate-50 text-slate-600";
@@ -57,7 +55,6 @@ const MatrixTable = ({ title, statusData, totals }) => {
                 <tbody className="divide-y divide-slate-150 bg-white text-xs">
                     {statusData.map((gradeData, gIdx) => (
                         <React.Fragment key={gIdx}>
-                            {/* ሀ. የእያንዳንዱ ክፍል ዝርዝር ትምህርቶች ሪንደር መደረጊያ ሉፕ [2] */}
                             {gradeData.subjects.map((sub, sIdx) => (
                                 <tr key={sIdx} className="bg-yellow-50/20 hover:bg-yellow-100/50 text-[10px] font-bold text-slate-700">
                                     {sIdx === 0 && (
@@ -102,7 +99,6 @@ const MatrixTable = ({ title, statusData, totals }) => {
                                 </tr>
                             ))}
 
-                            {/* ለ. የእያንዳንዱ ግሬድ ጠቅላላ ድምር አግድም ረድፍ (Grade Total Row) [2] */}
                             <tr className="bg-green-600 text-white text-[10px] font-black border-t-2 border-slate-400 print:bg-green-600 print:text-white">
                                 <td className="border border-slate-400 p-1 text-left uppercase whitespace-nowrap bg-green-700">Total</td>
                                 
@@ -142,7 +138,6 @@ const MatrixTable = ({ title, statusData, totals }) => {
                         </React.Fragment>
                     ))}
 
-                    {/* ⚠️ ሐ. የጠቅላላ ክፍሎች የመጨረሻ ማጠቃለያ ድምር ረድፍ (Grand Summary Total) [2] */}
                     <tr className="bg-slate-900 text-white font-black uppercase border-t-4 border-slate-700 print:bg-slate-900 text-[10px]">
                         <td colSpan="2" className="p-3 border border-slate-800 text-left bg-slate-950">Grand Total</td>
                         <td className="p-2 border border-slate-800 text-center bg-slate-850">👨 {totals.under50.m + totals.between50And64.m + totals.between65And79.m + totals.between80And89.m + totals.above90.m}</td>
@@ -175,7 +170,6 @@ const RegionalPerformancePage = () => {
 
     const activeProgram = 'oromo_1_6'; 
 
-    // የክፍሎችን ዝርዝር መጫን
     useEffect(() => {
         const loadGrades = async () => {
             try {
@@ -213,7 +207,6 @@ const RegionalPerformancePage = () => {
         fetchRegionalReport();
     }, [activeTab, semester, academicYear]);
 
-    // ⚠️ 2. ዳታዎቹን ለመዋለ ሕፃናት (KG) እና ለመደበኛ (Grades) ለሁለት መክፈያ ሎጂክ [2]
     const { kgMatrix, gradeMatrix } = useMemo(() => {
         const kg = [];
         const grade = [];
@@ -227,7 +220,6 @@ const RegionalPerformancePage = () => {
         return { kgMatrix: kg, gradeMatrix: grade };
     }, [reportData]);
 
-    // ⚠️ 3. የእያንዳንዱን ክፍል ጠቅላላ ድምር ማስያ ረዳት ሎጂክ [2]
     const calculateTotals = (data) => {
         const totals = {
             under50: { m: 0, f: 0, t: 0 },
@@ -269,7 +261,6 @@ const RegionalPerformancePage = () => {
     const kgTotals = useMemo(() => calculateTotals(kgMatrix), [kgMatrix]);
     const gradeTotals = useMemo(() => calculateTotals(gradeMatrix), [gradeMatrix]);
 
-    // የኤክሴል ማውረጃ ፈንክሽን
     const handleExportExcel = () => {
         if (reportData.length === 0) return;
 

@@ -69,18 +69,9 @@ exports.deleteSubject = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Subject not found' });
         }
 
-        // --- START OF CLEANUP ---
-        
-        // 1. Delete all Assessment Types for this subject
         await AssessmentType.deleteMany({ subject: req.params.id });
-
-        // 2. Delete all Grades for this subject
         await Grade.deleteMany({ subject: req.params.id });
-
-        // 3. Finally, delete the subject itself
         await subject.deleteOne();
-        
-        // --- END OF CLEANUP ---
 
         res.status(200).json({ 
             success: true, 

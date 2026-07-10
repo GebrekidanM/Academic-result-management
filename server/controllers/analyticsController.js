@@ -540,12 +540,14 @@ exports.getClassOverallAverageAnalysis = async (req, res) => {
 exports.getRegionalPerformanceMatrix = async (req, res) => {
     const { program, semester, academicYear } = req.query;
 
+    console.log("Program Query Received:", program); // "Kg" ወይም "Grade"
     
     if (!program || !semester || !academicYear) {
         return res.status(400).json({ message: "Missing program, semester, or academicYear query parameters." });
     }
 
     try {
+        // 1. በተመረጠው ፕሮግራም (Kg ወይም Grade) መሠረት የሚካተቱትን ክፍሎች መወሰን [2]
         let targetBaseGrades = [];
         const programLower = program.toLowerCase();
 
@@ -560,6 +562,7 @@ exports.getRegionalPerformanceMatrix = async (req, res) => {
             return res.status(400).json({ message: "Invalid program type. Must be 'Kg' or 'Grade'." });
         }
 
+        // 2. በዳታቤዝ ውስጥ ያሉትን ሁሉንም ንቁ ተማሪዎች መፈለግ
         const students = await Student.find({ status: 'Active' }).select('_id gender gradeLevel').lean();
 
         const studentMap = new Map();
@@ -577,8 +580,25 @@ exports.getRegionalPerformanceMatrix = async (req, res) => {
             }
         });
 
+        // 3. የትምህርቶችን ዝርዝር መጫን
         const allSubjects = await Subject.find({}).lean();
         const gradesReport = [];
+
+        // ⚠️ 4. አንተ በሰጠኸኝ ትክክለኛ የትምህርት አሰላለፍ መሠረት የተዋቀረ የግርጌ ዝርዝር [2]
+        const ALLOWED_SUBJECTS_BASE = [
+            "አማርኛ",
+            "ENGLISH",
+            "ሒሳብ",
+            "አካባቢ ሳይንስ",
+            "ሳይንስ",
+            "ግብረ ገብ",
+            "የዜግነት",
+            "ህብረተሰብ",
+            "Affan Oromo",
+            "ሥነ ጥበብ",
+            "የሙያ ትምህርት",
+            "ጤሰማ"
+        ];
 
         for (const baseGrade of targetBaseGrades) {
             const studentIdsInBaseGrade = baseGradeStudentIdsMap.get(baseGrade) || [];
@@ -588,7 +608,21 @@ exports.getRegionalPerformanceMatrix = async (req, res) => {
                 return subBase === baseGrade;
             });
 
-            const uniqueSubjectNames = [...new Set(subjectsInGrade.map(s => s.name))];
+            // ⚠️ 5. ICT ለ 7ኛ እና ለ 8ኛ ክፍል ብቻ መፈቀዱን ማረጋገጥ [2]
+            const allowedForThisGrade = [...ALLOWED_SUBJECTS_BASE];
+            if (baseGrade === 'Grade 7' || baseGrade === 'Grade 8') {
+                allowedForThisGrade.push("ICT"); // 7 እና 8 ከሆነ ICT ይፈቀዳል [2]
+            }
+
+            // ⚠️ 6. የትምህርት ስሞችን ከተፈቀዱት ጋር ብቻ ማጣራት እና በታዘዘው ቅደም ተከተል መደርደር [2]
+            const uniqueSubjectNames = [...new Set(subjectsInGrade.map(s => s.name))]
+                .filter(name => allowedForThisGrade.some(allowed => allowed.toLowerCase().trim() === name.toLowerCase().trim()))
+                .sort((a, b) => {
+                    const idxA = allowedForThisGrade.findIndex(p => p.toLowerCase().trim() === a.toLowerCase().trim());
+                    const idxB = allowedForThisGrade.findIndex(p => p.toLowerCase().trim() === b.toLowerCase().trim());
+                    return idxA - idxB;
+                });
+
             const subjectRows = [];
 
             for (const subName of uniqueSubjectNames) {
@@ -605,11 +639,11 @@ exports.getRegionalPerformanceMatrix = async (req, res) => {
                     subject: subName,
                     enrolled: { m: 0, f: 0, t: 0 },
                     sitting: { m: 0, f: 0, t: 0 },
-                    under50: { m: 0, f: 0, t: 0, pct: 0 },         // A (< 50)
-                    between50And64: { m: 0, f: 0, t: 0, pct: 0 },   // B (50 - 64)
-                    between65And79: { m: 0, f: 0, t: 0, pct: 0 },   // C (65 - 79)
-                    between80And89: { m: 0, f: 0, t: 0, pct: 0 },   // D (80 - 89)
-                    above90: { m: 0, f: 0, t: 0, pct: 0 }           // E (>= 90)
+                    under50: { m: 0, f: 0, t: 0, pct: 0 },
+                    between50And64: { m: 0, f: 0, t: 0, pct: 0 },
+                    between65And79: { m: 0, f: 0, t: 0, pct: 0 },
+                    between80And89: { m: 0, f: 0, t: 0, pct: 0 },
+                    above90: { m: 0, f: 0, t: 0, pct: 0 }
                 };
 
                 studentIdsInBaseGrade.forEach(id => {
