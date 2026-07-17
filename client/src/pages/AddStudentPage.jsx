@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import studentService from '@shared/services/studentService';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,11 @@ const AddStudentPage = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     
     const [regMode, setRegMode] = useState('new'); 
+
+    // Search Toggle: 'id' for studentId, 'name' for student name autocomplete
+    const [searchType, setSearchType] = useState('id'); 
+    const [searchName, setSearchName] = useState('');
+    const [allStudents, setAllStudents] = useState([]); // Loaded for name search auto-complete
 
     const [studentData, setStudentData] = useState({
         fullName: '',
@@ -33,7 +38,7 @@ const AddStudentPage = () => {
     const [nationalId, setNationalId] = useState(null);
 
     const [searchId, setSearchId] = useState('');
-    const [year,setYear] = useState('');
+    const [year, setYear] = useState('');
     const [foundStudent, setFoundStudent] = useState(null);
     const [newGradeLevel, setNewGradeLevel] = useState('');
 
@@ -52,12 +57,48 @@ const AddStudentPage = () => {
         };
     }, []);
 
+    // Load master list of students only if the user is performing a returning-student lookup
+    useEffect(() => {
+        if (regMode === 'returning' && allStudents.length === 0 && isOnline) {
+            const loadStudents = async () => {
+                try {
+                    const res = await studentService.getAllStudents();
+                    setAllStudents(res.data.data || res.data || []);
+                } catch (err) {
+                    console.error("Failed to load students for auto-complete selection", err);
+                }
+            };
+            loadStudents();
+        }
+    }, [regMode, allStudents.length, isOnline]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setStudentData(prev => ({ ...prev, [name]: value }));
     };
 
-    // --- Logic: Search for Existing Student ---
+    // --- Autocomplete Filter Logic ---
+    const nameResults = useMemo(() => {
+        if (!searchName.trim() || searchType !== 'name') return [];
+        return allStudents.filter(s => 
+            s.fullName.toLowerCase().includes(searchName.toLowerCase())
+        ).slice(0, 5); // Limit dropdown to top 5 results for a clean UI
+    }, [searchName, allStudents, searchType]);
+
+    // Handle student selection from the name search dropdown
+    const handleSelectStudent = (student) => {
+        setFoundStudent({
+            studentId: student.studentId,
+            fullName: student.fullName,
+            currentGrade: student.gradeLevel,
+            year: student.year
+        });
+        setSearchName(student.fullName); // Set input text
+        setSearchId(student.studentId); // Set ID reference
+        setYear(student.year); // Set current year reference
+    };
+
+    // --- Logic: Search for Existing Student by ID ---
     const handleSearchStudent = async () => {
         const trimmedId = searchId.trim().toUpperCase(); 
         if (!trimmedId) return;
@@ -68,6 +109,7 @@ const AddStudentPage = () => {
         try {
             const response = await studentService.getStudentByStudentId(trimmedId);
             setFoundStudent(response.data);
+            setYear(response.data.year || '');
         } catch (err) {
             setError("Student ID not found.");
         } finally {
@@ -125,6 +167,7 @@ const AddStudentPage = () => {
                 });
                 
                 setSearchId('');
+                setSearchName('');
                 setFoundStudent(null);
                 setNewGradeLevel('');
             }
@@ -217,34 +260,87 @@ const AddStudentPage = () => {
                     {regMode === 'returning' && (
                         <div className="max-w-2xl mx-auto py-8">
                             <div className="bg-blue-50 p-6 rounded-xl border border-blue-200 shadow-sm">
-                                <label className={inputLabel}>Step 1: Search by Student ID</label>
-                                <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
-                                        className={textInput} 
-                                        placeholder="e.g. FKS-2023-001" 
-                                        value={searchId}
-                                        onChange={(e) => setSearchId(e.target.value.toUpperCase())}
-                                    />
-                                    
-                                    <button 
-                                        type="button" 
-                                        onClick={handleSearchStudent}
-                                        disabled={loading || !searchId}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 rounded-lg font-bold transition-colors"
+                                
+                                {/* Search Type Selector Tabs */}
+                                <div className="flex border-b border-blue-200 mb-4 gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setSearchType('id'); setFoundStudent(null); setSearchName(''); }}
+                                        className={`pb-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
+                                            searchType === 'id' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500'
+                                        }`}
                                     >
-                                        {loading ? '...' : 'Search'}
+                                        Search by ID
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setSearchType('name'); setFoundStudent(null); setSearchId(''); }}
+                                        className={`pb-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
+                                            searchType === 'name' ? 'border-pink-500 text-pink-600' : 'border-transparent text-gray-500'
+                                        }`}
+                                    >
+                                        Search by Name
                                     </button>
                                 </div>
+
+                                <label className={inputLabel}>
+                                    {searchType === 'id' ? 'Step 1: Search by Student ID' : 'Step 1: Type Student Name'}
+                                </label>
+
+                                {searchType === 'id' ? (
+                                    /* Search by ID Input Field */
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            className={textInput} 
+                                            placeholder="e.g. FKS-2023-001" 
+                                            value={searchId}
+                                            onChange={(e) => setSearchId(e.target.value.toUpperCase())}
+                                        />
+                                        <button 
+                                            type="button" 
+                                            onClick={handleSearchStudent}
+                                            disabled={loading || !searchId}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 rounded-lg font-bold transition-colors"
+                                        >
+                                            {loading ? '...' : 'Search'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    /* Search by Name with Autocomplete Suggestion Dropdown */
+                                    <div className="relative w-full">
+                                        <input 
+                                            type="text" 
+                                            className={textInput} 
+                                            placeholder="Type student name to search..." 
+                                            value={searchName}
+                                            onChange={(e) => setSearchName(e.target.value)}
+                                        />
+                                        {nameResults.length > 0 && (
+                                            <ul className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 divide-y divide-gray-100 max-h-60 overflow-y-auto">
+                                                {nameResults.map(s => (
+                                                    <li 
+                                                        key={s._id}
+                                                        onClick={() => handleSelectStudent(s)}
+                                                        className="px-4 py-2.5 hover:bg-pink-50 cursor-pointer text-sm flex justify-between items-center transition-colors"
+                                                    >
+                                                        <span className="font-bold text-gray-800">{s.fullName}</span>
+                                                        <span className="text-xs text-gray-500 font-mono">{s.studentId} ({s.gradeLevel})</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {foundStudent && (
                                 <div className="mt-8 p-6 bg-white border-2 border-green-500 rounded-xl shadow-lg animate-fade-in">
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <p className="text-xs font-bold text-green-600 uppercase">Student Found</p>
+                                            <p className="text-xs font-bold text-green-600 uppercase">Student Selected</p>
                                             <h3 className="text-2xl font-black text-gray-800">{foundStudent.fullName}</h3>
-                                            <p className="text-gray-600 italic">Currently in: {foundStudent.currentGrade}</p>
+                                            <p className="text-gray-600 italic">Currently in: {foundStudent.currentGrade} ({foundStudent.studentId})</p>
                                         </div>
                                         <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
                                             Verified
@@ -263,7 +359,7 @@ const AddStudentPage = () => {
                                         />
                                         <p className="text-xs text-gray-400 mt-2">Example: If they were in 2A, put 3A.</p>
                                         
-                                        <label className={inputLabel}>Step 3: Assign New Academic year</label> 
+                                        <label className={inputLabel}>Step 3: Assign New Academic Year</label> 
                                         <input
                                             type='text'
                                             className={textInput} 
@@ -335,13 +431,11 @@ const AddStudentPage = () => {
                                 </div>
                             </fieldset>
 
-                            {/* ⚠️ 3. አዲሱ የሰነዶች መጫኛ ክፍል (Scanned Documents Section) */}
                             <fieldset className="mt-8 border-t pt-6">
                                 <legend className="text-lg font-bold text-gray-700 mb-4 uppercase tracking-wide">
                                     📂 {t('scanned_documents') || 'Scanned Documents (Optional)'}
                                 </legend>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {/* መሸኛ ደብዳቤ (Transfer Letter) */}
                                     <div>
                                         <label htmlFor="transferLetter" className={inputLabel}>
                                             📄 {t('transfer_letter') || 'Transfer Letter (መሸኛ)'}
@@ -355,7 +449,6 @@ const AddStudentPage = () => {
                                         />
                                     </div>
 
-                                    {/* ሰርተፊኬት (Certificate) */}
                                     <div>
                                         <label htmlFor="certificate" className={inputLabel}>
                                             🎓 {t('prev_certificate') || 'Report Card (ሰርተፊኬት)'}
@@ -369,7 +462,6 @@ const AddStudentPage = () => {
                                         />
                                     </div>
 
-                                    {/* ብሄራዊ መታወቂያ (National ID) */}
                                     <div>
                                         <label htmlFor="nationalId" className={inputLabel}>
                                             🪪 {t('national_id') || 'National ID / Birth Cert.'}
