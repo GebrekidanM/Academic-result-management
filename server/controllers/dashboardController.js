@@ -1,4 +1,3 @@
-// backend/controllers/dashboardController.js
 const Student = require('../models/Student');
 const User = require('../models/User');
 const Subject = require('../models/Subject');
@@ -7,20 +6,20 @@ const Attendance = require('../models/Attendance');
 
 exports.getStats = async (req, res) => {
     try {
-        // 1. መሰረታዊ የቁጥር ስታቶች
-        const [students, teachers, subjects] = await Promise.all([
+        // MODIFIED: Use Subject.distinct('name') to retrieve only unique subject names
+        const [students, teachers, uniqueSubjects] = await Promise.all([
             Student.countDocuments({ status: 'Active' }),
             User.countDocuments({ role: 'teacher' }),
-            Subject.countDocuments({})
+            Subject.distinct('name') // Returns an array of unique names (e.g. ['Math', 'Physics'])
         ]);
 
-        // 2. የቅርብ ጊዜ የስራ እንቅስቃሴ መዝገቦች (Audit Logs) [2]
+        const subjects = uniqueSubjects.length; // Count of unique subjects
+
         const recentLogs = await AuditLog.find({})
             .populate('user', 'fullName role')
             .sort({ createdAt: -1 })
             .limit(6);
 
-        // 3. የዛሬውን የተማሪዎች መገኘት መጠን (Today's Attendance Rate) ማስላት
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const todayEnd = new Date();
@@ -45,7 +44,6 @@ exports.getStats = async (req, res) => {
             }
         }
 
-        // ⚠️ 4. እውነተኛ የተማሪዎችን ፆታ በየደረጃው (KG, Primary, High School) ለይቶ ማስላት [2]
         const activeStudents = await Student.find({ status: 'Active' }).select('gender gradeLevel').lean();
 
         let kgMale = 0, kgFemale = 0;
@@ -70,18 +68,17 @@ exports.getStats = async (req, res) => {
             }
         });
 
-        // ⚠️ 5. እውነተኛ የየወሩን የመገኘት ታሪክ ማጠቃለያ (Gzip/Attendance Monthly Aggregation) [1, 2]
         const monthlyStats = await Attendance.aggregate([
             {
                 $project: {
-                    month: { $month: "$date" }, // የሰነዱን ወር በቁጥር (1-12) መለየት
+                    month: { $month: "$date" },
                     total: { $size: "$records" },
                     present: {
                         $size: {
                             $filter: {
                                 input: "$records",
                                 as: "r",
-                                cond: { $in: ["$$r.status", ["Present", "Late"]] } // መገኘት እና ማርፈድ እንደ መገኘት ይቆጠራሉ
+                                cond: { $in: ["$$r.status", ["Present", "Late"]] }
                             }
                         }
                     }
@@ -96,9 +93,8 @@ exports.getStats = async (req, res) => {
             }
         ]);
 
-        // የኢትዮጵያ/ጎርጎርዮሳውያን ወራትን በቅደም ተከተል መደርደር (September -> June)
         const monthIndexMap = { 9: 0, 10: 1, 11: 2, 12: 3, 1: 4, 2: 5, 3: 6, 4: 7, 5: 8, 6: 9 };
-        const trendData = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100]; // ሪከርድ ለሌላቸው ወራት ነባሪው 100%
+        const trendData = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100];
 
         monthlyStats.forEach(stat => {
             const idx = monthIndexMap[stat._id];
@@ -119,7 +115,7 @@ exports.getStats = async (req, res) => {
                 primary: { male: primaryMale, female: primaryFemale },
                 highSchool: { male: hsMale, female: hsFemale }
             },
-            attendanceTrend: trendData // ⚠️ እውነተኛው የየወሩ መገኘት ታሪክ እዚህ ይላካል [2]
+            attendanceTrend: trendData
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
