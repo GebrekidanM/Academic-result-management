@@ -20,6 +20,7 @@ const getStudentById = (id) => {
 
 // ALIGNED WITH BACKEND: Search for a student by their ID for registration
 const getStudentByStudentId = (studentId) => {
+    console.log(studentId)
     return api.get(`${API_URL}/search/${studentId}`);
 };
 

@@ -60,8 +60,6 @@ const hasAccessToStudent = (user, studentGradeLevel, allowedRoles = ['admin']) =
 };
 
 
-// --- CONTROLLERS ---
-
 // @desc Get all students or by grade
 // @route GET /api/students
 exports.getStudents = async (req, res) => {
@@ -130,8 +128,6 @@ exports.getStudentById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // SAFE-GUARD: If the ID is not a valid 24-character hexadecimal ObjectId, 
-        // return 404 immediately instead of letting Mongoose throw a CastError and crash.
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(404).json({ message: 'Student not found (Invalid ID format).' });
         }
