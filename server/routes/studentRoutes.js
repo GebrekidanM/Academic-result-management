@@ -6,7 +6,7 @@ const { protect } = require('../middleware/authMiddleware');
 // 1. STATIC ROUTES
 router.get('/bulk-end-of-year/count', protect, studentController.getBulkEndOfYearCount);
 router.put('/end-of-year', protect, studentController.bulkSetEndOfYearByEC);
-router.get('/search/:studentId', protect, studentController.getStudentForRegistration);
+router.get('/search/:studentId', studentController.getStudentForRegistration);
 router.post('/re-register', protect, studentController.reRegisterStudent);
 
 // 2. DYNAMIC ROUTES WITH SUB-PATHS
