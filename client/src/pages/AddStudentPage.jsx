@@ -82,7 +82,7 @@ const AddStudentPage = () => {
         if (!searchName.trim() || searchType !== 'name') return [];
         return allStudents.filter(s => 
             s.fullName.toLowerCase().includes(searchName.toLowerCase())
-        ).slice(0, 5); // Limit dropdown to top 5 results for a clean UI
+        ).slice(0, 5);
     }, [searchName, allStudents, searchType]);
 
     // Handle student selection from the name search dropdown

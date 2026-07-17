@@ -65,7 +65,7 @@ const hasAccessToStudent = (user, studentGradeLevel, allowedRoles = ['admin']) =
 exports.getStudents = async (req, res) => {
     try {
         const { gradeLevel } = req.query;
-        const constraints = [{ status: 'Active' }];
+        const constraints = [];
 
         // 1. Specific Filter (from Frontend)
         if (gradeLevel) {
