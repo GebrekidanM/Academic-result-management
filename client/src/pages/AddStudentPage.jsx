@@ -93,9 +93,9 @@ const AddStudentPage = () => {
             currentGrade: student.gradeLevel,
             year: student.year
         });
-        setSearchName(student.fullName); // Set input text
-        setSearchId(student.studentId); // Set ID reference
-        setYear(student.year); // Set current year reference
+        setSearchName(student.fullName);
+        setSearchId(student.studentId);
+        setYear(student.year);
     };
 
     // --- Logic: Search for Existing Student by ID ---

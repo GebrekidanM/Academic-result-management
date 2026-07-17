@@ -3,7 +3,6 @@ import api from './api.jsx';
 
 const API_URL = '/students';
 
-// --- Functions for Managing Student Data (CRUD) ---
 
 const getAllStudents = () => {
     return api.get(API_URL);
@@ -96,6 +95,7 @@ const setStudentEndOfYear = (id, statusAtEnd) => {
 export default {
     resetPassword,
     getAllStudents,
+    getAllStudentsForRe,
     getStudentById,
     createStudent,
     updateStudent,
