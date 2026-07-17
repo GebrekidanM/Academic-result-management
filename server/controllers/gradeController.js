@@ -2,6 +2,8 @@ const Grade = require('../models/Grade');
 const Student = require('../models/Student');
 const AssessmentType = require('../models/AssessmentType');
 const sendSystemNotification = require('../utils/sendSystemNotification'); 
+const mongoose = require('mongoose');
+
 
 // @desc    Get a single grade by ID
 // @route   GET /api/grades/:id
@@ -29,100 +31,26 @@ exports.getGrades = async (req, res) => {
   }
 };
 
-// @desc    Get grades (Filtered, Merged, and Deduplicated)
+// @desc    Get grades by student ID
 // @route   GET /api/grades/student/:studentId
 exports.getGradesByStudent = async (req, res) => {
-  try {
-    const studentId = req.params.id || req.params.studentId;
+    try {
+        // Safe-guard both potential parameter names (studentId or id)
+        const studentId = req.params.studentId || req.params.id;
 
-    // 1. Fetch Student
-    const studentObj = await Student.findById(studentId);
-    if (!studentObj) return res.status(404).json({ message: "Student not found" });
-
-    // 2. Fetch Raw Grades
-    const rawGrades = await Grade.find({ student: studentId })
-      .populate('subject', 'name gradeLevel')
-      .populate({
-          path: 'assessments.assessmentType',
-          populate: { path: 'name', select: 'name'}
-      })
-      .lean();
-
-    if (!rawGrades.length) return res.status(200).json({ success: true, count: 0, data: [] });
-
-    // 3. FILTER: Keep only current grade level
-    const currentGradeLevel = studentObj.gradeLevel.trim();
-    const filteredGrades = rawGrades.filter(g => 
-        g.subject && g.subject.gradeLevel === currentGradeLevel
-    );
-
-    // 4. MERGE DUPLICATES (Fixes the "Mid Exam" appearing twice)
-    const gradeMap = new Map();
-
-    filteredGrades.forEach(grade => {
-        const cleanAssessments = (grade.assessments || []).filter(a => a.assessmentType != null);
-        
-        // ⚠️ ማስተካከያ፦ የአካዳሚክ አመቱን በቁልፍ (Key) ውስጥ አካትተናል
-        const key = `${grade.academicYear}-${grade.semester}-${grade.subject.name.trim().toLowerCase()}`;
-
-        if (gradeMap.has(key)) {
-            const existing = gradeMap.get(key);
-
-            if (!existing.academicYear && grade.academicYear) {
-                existing.academicYear = grade.academicYear;
-            }
-
-            const assessmentMap = new Map();
-            existing.assessments.forEach(a => {
-                if (a.assessmentType) {
-                    assessmentMap.set(a.assessmentType._id.toString(), a);
-                }
-            });
-
-            cleanAssessments.forEach(a => {
-                if (a.assessmentType) {
-                    const assessId = a.assessmentType._id.toString();
-                    if (!assessmentMap.has(assessId)) {
-                        assessmentMap.set(assessId, a);
-                    }
-                }
-            });
-
-            existing.assessments = Array.from(assessmentMap.values());
-            existing.finalScore = existing.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
-
-        } else {
-            grade.assessments = cleanAssessments;
-            grade.finalScore = cleanAssessments.reduce((sum, a) => sum + (a.score || 0), 0);
-            gradeMap.set(key, grade);
+        // If the ID is missing or is not a valid 24-character hex ObjectId, exit immediately
+        if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
+            return res.status(404).json({ message: 'Grades not found (Invalid Student ID).' });
         }
-    });
 
-    let processedGrades = Array.from(gradeMap.values());
+        // Run your existing query
+        const grades = await Grade.find({ student: studentId });
+        res.json({ success: true, data: grades });
 
-    // 5. Role-based filtering
-    if (req.user?.role === 'teacher') {
-        const isHomeroom = req.user.homeroomGrade === currentGradeLevel;
-        if (!isHomeroom && req.user.subjectsTaught) {
-            const teacherSubjectIds = new Set(
-                req.user.subjectsTaught.map(s => s.subject?._id?.toString())
-            );
-            processedGrades = processedGrades.filter(g => teacherSubjectIds.has(g.subject._id.toString()));
-        }
+    } catch (error) {
+        console.error("Error in getGradesByStudent:", error);
+        res.status(500).json({ message: 'Server Error' });
     }
-
-    // 6. Sort
-    processedGrades.sort((a, b) => {
-        if (a.semester === b.semester) return a.subject.name.localeCompare(b.subject.name);
-        return a.semester.localeCompare(b.semester);
-    });
-
-    res.status(200).json({ success: true, count: processedGrades.length, data: processedGrades });
-
-  } catch (error) {
-    console.error("Error fetching grades:", error);
-    res.status(500).json({ success: false, message: 'Server Error' });
-  }
 };
 
 // @desc    Get grade details (by student, subject, semester, year)

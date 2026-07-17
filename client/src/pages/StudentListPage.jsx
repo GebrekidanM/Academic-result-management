@@ -3,8 +3,21 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import studentService from '@shared/services/studentService';
 import authService from '@shared/services/authService';
-import userService from '@shared/services/userService';
 import StudentStats from '../components/StudentStats';
+
+// Helper to dynamically calculate current Ethiopian Calendar (EC) Year
+const getEthiopianYear = (gregorianDate = new Date()) => {
+    const year = gregorianDate.getFullYear();
+    const month = gregorianDate.getMonth(); // 0-indexed (8 is September)
+    const day = gregorianDate.getDate();
+
+    // Ethiopian New Year (Meskerem 1) falls on Sept 11 (or Sept 12 in leap years)
+    let ethiopianYear = year - 8;
+    if (month > 8 || (month === 8 && day >= 11)) {
+        ethiopianYear = year - 7;
+    }
+    return ethiopianYear;
+};
 
 const StudentListPage = () => {
     const { t } = useTranslation(); 
@@ -19,69 +32,98 @@ const StudentListPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Load initial student list
+    const fetchStudents = async () => {
+        try {
+            const studentRes = await studentService.getAllStudents();
+            
+            if (!studentRes.data || !Array.isArray(studentRes.data.data)) {
+                if (studentRes.data?.error) throw new Error(t('offline_mode'));
+                throw new Error(t('error'));
+            }
+
+            const fetchedStudents = studentRes.data.data;
+            setAllStudents(fetchedStudents);
+
+            const uniqueGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
+            setAllAllowedGrades(uniqueGrades);
+
+        } catch (err) {
+            setError(err.message || t('error'));
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // --- 1. Data Fetching ---
     useEffect(() => {
-        const loadInitialData = async () => {
-            try {
-                const studentRes = await studentService.getAllStudents();
-                
-                if (!studentRes.data || !Array.isArray(studentRes.data.data)) {
-                    if (studentRes.data?.error) throw new Error(t('offline_mode'));
-                    throw new Error(t('error'));
-                }
+        fetchStudents();
+    }, [t]);
 
-                const fetchedStudents = studentRes.data.data;
-                setAllStudents(fetchedStudents);
-
-                let allowed = [];
-                if (currentUser.role === 'staff' || currentUser.role === 'admin') {
-                    const uniqueGrades = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
-                    const level = currentUser.schoolLevel ? currentUser.schoolLevel.toLowerCase() : 'all';
-                    
-                    if (currentUser.role === 'admin' || level === 'all') allowed = uniqueGrades;
-                    else if (level === 'kg') allowed = uniqueGrades.filter(g => /^(kg|nursery)/i.test(g));
-                    else if (level === 'primary') allowed = uniqueGrades.filter(g => /^Grade\s*[1-8](\D|$)/i.test(g));
-                    else if (level === 'high school') allowed = uniqueGrades.filter(g => /^Grade\s*(9|1[0-2])(\D|$)/i.test(g));
-                } 
-                else if (currentUser.role === 'teacher') {
-                    try {
-                        const profileRes = await userService.getProfile();
-                        if (profileRes.data) {
-                            const gradeSet = new Set();
-                            if (profileRes.data.homeroomGrade) gradeSet.add(profileRes.data.homeroomGrade);
-                            profileRes.data.subjectsTaught?.forEach(assign => {
-                                if (assign.subject?.gradeLevel) gradeSet.add(assign.subject.gradeLevel);
-                            });
-                            allowed = Array.from(gradeSet).sort();
-                        }
-                    } catch (e) {
-                        allowed = [...new Set(fetchedStudents.map(s => s.gradeLevel))].sort();
-                    }
-                }
-                setAllAllowedGrades(allowed);
-
-            } catch (err) {
-                setError(err.message || t('error'));
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadInitialData();
-    }, [currentUser, t]);
-
-    
+    // Sync URL Parameters
     useEffect(() => {
         const params = {};
-
         if (selectedSection) params.section = selectedSection;
         if (selectedGrade) params.grade = selectedGrade;
-
         setSearchParams(params);
     }, [selectedSection, selectedGrade, setSearchParams]);
 
+    // --- 2. Automated Bulk End of Year Handler ---
+    const handleBulkEndOfYear = async () => {
+        const currentECYear = getEthiopianYear().toString(); // Calculates "2018"
+        
+        // Find students whose academic year matches and status is not already locked
+        const eligibleStudents = allStudents.filter(s => 
+            s.year === currentECYear && s.status !== 'End of Year'
+        );
 
-    // --- 2. Filters ---
+        if (eligibleStudents.length === 0) {
+            alert(`No active students found matching the current academic year ${currentECYear} E.C.`);
+            return;
+        }
+
+        const confirmMessage = `Are you sure you want to transition ${eligibleStudents.length} students in year ${currentECYear} E.C. to "End of Year"? This will archive their current records.`;
+        if (!window.confirm(confirmMessage)) return;
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            // Map over the students and update them using your existing updateStudent API function
+            const updatePromises = eligibleStudents.map(student => {
+                const historyEntry = {
+                    year: student.year,
+                    gradeAtThatTime: student.gradeLevel,
+                    statusAtEnd: 'Passed' // Default outcome
+                };
+
+                const updatedData = {
+                    ...student,
+                    status: 'End of Year',
+                    academicHistory: [...(student.academicHistory || []), historyEntry]
+                };
+
+                // Calls PUT /api/students/:id
+                return studentService.updateStudent(student._id, updatedData);
+            });
+
+            // Execute all updates simultaneously
+            await Promise.all(updatePromises);
+            
+            alert(`Successfully processed ${eligibleStudents.length} students!`);
+            
+            // Refresh list to pull updated data
+            await fetchStudents();
+
+        } catch (err) {
+            console.error(err);
+            setError("Failed to complete some student updates. Please check your network.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // --- 3. Filters ---
     const visibleGradeButtons = useMemo(() => {
         if (!selectedSection) return [];
         return allAllowedGrades.filter(g => {
@@ -104,7 +146,7 @@ const StudentListPage = () => {
         return allStudents;
     }, [allStudents]);
 
-    // --- 3. SectionCard Component ---
+    // --- 4. SectionCard Component ---
     const SectionCard = ({ id, label, color }) => {
         const count = allStudents.filter(s => allAllowedGrades.includes(s.gradeLevel) && (
             id === 'kg' ? /^(kg|nursery)/i.test(s.gradeLevel) :
@@ -124,7 +166,7 @@ const StudentListPage = () => {
         );
     };
 
-    if (loading) return <div className="p-10 text-center text-gray-600">{t('loading')}</div>;
+    if (loading && allStudents.length === 0) return <div className="p-10 text-center text-gray-600">{t('loading')}</div>;
     if (error) return <div className="p-10 text-center text-red-500">{error}</div>;
 
     return (
@@ -136,12 +178,23 @@ const StudentListPage = () => {
                     <h2 className="text-3xl font-bold text-gray-800">{t('students_list')}</h2>
                     <p className="text-sm text-gray-500">{t('manage_records_desc')}</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                     {['admin', 'staff', 'accountant'].includes(currentUser.role) && (
                         <>
                             <Link to="/students/add" className="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded shadow transition-colors">+ {t('add')}</Link>
                             <Link to="/students/import" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow transition-colors">{t('import_excel')}</Link>
                         </>
+                    )}
+                    
+                    {/* NEW: Automated Client-Side Bulk Button */}
+                    {currentUser.role === 'admin' && (
+                        <button 
+                            onClick={handleBulkEndOfYear}
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow transition-colors"
+                            disabled={loading}
+                        >
+                            ⚙️ {t('end_of_year') || 'End of Year'}
+                        </button>
                     )}
                 </div>
             </div>
@@ -211,13 +264,13 @@ const StudentListPage = () => {
                                 <tr>
                                     <th className="px-4 py-3 text-left">{t('id_no')}</th>
                                     <th className="px-4 py-3 text-left">{t('full_name')}</th>
-                                    <th className="px-4 py-3 text-left">{t('year') || 'Year'}</th> {/* ⚠️ አዲሱ Year ፊልድ እዚህ ጋር ተጨምሯል */}
+                                    <th className="px-4 py-3 text-left">{t('year') || 'Year'}</th>
                                     <th className="px-4 py-3 text-left">{t('gender')}</th>
-                                    <th className="px-4 py-3 text-left">Date Of Birth</th>
-                                    <th className="px-4 py-3 text-left">Mother</th>
-                                    <th className="px-4 py-3 text-left">Mother Contacts</th>
-                                    <th className="px-4 py-3 text-left">Father Contacts</th>
-                                    <th className="px-4 py-3 text-left">Health</th>
+                                    <th className="px-4 py-3 text-left">{t('dob') || 'Date of Birth'}</th>
+                                    <th className="px-4 py-3 text-left">{t('mother') || 'Mother'}</th>
+                                    <th className="px-4 py-3 text-left">{t('mother_contact') || 'Mother Contacts'}</th>
+                                    <th className="px-4 py-3 text-left">{t('father_contact') || 'Father Contacts'}</th>
+                                    <th className="px-4 py-3 text-left">{t('health_status') || 'Health'}</th>
                                     <th className="px-4 py-3 text-center">{t('actions')}</th>
                                 </tr>
                             </thead>
@@ -229,7 +282,7 @@ const StudentListPage = () => {
                                             <td className="px-4 py-4 font-bold text-gray-800 whitespace-nowrap">
                                                 <Link to={`/students/${student._id}?section=${selectedSection}&grade=${selectedGrade}`} className="hover:text-pink-600 hover:underline">{student.fullName}</Link>
                                             </td>
-                                            <td className="px-4 py-4 text-gray-600 font-bold">{student.year || '-'}</td> {/* ⚠️ አዲሱ የ Year ውጤት ማሳያ */}
+                                            <td className="px-4 py-4 text-gray-600 font-bold">{student.year || '-'}</td>
                                             <td className="px-4 py-4 text-gray-600">{t(student.gender)}</td>
                                             <td className="px-4 py-4 text-gray-600 whitespace-nowrap">{student?.dateOfBirth?.split('T')[0]}</td>
                                             <td className="px-4 py-4 text-gray-600">

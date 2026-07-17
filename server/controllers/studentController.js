@@ -4,16 +4,17 @@ const Student = require('../models/Student');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
 const calculateAge = require('../utils/calculateAge');
-const getCurrentEthDate = require('../utils/thatYear') 
 const cloudinary = require('cloudinary').v2; 
 const { logActivity } = require('../utils/logger'); 
+const mongoose = require('mongoose');
 
-// --- HELPER FUNCTIONS ---
+// Helper to capitalize full names neatly
 const capitalizeName = (name) => {
     if (!name || typeof name !== 'string') return '';
     return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 };
 
+// Helper to pull first name for default password generation
 const getFirstName = (fullName) => {
     if (!fullName || typeof fullName !== 'string') return 'User';
     const names = fullName.trim().split(/\s+/);
@@ -21,9 +22,48 @@ const getFirstName = (fullName) => {
     return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 };
 
+// Helper to safely parse dates from Excel rows (including serial numbers)
+const parseExcelDate = (excelDate) => {
+    if (!excelDate) return null;
+    if (excelDate instanceof Date) return excelDate;
+    if (typeof excelDate === 'string') {
+        const parsed = Date.parse(excelDate);
+        return isNaN(parsed) ? null : new Date(parsed);
+    }
+    if (typeof excelDate === 'number') {
+        // Excel base date starts on Jan 1, 1900
+        const date = new Date((excelDate - 25569) * 86400 * 1000);
+        return isNaN(date.getTime()) ? null : date;
+    }
+    return null;
+};
+
+// Dynamically calculate current Ethiopian Calendar (EC) Year
+const getEthiopianYear = (gregorianDate = new Date()) => {
+    const year = gregorianDate.getFullYear();
+    const month = gregorianDate.getMonth();
+    const day = gregorianDate.getDate();
+
+    let ethiopianYear = year - 8;
+    if (month > 8 || (month === 8 && day >= 11)) {
+        ethiopianYear = year - 7;
+    }
+    return ethiopianYear;
+};
+
+// DRY Optimization: Shared authorization logic helper
+const hasAccessToStudent = (user, studentGradeLevel, allowedRoles = ['admin']) => {
+    if (user.role === 'teacher') {
+        return user.homeroomGrade && user.homeroomGrade === studentGradeLevel;
+    }
+    return allowedRoles.includes(user.role);
+};
+
+
+// --- CONTROLLERS ---
+
 // @desc Get all students or by grade
 // @route GET /api/students
-
 exports.getStudents = async (req, res) => {
     try {
         const { gradeLevel } = req.query;
@@ -35,16 +75,11 @@ exports.getStudents = async (req, res) => {
         }
 
         // 2. Role Based Restrictions
-
-        // A. ADMIN: Access All
         if (req.user.role === 'admin') {
-            // No constraints
-        }
-
-        // B. STAFF: Filter by School Level (Updated Regex)
+            // Admin: No added restrictions
+        } 
         else if (req.user.role === 'staff') {
             const level = req.user.schoolLevel;
-
             if (level === 'kg') {
                 constraints.push({ gradeLevel: { $regex: /^(kg|nursery)/i } });
             } 
@@ -54,9 +89,7 @@ exports.getStudents = async (req, res) => {
             else if (level === 'High School') {
                 constraints.push({ gradeLevel: { $regex: /^Grade\s*(9|1[0-2])(\D|$)/i } });
             }
-        }
-
-        // C. TEACHER: Filter by Assigned Subjects/Homeroom
+        } 
         else if (req.user.role === 'teacher') {
             const teacher = await User.findById(req.user._id).populate('subjectsTaught.subject');
             const allowedGrades = new Set();
@@ -70,19 +103,14 @@ exports.getStudents = async (req, res) => {
             }
 
             const allowedArray = Array.from(allowedGrades);
-            
-            // If no assignments, return empty
-            if (allowedArray.length === 0) return res.json({ success: true, count: 0, data: [] });
-            
-            // Teacher sees "Grade 1A" if they teach "Grade 1A"
+            if (allowedArray.length === 0) {
+                return res.json({ success: true, count: 0, data: [] });
+            }
             constraints.push({ gradeLevel: { $in: allowedArray } });
         }
 
-        // 3. Execute
-        let finalQuery = {};
-        if (constraints.length > 0) {
-            finalQuery = { $and: constraints };
-        }
+        // 3. Execute Query
+        let finalQuery = constraints.length > 0 ? { $and: constraints } : {};
 
         const students = await Student.find(finalQuery)
             .sort({ gradeLevel: 1, fullName: 1 }) 
@@ -100,13 +128,19 @@ exports.getStudents = async (req, res) => {
 // @route   GET /api/students/:id
 exports.getStudentById = async (req, res) => {
     try {
-        const student = await Student.findById(req.params.id);
-        
+        const { id } = req.params;
+
+        // SAFE-GUARD: If the ID is not a valid 24-character hexadecimal ObjectId, 
+        // return 404 immediately instead of letting Mongoose throw a CastError and crash.
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(404).json({ message: 'Student not found (Invalid ID format).' });
+        }
+
+        const student = await Student.findById(id);
         if (!student) {
             return res.status(404).json({ message: 'Student not found' });
         }
         
-        // Fetch grades for average calculation
         const grades = await Grade.find({ student: student._id });
         let promotionStatus = 'To Be Determined';
         let overallAverage = 0;
@@ -114,27 +148,18 @@ exports.getStudentById = async (req, res) => {
         if (grades.length > 0) {
             const totalScore = grades.reduce((sum, grade) => sum + grade.finalScore, 0);
             overallAverage = totalScore / grades.length;
-            
-            // Simple promotion logic
-            if (overallAverage >= 50) {
-                promotionStatus = 'Promoted'; 
-            } else {
-                promotionStatus = 'Not Promoted';
-            }
+            promotionStatus = overallAverage >= 50 ? 'Promoted' : 'Not Promoted';
         }
         
         const studentObject = student.toObject();
-
-        // --- INTEGRATION HERE ---
         studentObject.age = calculateAge(student.dateOfBirth); 
-
         studentObject.promotionStatus = promotionStatus;
         studentObject.overallAverage = parseFloat(overallAverage.toFixed(1));
         
         res.json({ success: true, data: studentObject });
 
     } catch (error) {
-        console.error(error);
+        console.error("Error in getStudentById:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -146,12 +171,8 @@ exports.createStudent = async (req, res) => {
     const { fullName, gender, dateOfBirth, gradeLevel, year, motherName, motherContact, fatherContact, healthStatus } = req.body;
 
     try {
-        if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== gradeLevel) {
-                return res.status(403).json({ message: 'You can only create students in your homeroom grade.' });
-            }
-        } else if (!['admin', 'accountant'].includes(currentUser.role)) {
-            return res.status(403).json({ message: 'You are not authorized to create students.' });
+        if (!hasAccessToStudent(currentUser, gradeLevel, ['admin', 'accountant'])) {
+            return res.status(403).json({ message: 'You are not authorized to register students for this grade.' });
         }
 
         const capitalizedFullName = capitalizeName(fullName);
@@ -172,8 +193,6 @@ exports.createStudent = async (req, res) => {
             motherContact,
             fatherContact,
             healthStatus,
-
-            // ⚠️ 2. የሰነዶቹን የፋይል አድራሻዎች በሞዴሉ ውስጥ መጫን [2]
             transferLetterUrl: transferLetter ? transferLetter.path : '',
             transferLetterPublicId: transferLetter ? transferLetter.filename : '',
             certificateUrl: certificate ? certificate.path : '',
@@ -219,12 +238,8 @@ exports.updateStudent = async (req, res) => {
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-        if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
-                return res.status(403).json({ message: 'You are not authorized to update this student.' });
-            }
-        } else if (!['admin', 'accountant'].includes(currentUser.role)) {
-            return res.status(403).json({ message: 'You are not authorized to update students.' });
+        if (!hasAccessToStudent(currentUser, student.gradeLevel, ['admin', 'accountant'])) {
+            return res.status(403).json({ message: 'You are not authorized to update this student.' });
         }
 
         const { fullName, ...otherData } = req.body;
@@ -233,8 +248,6 @@ exports.updateStudent = async (req, res) => {
             updateData.fullName = capitalizeName(fullName);
         }
 
-        // We use findByIdAndUpdate, so the 'pre save' hook (ID generator) DOES NOT fire
-        // This is good, because we don't want to change the ID on update.
         const updatedStudent = await Student.findByIdAndUpdate(
             req.params.id,
             updateData,
@@ -256,12 +269,8 @@ exports.deleteStudent = async (req, res) => {
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found' });
 
-        if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
-                return res.status(403).json({ message: 'You are not authorized to delete this student.' });
-            }
-        } else if (currentUser.role !== 'admin') {
-            return res.status(403).json({ message: 'You are not authorized to delete students.' });
+        if (!hasAccessToStudent(currentUser, student.gradeLevel, ['admin'])) {
+            return res.status(403).json({ message: 'You are not authorized to delete this student.' });
         }
 
         await student.deleteOne();
@@ -272,7 +281,7 @@ exports.deleteStudent = async (req, res) => {
     }
 };
 
-// @desc    DeActive a student
+// @desc    Deactivate a student
 // @route   POST /api/students/:id
 exports.deactiveStudent = async (req, res) => {
     const { reason } = req.body;
@@ -282,12 +291,8 @@ exports.deactiveStudent = async (req, res) => {
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found' });
 
-        if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
-                return res.status(403).json({ message: 'You are not authorized to update this student.' });
-            }
-        } else if (currentUser.role !== 'admin') {
-            return res.status(403).json({ message: 'You are not authorized to update students.' });
+        if (!hasAccessToStudent(currentUser, student.gradeLevel, ['admin'])) {
+            return res.status(403).json({ message: 'You are not authorized to update this student.' });
         }
         
         student.status = reason; 
@@ -309,11 +314,7 @@ exports.deactiveStudent = async (req, res) => {
 
 // @desc    Upload student profile photo
 // @route   POST /api/students/photo/:id
-// Import your cloud storage library at the top of your controller file if using Cloudinary
-
 exports.uploadProfilePhoto = async (req, res) => {
-    console.log('Incoming Headers:', req.headers['content-type']);
-    console.log('File Object Status:', req.file);
     try {
         if (!req.file) return res.status(400).json({ message: 'No file was uploaded.' });
 
@@ -321,26 +322,19 @@ exports.uploadProfilePhoto = async (req, res) => {
         const student = await Student.findById(req.params.id);
         if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-        // Authorization Check
-        if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
-                return res.status(403).json({ message: 'You are not authorized to update this student.' });
-            }
-        } else if (currentUser.role !== 'admin') {
-            return res.status(403).json({ message: 'You are not authorized to update students.' });
+        if (!hasAccessToStudent(currentUser, student.gradeLevel, ['admin'])) {
+            return res.status(403).json({ message: 'You are not authorized to update this student.' });
         }
 
-        // 🔹 FIX: Delete the old photo from storage if it exists to prevent storage leaks
+        // Delete old photo from cloud storage if it exists to prevent space leaks
         if (student.imagePublicId) {
             try {
                 await cloudinary.uploader.destroy(student.imagePublicId);
             } catch (destroyError) {
-                // Log the error but don't crash the request; let the new upload finish
                 console.error('Failed to delete old image from cloud:', destroyError);
             }
         }
 
-        // Assign new image references
         student.imageUrl = req.file.path; 
         student.imagePublicId = req.file.filename; 
         
@@ -390,8 +384,6 @@ exports.bulkCreateStudents = async (req, res) => {
 
         const createdStudents = [];
         let rowNumber = 2; 
-
-        // ... (የቀኑ ማስተካከያ ሎጂክ እንዳለ ይቆያል) ...
 
         for (const row of rows) {
             try {
@@ -456,7 +448,9 @@ exports.bulkCreateStudents = async (req, res) => {
     }
 };
 
-exports.resetPassword = async (req,res)=>{
+// @desc    Reset student password
+// @route   POST /api/students/reset/:studentId
+exports.resetPassword = async (req, res) => {
     const _id = req.params.studentId;
 
     try {
@@ -464,19 +458,12 @@ exports.resetPassword = async (req,res)=>{
         if(!student) return res.status(404).json({message:"No Student found with this ID"});
         
         const currentUser = req.user;
-        if (currentUser.role === 'teacher') {
-            if (!currentUser.homeroomGrade || currentUser.homeroomGrade !== student.gradeLevel) {
-                return res.status(403).json({ message: 'You are not authorized to reset this student\'s password.' });
-            }
-        } else if (currentUser.role !== 'admin') {
-            return res.status(403).json({ message: 'You are not authorized to reset student passwords.' });
+        if (!hasAccessToStudent(currentUser, student.gradeLevel, ['admin'])) {
+            return res.status(403).json({ message: 'You are not authorized to reset this student\'s password.' });
         }
         
-        const password = `123456`
-        
-        student.password = password;
+        student.password = `123456`;
         student.isInitialPassword = true;
-
 
         await student.save();
 
@@ -495,7 +482,8 @@ exports.resetPassword = async (req,res)=>{
     }
 }
 
-// 1. Search for existing student by ID
+// @desc    Search for existing student by ID for registration
+// @route   GET /api/students/search/:studentId
 exports.getStudentForRegistration = async (req, res) => {
     try {
         const student = await Student.findOne({ studentId: req.params.studentId });
@@ -515,7 +503,8 @@ exports.getStudentForRegistration = async (req, res) => {
     }
 };
 
-// 2. Process the "New" Registration
+// @desc    Process the "New" Registration
+// @route   POST /api/students/re-register
 exports.reRegisterStudent = async (req, res) => {
     const { studentId, newGradeLevel, newYear } = req.body;
 
@@ -538,5 +527,64 @@ exports.reRegisterStudent = async (req, res) => {
         res.json({ message: `${student.fullName} successfully registered for ${newGradeLevel}` });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get count of students matching current EC year
+// @route   GET /api/students/bulk-end-of-year/count
+exports.getBulkEndOfYearCount = async (req, res) => {
+    try {
+        const currentECYear = getEthiopianYear().toString();
+
+        const count = await Student.countDocuments({
+            year: currentECYear,
+            status: { $ne: 'End of Year' }
+        });
+
+        return res.status(200).json({
+            success: true,
+            ethiopianYear: currentECYear,
+            eligibleCount: count
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error.', error: error.message });
+    }
+};
+
+// @desc    Bulk process End of Year for all eligible students
+// @route   PUT /api/students/bulk-end-of-year
+exports.bulkSetEndOfYearByEC = async (req, res) => {
+    try {
+        const currentECYear = getEthiopianYear().toString();
+
+        const result = await Student.updateMany(
+            { 
+                year: currentECYear, 
+                status: { $ne: 'End of Year' } 
+            },
+            [
+                {
+                    $set: {
+                        academicHistory: {
+                            $concatArrays: [
+                                { $ifNull: ["$academicHistory", []] },
+                                [{ year: "$year", gradeAtThatTime: "$gradeLevel", statusAtEnd: "Passed" }]
+                            ]
+                        },
+                        status: "End of Year"
+                    }
+                }
+            ]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: `Successfully processed ${result.modifiedCount} students for the end of EC Year ${currentECYear}.`,
+            count: result.modifiedCount,
+            ethiopianYear: currentECYear
+        });
+    } catch (error) {
+        console.error("Bulk End of Year Error:", error);
+        return res.status(500).json({ message: 'Server error.', error: error.message });
     }
 };

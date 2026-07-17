@@ -12,12 +12,12 @@ const studentSchema = new mongoose.Schema({
     
     year: { type: String, required: true }, 
 
-    status: { type: String, required: true, enum: ['Active', 'Graduated', 'Withdrawn','Changed'], default: 'Active' },
+    status: { type: String, required: true, enum: ['Active', 'Graduated', 'Withdrawn','Changed','End of Year'], default: 'Active' },
     password: { type: String, required: true, select: false },
     isInitialPassword: { type: Boolean, default: true },
     imageUrl: { type: String, default: '/images/students/default-avatar.png' },
     
-    motherName: { type: String, trim: true, defualt: '' }, 
+    motherName: { type: String, trim: true, default: '' }, 
     motherContact: { type: String, trim: true, default: '' },
     fatherContact: { type: String, trim: true, default: '' },
     healthStatus: { type: String, trim: true, default: 'No known conditions' },

@@ -1,32 +1,23 @@
 const express = require('express');
-const multer = require('multer');
 const router = express.Router();
-const { 
-    createStudent, getStudents, getStudentById,
-    updateStudent, deleteStudent, bulkCreateStudents, 
-    uploadProfilePhoto, resetPassword, reRegisterStudent, getStudentForRegistration
-} = require('../controllers/studentController');
+const studentController = require('../controllers/studentController');
+const { protect } = require('../middleware/authMiddleware');
 
-const { protect, canViewStudentData, authorize } = require('../middleware/authMiddleware');
-const upload = require('../middleware/upload');
+// 1. STATIC ROUTES
+router.get('/bulk-end-of-year/count', protect, studentController.getBulkEndOfYearCount);
+router.put('/end-of-year', protect, studentController.bulkSetEndOfYearByEC);
+router.get('/search/:studentId', protect, studentController.getStudentForRegistration);
+router.post('/re-register', protect, studentController.reRegisterStudent);
 
-router.put('/resetpassword/:studentId', protect, resetPassword);
+// 2. DYNAMIC ROUTES WITH SUB-PATHS
+router.post('/photo/:id', protect, studentController.uploadProfilePhoto);
+router.post('/reset/:studentId', protect, studentController.resetPassword);
 
-router.route('/')
-    .post( protect, upload.fields([{ name: 'transferLetter', maxCount: 1 }, { name: 'certificate', maxCount: 1 }, { name: 'nationalId', maxCount: 1 }]), createStudent)
-    .get(protect, getStudents);
-
-router.post('/re-register', protect, reRegisterStudent);
-router.get('/id/:studentId', protect, getStudentForRegistration);
-
-router.route('/:id')
-    .get(canViewStudentData, getStudentById)
-    .put(protect, updateStudent)
-    .delete(protect, deleteStudent);
-
-router.post('/photo/:id', protect, upload.single('profilePhoto'), uploadProfilePhoto);
-
-const localUpload = multer({ dest: 'uploads/' });
-router.post('/upload', protect, authorize('admin', 'staff', 'accountant'), localUpload.single('studentsFile'), bulkCreateStudents);
+// 3. GENERIC CRUD DYNAMIC ROUTES
+router.get('/', protect, studentController.getStudents);
+router.post('/', protect, studentController.createStudent);
+router.get('/:id', protect, studentController.getStudentById);
+router.put('/:id', protect, studentController.updateStudent);
+router.delete('/:id', protect, studentController.deleteStudent);
 
 module.exports = router;
