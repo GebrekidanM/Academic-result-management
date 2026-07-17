@@ -481,6 +481,7 @@ exports.resetPassword = async (req, res) => {
 // @desc    Search for existing student by ID for registration
 // @route   GET /api/students/search/:studentId
 exports.getStudentForRegistration = async (req, res) => {
+    console.log(req.params.studentId)
     try {
         const student = await Student.findOne({ studentId: req.params.studentId });
         if (!student) {
