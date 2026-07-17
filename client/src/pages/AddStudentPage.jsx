@@ -263,7 +263,7 @@ const AddStudentPage = () => {
                                         />
                                         <p className="text-xs text-gray-400 mt-2">Example: If they were in 2A, put 3A.</p>
                                         
-                                        <label className={inputLabel}>Step 3: Assign New Grade Level</label> 
+                                        <label className={inputLabel}>Step 3: Assign New Academic year</label> 
                                         <input
                                             type='text'
                                             className={textInput} 
