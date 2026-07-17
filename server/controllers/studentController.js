@@ -484,6 +484,7 @@ exports.getStudentForRegistration = async (req, res) => {
     console.log(req.params.studentId)
     try {
         const student = await Student.findOne({ studentId: req.params.studentId });
+        console.log('student',student)
         if (!student) {
             return res.status(404).json({ message: "Student not found" });
         }
