@@ -8,6 +8,7 @@ router.put('/end-of-year', protect, studentController.bulkSetEndOfYearByEC);
 router.get('/search/:studentId', studentController.getStudentForRegistration);
 router.post('/re-register', protect, studentController.reRegisterStudent);
 
+router.get('/getallstudents', protect,studentController.getAllStudents);
 router.post('/photo/:id', protect, studentController.uploadProfilePhoto);
 router.post('/reset/:studentId', protect, studentController.resetPassword);
 

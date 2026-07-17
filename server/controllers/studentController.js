@@ -65,7 +65,7 @@ const hasAccessToStudent = (user, studentGradeLevel, allowedRoles = ['admin']) =
 exports.getStudents = async (req, res) => {
     try {
         const { gradeLevel } = req.query;
-        const constraints = [];
+        const constraints = [{status: Active}];
 
         // 1. Specific Filter (from Frontend)
         if (gradeLevel) {
@@ -121,6 +121,12 @@ exports.getStudents = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+exports.getAllStudents = async (req,res)=>{
+    const teacher = await Student.find({});
+    console.log(teacher)
+
+}
 
 // @desc    Get single student by ID
 // @route   GET /api/students/:id

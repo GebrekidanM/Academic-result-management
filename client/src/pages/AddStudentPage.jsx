@@ -19,7 +19,7 @@ const AddStudentPage = () => {
     // Search Toggle: 'id' for studentId, 'name' for student name autocomplete
     const [searchType, setSearchType] = useState('id'); 
     const [searchName, setSearchName] = useState('');
-    const [allStudents, setAllStudents] = useState([]); // Loaded for name search auto-complete
+    const [allStudents, setAllStudents] = useState([]);
 
     const [studentData, setStudentData] = useState({
         fullName: '',
@@ -62,7 +62,7 @@ const AddStudentPage = () => {
         if (regMode === 'returning' && allStudents.length === 0 && isOnline) {
             const loadStudents = async () => {
                 try {
-                    const res = await studentService.getAllStudents();
+                    const res = await studentService.getAllStudentsForRe();
                     setAllStudents(res.data.data || res.data || []);
                 } catch (err) {
                     console.error("Failed to load students for auto-complete selection", err);

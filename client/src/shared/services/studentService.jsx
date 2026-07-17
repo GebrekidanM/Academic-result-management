@@ -20,10 +20,12 @@ const getStudentById = (id) => {
 
 // ALIGNED WITH BACKEND: Search for a student by their ID for registration
 const getStudentByStudentId = (studentId) => {
-    console.log(studentId)
     return api.get(`${API_URL}/search/${studentId}`);
 };
 
+const getAllStudentsForRe = ()=>{
+    return api.get(`${API_URL}/getallstudents`);
+}
 // Update an existing student for the new year
 const reRegisterStudent = (data) => {
     return api.post(`${API_URL}/re-register`, data);
