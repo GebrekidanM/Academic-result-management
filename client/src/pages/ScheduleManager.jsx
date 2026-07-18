@@ -43,6 +43,7 @@ const ScheduleManager = () => {
     useEffect(() => {
         const loadResources = async () => {
             try {
+                console.log('hello')
                 const [gradesRes, subRes, teachRes] = await Promise.all([
                     studentService.getAllStudents(), 
                     subjectService.getAllSubjects(),
@@ -51,6 +52,7 @@ const ScheduleManager = () => {
 
                 // Extract Unique Grades
                 const uniqueGrades = [...new Set(gradesRes.data.data.map(s => s.gradeLevel))].sort();
+                console.log(uniqueGrades)
                 setAvailableGrades(uniqueGrades);
                 setAllSubjects(subRes.data.data);
 
