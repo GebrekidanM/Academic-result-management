@@ -55,6 +55,38 @@ function IsAdmin({ currentUser, profileData, stats }) {
     };
   }, [stats, t]);
 
+
+  // ====================================================
+  // NEW: HISTORICAL ENROLLMENT CHART DATA (CHART.JS)
+  // ====================================================
+  const genderHistoryChartData = useMemo(() => {
+    const history = stats?.genderHistory || [];
+
+    const labels = history.map(item => item.year);
+    const maleData = history.map(item => item.male);
+    const femaleData = history.map(item => item.female);
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: t('Male') || 'Male',
+          data: maleData,
+          backgroundColor: '#3b82f6', // Academic Blue
+          borderRadius: 6,
+        },
+        {
+          label: t('Female') || 'Female',
+          data: femaleData,
+          backgroundColor: '#ec4899', // Academic Pink
+          borderRadius: 6,
+        }
+      ]
+    };
+  }, [stats, t]);
+  // ====================================================
+
+
   const lineOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -134,6 +166,24 @@ function IsAdmin({ currentUser, profileData, stats }) {
                     </div>
                 </div>
             </div>
+
+            {/* ==================================================== */}
+            {/* NEW: HISTORICAL ENROLLMENT CHART (FULL WIDTH) */}
+            {/* ==================================================== */}
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <div className="mb-4">
+                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
+                        📈 {t('gender_history_title') || 'Historical Enrollment by Gender'}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                        {t('gender_history_subtitle') || 'Comparison of male and female students across academic years'}
+                    </p>
+                </div>
+                <div className="h-64">
+                    <Bar data={genderHistoryChartData} options={barOptions} />
+                </div>
+            </div>
+            {/* ==================================================== */}
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                 <h3 className="text-lg font-semibold tracking-tight text-slate-900 mb-5">⚡ {t('quick_actions')}</h3>
