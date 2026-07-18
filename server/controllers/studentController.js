@@ -63,7 +63,6 @@ const hasAccessToStudent = (user, studentGradeLevel, allowedRoles = ['admin']) =
 // @desc Get all students or by grade
 // @route GET /api/students
 exports.getStudents = async (req, res) => {
-    console.log('heool')
     try {
         const { gradeLevel } = req.query;
         const constraints = [{status: 'Active'}];
