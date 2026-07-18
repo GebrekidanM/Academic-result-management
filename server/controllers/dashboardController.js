@@ -1,3 +1,4 @@
+// server/controllers/statsController.js
 const Student = require('../models/Student');
 const User = require('../models/User');
 const Subject = require('../models/Subject');
@@ -6,7 +7,7 @@ const Attendance = require('../models/Attendance');
 
 exports.getStats = async (req, res) => {
     try {
-        // MODIFIED: Use Subject.distinct('name') to retrieve only unique subject names
+        // Use Subject.distinct('name') to retrieve only unique subject names across the curriculum
         const [students, teachers, uniqueSubjects] = await Promise.all([
             Student.countDocuments({ status: 'Active' }),
             User.countDocuments({ role: 'teacher' }),
@@ -103,6 +104,53 @@ exports.getStats = async (req, res) => {
             }
         });
 
+
+        // ====================================================
+        // PROGRAMMATIC ENROLLMENT HISTORY COMPILATION
+        // ====================================================
+        const studentsDataForHistory = await Student.find({}, 'gender year academicHistory').lean();
+        const yearlyGenderMap = {};
+
+        studentsDataForHistory.forEach(student => {
+            const g = student.gender;
+            if (!g || !['Male', 'Female'].includes(g)) return;
+
+            // 1. Process current academic year ("are")
+            const currentYear = student.year;
+            if (currentYear) {
+                if (!yearlyGenderMap[currentYear]) {
+                    yearlyGenderMap[currentYear] = { male: 0, female: 0 };
+                }
+                if (g === 'Male') yearlyGenderMap[currentYear].male++;
+                else if (g === 'Female') yearlyGenderMap[currentYear].female++;
+            }
+
+            // 2. Process historical academic years ("were")
+            if (Array.isArray(student.academicHistory)) {
+                student.academicHistory.forEach(history => {
+                    const histYear = history.year;
+                    if (histYear) {
+                        if (!yearlyGenderMap[histYear]) {
+                            yearlyGenderMap[histYear] = { male: 0, female: 0 };
+                        }
+                        if (g === 'Male') yearlyGenderMap[histYear].male++;
+                        else if (g === 'Female') yearlyGenderMap[histYear].female++;
+                    }
+                });
+            }
+        });
+
+        // Convert the map to a sorted chronological array for the chart
+        const genderHistory = Object.keys(yearlyGenderMap)
+            .sort() // Chronological order (e.g. 2016, 2017, 2018)
+            .map(yr => ({
+                year: `${yr} E.C.`, // Display year labeled as Ethiopian Calendar
+                male: yearlyGenderMap[yr].male,
+                female: yearlyGenderMap[yr].female
+            }));
+        // ====================================================
+
+
         res.status(200).json({
             success: true,
             students,
@@ -115,6 +163,7 @@ exports.getStats = async (req, res) => {
                 primary: { male: primaryMale, female: primaryFemale },
                 highSchool: { male: hsMale, female: hsFemale }
             },
+            genderHistory, // Included here for chart rendering
             attendanceTrend: trendData
         });
     } catch (error) {

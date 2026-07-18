@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import scheduleService from '@shared/services/scheduleService';
 import studentService from '@shared/services/studentService';
@@ -8,14 +8,27 @@ import userService from '@shared/services/userService';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 
+// Dynamic Ethiopian Calendar (E.C.) year helper
+const getEthiopianYear = (gregorianDate = new Date()) => {
+    const year = gregorianDate.getFullYear();
+    const month = gregorianDate.getMonth(); // 0-indexed (8 is September)
+    const day = gregorianDate.getDate();
+
+    let ethiopianYear = year - 8;
+    if (month > 8 || (month === 8 && day >= 11)) {
+        ethiopianYear = year - 7;
+    }
+    return ethiopianYear;
+};
+
 const ScheduleManager = () => {
     const { t } = useTranslation();
 
     // --- STATE ---
     const [gradeLevel, setGradeLevel] = useState('');
     const [availableGrades, setAvailableGrades] = useState([]);
-    const [scheduleData, setScheduleData] = useState([]); // Array from DB
-    const [academicYear, setAcademicYear] = useState('2018'); // Dynamic logic recommended here
+    const [scheduleData, setScheduleData] = useState([]); 
+    const [academicYear] = useState(getEthiopianYear().toString()); 
     
     // Resources for Dropdowns
     const [allSubjects, setAllSubjects] = useState([]);
@@ -31,9 +44,9 @@ const ScheduleManager = () => {
         const loadResources = async () => {
             try {
                 const [gradesRes, subRes, teachRes] = await Promise.all([
-                    studentService.getAllStudents(), // To get unique grade levels
+                    studentService.getAllStudents(), 
                     subjectService.getAllSubjects(),
-                    userService.getAll() // Filter for role='teacher' in backend or here
+                    userService.getAll() 
                 ]);
 
                 // Extract Unique Grades
@@ -41,7 +54,7 @@ const ScheduleManager = () => {
                 setAvailableGrades(uniqueGrades);
                 setAllSubjects(subRes.data.data);
 
-                // Assuming getAllUsers returns all, filter for teachers
+                // Filter database users to keep only teachers
                 setAllTeachers(teachRes.data.filter(u => u.role === 'teacher'));
 
             } catch (err) { console.error(err); }
@@ -64,6 +77,40 @@ const ScheduleManager = () => {
         fetchSchedule();
     }, [gradeLevel]);
 
+    // --- NEW: DYNAMIC WORKLOAD CALCULATOR ---
+    // Compiles the total assigned vs remaining sessions for each subject in this grade level
+    const workloadSummary = useMemo(() => {
+        if (!gradeLevel) return [];
+
+        return allSubjects
+            .filter(s => Array.isArray(s.gradeLevels) && s.gradeLevels.some(gl => gl.gradeLevel === gradeLevel))
+            .map(subj => {
+                const gradeConfig = subj.gradeLevels.find(gl => gl.gradeLevel === gradeLevel);
+                const totalNeeded = gradeConfig ? parseInt(gradeConfig.sessionsPerWeek, 10) : 0;
+                
+                // Count how many times this subject has been placed in the grid
+                const assignedCount = scheduleData.filter(slot => slot.subject?._id === subj._id).length;
+                const remaining = Math.max(0, totalNeeded - assignedCount);
+
+                // Identify the assigned teacher for this subject-grade combination
+                const assignedTeacher = allTeachers.find(teacher => 
+                    Array.isArray(teacher.subjectsTaught) &&
+                    teacher.subjectsTaught.some(st => {
+                        const subjId = st.subject?._id || st.subject;
+                        return String(subjId) === String(subj._id) && String(st.gradeLevel) === String(gradeLevel);
+                    })
+                );
+
+                return {
+                    subject: subj,
+                    teacher: assignedTeacher,
+                    totalNeeded,
+                    assignedCount,
+                    remaining
+                };
+            });
+    }, [allSubjects, scheduleData, allTeachers, gradeLevel]);
+
     // --- HELPERS ---
     const getSlotData = (day, period) => {
         return scheduleData.find(s => s.dayOfWeek === day && s.period === period);
@@ -74,6 +121,18 @@ const ScheduleManager = () => {
         setSelectedSlot({ day, period });
         setFormSubject(existing?.subject?._id || '');
         setFormTeacher(existing?.teacher?._id || '');
+    };
+
+    // Auto-selects the certified teacher when a subject is chosen in the modal
+    const handleSubjectSelection = (subjectId) => {
+        setFormSubject(subjectId);
+        
+        const matchedWorkload = workloadSummary.find(w => w.subject._id === subjectId);
+        if (matchedWorkload && matchedWorkload.teacher) {
+            setFormTeacher(matchedWorkload.teacher._id);
+        } else {
+            setFormTeacher('');
+        }
     };
      
     const handleAutoGenerate = async (category) => {
@@ -125,7 +184,7 @@ const ScheduleManager = () => {
         <div className="min-h-screen bg-gray-50 p-6 font-sans">
             
             {/* --- CONTROLS --- */}
-            <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-col md:flex-row justify-between items-center no-print">
+            <div className="bg-white p-4 rounded-xl shadow mb-6 flex flex-col md:flex-row justify-between items-center no-print gap-4">
                 <div className="flex gap-4 items-center">
                     <h2 className="text-xl font-bold text-gray-800">📅 Class Schedule</h2>
                     <select 
@@ -137,13 +196,8 @@ const ScheduleManager = () => {
                         {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
                     </select>
                 </div>
-                <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-2 rounded font-bold hover:bg-slate-800">
-                    🖨️ Print Timetable
-                </button>
-            </div>
-            <div>
+                
                 <div className="flex gap-2">
-                    {/* Split Button for KG and Grade */}
                     <div className="flex bg-purple-600 rounded overflow-hidden">
                         <button 
                             onClick={() => handleAutoGenerate('Kg')} 
@@ -160,73 +214,113 @@ const ScheduleManager = () => {
                     </div>
 
                     <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-2 rounded font-bold hover:bg-slate-800">
-                        🖨️ Print
+                        🖨️ Print Timetable
                     </button>
                 </div>
             </div>
 
-            {/* --- THE GRID --- */}
+            {/* --- THE GRID & SIDEBAR LAYOUT --- */}
             {gradeLevel ? (
-                <div className="bg-white p-8 rounded-xl shadow-lg print:shadow-none print:p-0">
+                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                     
-                    {/* Print Header */}
-                    <div className="hidden print:block text-center mb-6 border-b-4 border-slate-900 pb-2">
-                        <h1 className="text-3xl font-black uppercase">Freedom KG & Primary School</h1>
-                        <h2 className="text-xl font-bold mt-1">Class Schedule: <span className="text-blue-700">{gradeLevel}</span></h2>
-                        <p className="text-sm text-gray-500">{academicYear}</p>
-                    </div>
+                    {/* LEFT/MAIN: Timetable Grid */}
+                    <div className="xl:col-span-3 bg-white p-8 rounded-xl shadow-lg print:shadow-none print:p-0">
+                        {/* Print Header */}
+                        <div className="hidden print:block text-center mb-6 border-b-4 border-slate-900 pb-2">
+                            <h1 className="text-3xl font-black uppercase">Freedom KG & Primary School</h1>
+                            <h2 className="text-xl font-bold mt-1">Class Schedule: <span className="text-blue-700">{gradeLevel}</span></h2>
+                            <p className="text-sm text-gray-500">{academicYear} E.C.</p>
+                        </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border border-gray-800">
-                            <thead>
-                                <tr className="bg-slate-900 text-white print:bg-slate-900 print:text-white">
-                                    <th className="p-3 border border-gray-600 w-24">Time / Day</th>
-                                    {PERIODS.map(p => (
-                                        <th key={p} className="p-3 border border-gray-600 text-center w-32">
-                                            Period {p}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {DAYS.map(day => (
-                                    <tr key={day} className="hover:bg-gray-50">
-                                        {/* Day Column */}
-                                        <td className="p-3 border border-gray-400 font-bold bg-gray-100 print:bg-gray-200">
-                                            {day}
-                                        </td>
-
-                                        {/* Period Cells */}
-                                        {PERIODS.map(period => {
-                                            const data = getSlotData(day, period);
-                                            return (
-                                                <td 
-                                                    key={`${day}-${period}`} 
-                                                    onClick={() => handleCellClick(day, period)}
-                                                    className={`p-2 border border-gray-400 text-center cursor-pointer transition-colors h-24
-                                                        ${data ? 'bg-blue-50 hover:bg-blue-100' : 'bg-white hover:bg-yellow-50'}
-                                                    `}
-                                                >
-                                                    {data ? (
-                                                        <div className="flex flex-col justify-center h-full">
-                                                            <span className="font-bold text-slate-800 text-sm">{data.subject?.name}</span>
-                                                            <span className="text-xs text-gray-500 mt-1">{data.teacher?.fullName}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-gray-200 text-xs no-print">+ Add</span>
-                                                    )}
-                                                </td>
-                                            );
-                                        })}
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse border border-gray-800">
+                                <thead>
+                                    <tr className="bg-slate-900 text-white print:bg-slate-900 print:text-white">
+                                        <th className="p-3 border border-gray-600 w-24">Time / Day</th>
+                                        {PERIODS.map(p => (
+                                            <th key={p} className="p-3 border border-gray-600 text-center w-32">
+                                                Period {p}
+                                            </th>
+                                        ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {DAYS.map(day => (
+                                        <tr key={day} className="hover:bg-gray-50">
+                                            <td className="p-3 border border-gray-400 font-bold bg-gray-100 print:bg-gray-200">
+                                                {day}
+                                            </td>
+
+                                            {PERIODS.map(period => {
+                                                const data = getSlotData(day, period);
+                                                return (
+                                                    <td 
+                                                        key={`${day}-${period}`} 
+                                                        onClick={() => handleCellClick(day, period)}
+                                                        className={`p-2 border border-gray-400 text-center cursor-pointer transition-colors h-24
+                                                            ${data ? 'bg-blue-50 hover:bg-blue-100' : 'bg-white hover:bg-yellow-50'}
+                                                        `}
+                                                    >
+                                                        {data ? (
+                                                            <div className="flex flex-col justify-center h-full">
+                                                                <span className="font-bold text-slate-800 text-sm">{data.subject?.name}</span>
+                                                                <span className="text-xs text-gray-500 mt-1">{data.teacher?.fullName}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-200 text-xs no-print">+ Add</span>
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="mt-4 text-xs text-gray-500 text-center print:block hidden">
+                            * Period 4 is followed by Lunch Break (12:30 - 1:30)
+                        </div>
                     </div>
 
-                    {/* Break Times / Lunch (Optional Footer Info) */}
-                    <div className="mt-4 text-xs text-gray-500 text-center print:block hidden">
-                        * Period 4 is followed by Lunch Break (12:30 - 1:30)
+                    {/* RIGHT: Workload / Pending Assignments Panel */}
+                    <div className="xl:col-span-1 bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-fit no-print">
+                        <h3 className="text-md font-bold text-slate-800 mb-3 border-b pb-2 flex items-center gap-2">
+                            📋 Pending Assignments
+                        </h3>
+                        <p className="text-xs text-gray-500 mb-4">
+                            Ensure all curriculum periods required for <strong className="text-slate-700">{gradeLevel}</strong> are allocated.
+                        </p>
+
+                        <div className="space-y-3">
+                            {workloadSummary.map(({ subject, teacher, totalNeeded, assignedCount, remaining }) => (
+                                <div 
+                                    key={subject._id} 
+                                    className={`p-3 rounded-lg border text-xs transition-all ${
+                                        remaining === 0 
+                                            ? 'bg-green-50 border-green-200 text-green-800' 
+                                            : 'bg-amber-50 border-amber-200 text-amber-800'
+                                    }`}
+                                >
+                                    <div className="flex justify-between items-center font-bold mb-1">
+                                        <span className="text-sm">{subject.name}</span>
+                                        <span>{remaining === 0 ? '✓' : `Pending: ${remaining}`}</span>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 mt-1">
+                                        Allocated: <strong className="text-slate-700">{assignedCount} of {totalNeeded}</strong> periods/wk
+                                    </p>
+                                    {teacher ? (
+                                        <p className="text-[10px] text-gray-500 mt-0.5">
+                                            Teacher: <strong className="text-slate-700">{teacher.fullName}</strong>
+                                        </p>
+                                    ) : (
+                                        <p className="text-[10px] text-red-500 font-semibold mt-0.5">
+                                            ⚠️ No teacher assigned in settings
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
                 </div>
@@ -246,11 +340,13 @@ const ScheduleManager = () => {
                                 <select 
                                     className="w-full border p-2 rounded"
                                     value={formSubject}
-                                    onChange={e => setFormSubject(e.target.value)}
+                                    onChange={e => handleSubjectSelection(e.target.value)}
                                 >
                                     <option value="">Select Subject</option>
-                                    {allSubjects?.filter(s => s.gradeLevel === gradeLevel).map(s => (
-                                        <option key={s._id} value={s._id}>{s.name}</option>
+                                    {workloadSummary.map(({ subject, remaining }) => (
+                                        <option key={subject._id} value={subject._id}>
+                                            {subject.name} ({remaining === 0 ? 'Fully Placed' : `${remaining} periods left`})
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -258,15 +354,19 @@ const ScheduleManager = () => {
                             <div>
                                 <label className="block text-sm font-bold mb-1">Teacher</label>
                                 <select 
-                                    className="w-full border p-2 rounded"
+                                    className="w-full border p-2 rounded bg-gray-50 cursor-not-allowed"
                                     value={formTeacher}
                                     onChange={e => setFormTeacher(e.target.value)}
+                                    disabled={true} // Locked because teacher is tied directly to subject settings
                                 >
                                     <option value="">Select Teacher</option>
                                     {allTeachers.map(t => (
                                         <option key={t._id} value={t._id}>{t.fullName}</option>
                                     ))}
                                 </select>
+                                <p className="text-[10px] text-gray-400 mt-1">
+                                    Teacher is automatically assigned based on subject course settings.
+                                </p>
                             </div>
 
                             <div className="flex gap-2 pt-2">
