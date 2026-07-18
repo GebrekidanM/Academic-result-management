@@ -8,10 +8,9 @@ import userService from '@shared/services/userService';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 
-// Dynamic Ethiopian Calendar (E.C.) year helper
 const getEthiopianYear = (gregorianDate = new Date()) => {
     const year = gregorianDate.getFullYear();
-    const month = gregorianDate.getMonth(); // 0-indexed (8 is September)
+    const month = gregorianDate.getMonth();
     const day = gregorianDate.getDate();
 
     let ethiopianYear = year - 8;
@@ -24,39 +23,31 @@ const getEthiopianYear = (gregorianDate = new Date()) => {
 const ScheduleManager = () => {
     const { t } = useTranslation();
 
-    // --- STATE ---
     const [gradeLevel, setGradeLevel] = useState('');
     const [availableGrades, setAvailableGrades] = useState([]);
     const [scheduleData, setScheduleData] = useState([]); 
     const [academicYear] = useState(getEthiopianYear().toString()); 
     
-    // Resources for Dropdowns
     const [allSubjects, setAllSubjects] = useState([]);
     const [allTeachers, setAllTeachers] = useState([]);
 
-    // Selection Modal
-    const [selectedSlot, setSelectedSlot] = useState(null); // { day, period }
+    const [selectedSlot, setSelectedSlot] = useState(null);
     const [formSubject, setFormSubject] = useState('');
     const [formTeacher, setFormTeacher] = useState('');
 
-    // --- LOAD INITIAL DATA ---
     useEffect(() => {
         const loadResources = async () => {
             try {
-                console.log('hello')
                 const [gradesRes, subRes, teachRes] = await Promise.all([
                     studentService.getAllStudents(), 
                     subjectService.getAllSubjects(),
                     userService.getAll() 
                 ]);
 
-                // Extract Unique Grades
                 const uniqueGrades = [...new Set(gradesRes.data.data.map(s => s.gradeLevel))].sort();
-                console.log(uniqueGrades)
                 setAvailableGrades(uniqueGrades);
                 setAllSubjects(subRes.data.data);
 
-                // Filter database users to keep only teachers
                 setAllTeachers(teachRes.data.filter(u => u.role === 'teacher'));
 
             } catch (err) { console.error(err); }
@@ -79,8 +70,6 @@ const ScheduleManager = () => {
         fetchSchedule();
     }, [gradeLevel]);
 
-    // --- NEW: DYNAMIC WORKLOAD CALCULATOR ---
-    // Compiles the total assigned vs remaining sessions for each subject in this grade level
     const workloadSummary = useMemo(() => {
         if (!gradeLevel) return [];
 
@@ -90,11 +79,9 @@ const ScheduleManager = () => {
                 const gradeConfig = subj.gradeLevels.find(gl => gl.gradeLevel === gradeLevel);
                 const totalNeeded = gradeConfig ? parseInt(gradeConfig.sessionsPerWeek, 10) : 0;
                 
-                // Count how many times this subject has been placed in the grid
                 const assignedCount = scheduleData.filter(slot => slot.subject?._id === subj._id).length;
                 const remaining = Math.max(0, totalNeeded - assignedCount);
 
-                // Identify the assigned teacher for this subject-grade combination
                 const assignedTeacher = allTeachers.find(teacher => 
                     Array.isArray(teacher.subjectsTaught) &&
                     teacher.subjectsTaught.some(st => {
@@ -125,7 +112,6 @@ const ScheduleManager = () => {
         setFormTeacher(existing?.teacher?._id || '');
     };
 
-    // Auto-selects the certified teacher when a subject is chosen in the modal
     const handleSubjectSelection = (subjectId) => {
         setFormSubject(subjectId);
         
@@ -162,7 +148,7 @@ const ScheduleManager = () => {
                 teacherId: formTeacher
             });
             setSelectedSlot(null);
-            fetchSchedule(); // Refresh grid
+            fetchSchedule();
         } catch (err) {
             alert(err.response?.data?.message || "Error assigning slot");
         }
