@@ -1,7 +1,7 @@
-// backend/controllers/paymentController.js
 const Payment = require('../models/Payment');
 const Student = require('../models/Student');
-const { logActivity } = require('../utils/logger'); // ⚠️ የሎገር ረዳት ፈንክሽን [2]
+const { logActivity } = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // @desc    Record a manual student payment
 // @route   POST /api/payments
@@ -15,21 +15,8 @@ exports.createPayment = async (req, res) => {
     try {
         const studentObj = await Student.findById(studentId);
         if (!studentObj) return res.status(404).json({ message: 'Student not found.' });
-
-        // አዲስ ክፍያ መመዝገብ
-        const payment = new Payment({
-            student: studentId,
-            paymentReason,
-            paidFor,
-            amount: Number(amount),
-            receiptCode,
-            academicYear,
-            recordedBy: req.user._id
-        });
-
+        const payment = new Payment({student: studentId, paymentReason, paidFor, amount: Number(amount), receiptCode, academicYear, recordedBy: req.user._id});
         await payment.save();
-
-        // ⚠️ የስራ እንቅስቃሴውን በሎገር መዝግብ [2]
         await logActivity(
             req.user._id,
             "Payment Recorded",
@@ -102,13 +89,7 @@ exports.getPaymentAnalytics = async (req, res) => {
         }
 
         const studentIds = students.map(s => s._id);
-
-        const payments = await Payment.find({
-            student: { $in: studentIds },
-            paymentReason,
-            paidFor,
-            academicYear
-        }).lean();
+        const payments = await Payment.find({ student: { $in: studentIds }, paymentReason, paidFor, academicYear}).lean();
 
         const paidStudentMap = new Map();
         let totalCollected = 0;

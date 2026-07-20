@@ -15,19 +15,12 @@ const PaymentRegistryPage = () => {
     const { t } = useTranslation();
     const currentYear = getCurrentAcademicYear().toString();
 
-    // --- STATE ---
     const [activeTab, setActiveTab] = useState('record');
     const [academicYear, setAcademicYear] = useState(currentYear);
     
-    // የፎርም መረጃዎች
     const [searchId, setSearchId] = useState('');
     const [foundStudent, setFoundStudent] = useState(null);
-    const [paymentData, setPaymentData] = useState({
-        paymentReason: 'Tuition Fee',
-        paidFor: 'September',
-        amount: '',
-        receiptCode: ''
-    });
+    const [paymentData, setPaymentData] = useState({ paymentReason: 'Tuition Fee', paidFor: 'September', amount: '', receiptCode: '' });
 
     const [historyData, setHistoryData] = useState([]);
     const [filterReason, setFilterReason] = useState('');
@@ -144,7 +137,7 @@ const PaymentRegistryPage = () => {
                     >
                         📝 Record Payment
                     </button>
-                    <button 
+                    <button
                         onClick={() => { setActiveTab('history'); setError(null); setSuccess(null); }}
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'history' ? 'bg-white shadow text-pink-600' : 'text-gray-500'}`}
                     >

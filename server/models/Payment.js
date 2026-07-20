@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
-const PAYMENT_REASONS = ['Tuition Fee', 'Registration Fee', 'Transportation', 'Uniform', 'Other'];
-const PAID_FOR_PERIODS = ['September', 'October', 'November', 'December', 'January', 'February', 'March', 'April', 'May', 'June', '1st Quarter', '2nd Quarter', '3rd Quarter', 'Annual'];
+const PAYMENT_REASONS = ['Tuition Fee', 'Registration Fee','Book Fee','Transportation', 'Uniform', 'Other'];
+const PAID_FOR_PERIODS = ['September', 'October', 'November', 'December', 'January', 'February', 'March', 'April', 'May', 'June', '1st Quarter', '2nd Quarter','1st Semester','2nd Semester', '3rd Quarter', 'Annual'];
 
 const paymentSchema = new mongoose.Schema({
     student: {

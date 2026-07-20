@@ -2,9 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import studentService from '@shared/services/studentService';
-import paymentService from '@shared/services/paymentService'; // ⚠️ የክፍያ ሰርቪስ
+import paymentService from '@shared/services/paymentService';
 
-// የኢትዮጵያን የአሁኑን ዓመተ ምህረት በራስ-ሰር ለማግኘት የሚያግዝ ረዳት ፈንክሽን
 function getCurrentAcademicYear() {
     const today = new Date();
     const gregYear = today.getFullYear();
@@ -16,7 +15,6 @@ const PaymentAnalyticsPage = () => {
     const { t } = useTranslation();
     const currentYear = getCurrentAcademicYear().toString();
 
-    // --- STATE ---
     const [availableGrades, setAvailableGrades] = useState([]);
     const [filters, setFilters] = useState({
         gradeLevel: '',
@@ -26,13 +24,12 @@ const PaymentAnalyticsPage = () => {
     });
 
     const [analyticsData, setAnalyticsData] = useState(null);
-    const [activeTab, setActiveTab] = useState('unpaid'); // unpaid, paid
+    const [activeTab, setActiveTab] = useState('unpaid');
 
     const [loading, setLoading] = useState(true);
     const [fetching, setFetching] = useState(false);
     const [error, setError] = useState(null);
 
-    // 1. የክፍሎችን ዝርዝር መጫን
     useEffect(() => {
         const loadGrades = async () => {
             try {
@@ -59,7 +56,6 @@ const PaymentAnalyticsPage = () => {
         setFilters(prev => ({ ...prev, [name]: value }));
     };
 
-    // 2. የክፍያ አናሊቲክስ መጫን
     const handleFetchAnalytics = async () => {
         if (!filters.gradeLevel) return;
         setFetching(true);
@@ -81,7 +77,6 @@ const PaymentAnalyticsPage = () => {
 
     return (
         <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-8 animate-fade-in print:bg-white print:p-0">
-            {/* HIDE NAVIGATION ON PRINT */}
             <style>{`
                 @media print {
                     .no-print, nav, button, .sidebar, header { display: none !important; }
@@ -115,6 +110,7 @@ const PaymentAnalyticsPage = () => {
                         <option value="Tuition Fee">Tuition Fee</option>
                         <option value="Registration Fee">Registration Fee</option>
                         <option value="Transportation">Transportation</option>
+                        <option value="Book Fee">Book Fee</option>
                         <option value="Uniform">Uniform</option>
                         <option value="Other">Other</option>
                     </select>
@@ -126,6 +122,8 @@ const PaymentAnalyticsPage = () => {
                         <option value="1st Quarter">1st Quarter</option>
                         <option value="2nd Quarter">2nd Quarter</option>
                         <option value="3rd Quarter">3rd Quarter</option>
+                        <option value="1st Semester">1st Semester</option>
+                        <option value="2nd Semester">2nd Semester</option>
                         <option value="September">September</option>
                         <option value="October">October</option>
                         <option value="November">November</option>

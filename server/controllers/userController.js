@@ -3,6 +3,7 @@ const fs = require('fs');
 const User = require('../models/User');
 const capitalizeName = require('../utils/capitalizeName');
 const generateToken = require('../utils/generateToken');
+const TeacherEvaluation = require('../models/TeacherEvalution');
 
 // @desc    Get the current logged-in user's profile
 // @route   GET /api/users/profile
@@ -356,5 +357,42 @@ exports.saveSubscription = async (req, res) => {
     } catch (error) {
         console.error("Sub Error:", error);
         res.status(500).json({ message: "Server Error" });
+    }
+};
+
+
+exports.createEvaluation = async (req, res) => {
+    try {
+        const currentUser = req.user;
+        const { teacherId, academicYear, semester, scores, strengths, areasOfImprovement, generalFeedback } = req.body;
+
+        // Security check: Only admins can evaluate teachers
+        if (currentUser.role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to submit teacher evaluations.' });
+        }
+
+        const newEvaluation = new TeacherEvaluation({
+            teacher: teacherId,
+            evaluator: currentUser._id,
+            academicYear,
+            semester,
+            scores,
+            strengths,
+            areasOfImprovement,
+            generalFeedback
+        });
+
+        await newEvaluation.save();
+
+        return res.status(201).json({
+            success: true,
+            message: 'Teacher evaluation submitted successfully.',
+            data: newEvaluation
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ message: 'This teacher has already been evaluated for this semester.' });
+        }
+        return res.status(500).json({ message: 'Server error.', error: error.message });
     }
 };
