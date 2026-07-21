@@ -23,7 +23,7 @@ router.post('/photo/:id', protect, upload.single('profilePhoto'), studentControl
 router.post('/reset/:studentId', protect, studentController.resetPassword);
 
 const localUpload = multer({ dest: 'uploads/' });
-router.post('/upload', protect, localUpload.single('studentsFile'), bulkCreateStudents);
+router.post('/upload', protect, localUpload.single('studentsFile'), studentController.bulkCreateStudents);
 
 router.get('/', protect,studentController.getStudents);
 router.post('/', protect, studentRegistrationUpload, studentController.createStudent);

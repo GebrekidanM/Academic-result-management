@@ -5,7 +5,7 @@ import userService from '@shared/services/userService';
 const ImportUsersPage = () => {
     // --- State Management ---
     const [selectedFile, setSelectedFile] = useState(null);
-    const [result, setResult] = useState(null); // Will hold the full success response from the backend
+    const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();

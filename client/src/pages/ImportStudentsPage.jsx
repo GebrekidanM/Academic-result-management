@@ -3,8 +3,18 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import studentService from '@shared/services/studentService';
 
+// Helper to dynamically calculate current Ethiopian Calendar (EC) Year
+function getCurrentAcademicYear() {
+    const today = new Date();
+    const gregYear = today.getFullYear();
+    const gregMonth = today.getMonth() + 1;
+    return gregMonth >= 9 ? gregYear - 7 : gregYear - 8;
+}
+
 const ImportStudentsPage = () => {
     const [selectedFile, setSelectedFile] = useState(null);
+    // Added: Academic Year state, defaulting to current EC year
+    const [year, setYear] = useState(getCurrentAcademicYear().toString()); 
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -20,11 +30,17 @@ const ImportStudentsPage = () => {
             setError('Please select a file to upload.');
             return;
         }
+        if (!year) {
+            setError('Please specify the academic year for this import.');
+            return;
+        }
+
         setLoading(true);
         setError(null);
         setSuccess(null);
         try {
-            const response = await studentService.uploadStudents(selectedFile);
+            // ALIGNED: Passes both the file and the target year parameter to the service
+            const response = await studentService.uploadStudents(selectedFile, year);
             setSuccess(response.data.message);
             setTimeout(() => {
                 navigate('/students');
@@ -39,6 +55,7 @@ const ImportStudentsPage = () => {
     // --- Tailwind CSS class strings ---
     const cardContainer = "bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto";
     const inputLabel = "block text-gray-700 text-sm font-bold mb-2";
+    const textInput = "shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-pink-500 mb-4";
     const fileInput = "block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none";
     const submitButton = `w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`;
     
@@ -49,7 +66,7 @@ const ImportStudentsPage = () => {
                 ← Back to Students List
             </Link>
 
-            {/* --- Instructions --- */}
+            {/* --- ALIGNED: Instructions now match exact database column headers --- */}
             <div className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg text-sm text-blue-800">
                 <p><strong>Instructions:</strong></p>
                 <ul className="list-disc list-inside mt-2 space-y-1">
@@ -58,14 +75,16 @@ const ImportStudentsPage = () => {
                         <strong>Required columns:</strong> 
                         <code className="bg-blue-100 p-1 rounded">Full Name</code>, 
                         <code className="bg-blue-100 p-1 rounded">Gender</code>, 
-                        <code className="bg-blue-100 p-1 rounded">Date of Birth</code>, 
                         <code className="bg-blue-100 p-1 rounded">Grade Level</code>.
                     </li>
                     <li>
                         <strong>Optional columns:</strong> 
-                        <code className="bg-blue-100 p-1 rounded">Parent Name</code>, 
-                        <code className="bg-blue-100 p-1 rounded">Parent Phone</code>, 
-                        <code className="bg-blue-100 p-1 rounded">Health Status</code>.
+                        <code className="bg-blue-100 p-1 rounded">Date of Birth</code>, 
+                        <code className="bg-blue-100 p-1 rounded">Mother Name</code>, 
+                        <code className="bg-blue-100 p-1 rounded">Mother Contact</code>, 
+                        <code className="bg-blue-100 p-1 rounded">Father Contact</code>, 
+                        <code className="bg-blue-100 p-1 rounded">Health Status</code>, 
+                        <code className="bg-blue-100 p-1 rounded">National ID Number</code>.
                     </li>
                     <li>The system will automatically generate a unique Student ID and an initial password for each student.</li>
                     <li>
@@ -77,6 +96,20 @@ const ImportStudentsPage = () => {
             </div>
 
             <form onSubmit={handleSubmit}>
+                {/* ADDED: Academic Year input so year is explicitly bound during import */}
+                <div>
+                    <label htmlFor="academicYear" className={inputLabel}>Academic Year</label>
+                    <input 
+                        id="academicYear"
+                        type="text"
+                        value={year}
+                        onChange={(e) => setYear(e.target.value)}
+                        className={textInput}
+                        placeholder="e.g. 2018"
+                        required
+                    />
+                </div>
+
                 <div>
                     <label htmlFor="studentsFile" className={inputLabel}>Select File</label>
                     <input 

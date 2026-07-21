@@ -45,6 +45,8 @@ const deleteStudent = (id) => {
 const uploadStudents = (file) => {
     const formData = new FormData();
     formData.append('studentsFile', file);
+    formData.append('year', year);
+    
     return api.post(`${API_URL}/upload`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data'

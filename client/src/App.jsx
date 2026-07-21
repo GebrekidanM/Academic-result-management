@@ -102,17 +102,14 @@ function App() {
       });
 
 
-  // Register service worker (for offline/PWA)
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      // 1. Register
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
           .then(reg => console.log('✅ Service Worker registered:', reg.scope))
           .catch(err => console.error('❌ Service Worker error:', err));
       });
 
-      // 2. Listen for Updates (Auto-Reload on new version)
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         window.location.reload();
       });
@@ -123,7 +120,6 @@ function App() {
   return (
     <div className="bg-surface-muted min-h-screen relative">
       
-      {/* --- 3. ADD OFFLINE UI HERE --- */}
       <SyncStatus /> 
       {(currentUser ) && ( <Navbar isOpen={isOpen} setIsOpen={setIsOpen} /> )}
 

@@ -414,10 +414,13 @@ exports.bulkCreateStudents = async (req, res) => {
                 const fullName = capitalizeName(row['Full Name']);
                 const motherName = row['Mother Name'] || '';
                 
-                // OPTIMIZED: Clean and format grade level from Excel rows
+                // Clean and format grade level from Excel rows
                 const gradeLevel = formatGrade(row['Grade Level']); 
 
-                const exists = await Student.findOne({ fullName, motherName, gradeLevel });
+                // OPTIMIZED: Synchronized query collation to match your Mongoose unique index schema [2]
+                const exists = await Student.findOne({ fullName, motherName, gradeLevel })
+                    .collation({ locale: 'en', strength: 2 });
+
                 if (exists) {
                     createdStudents.push({ status: "skipped", row: rowNumber, fullName, reason: "Duplicate student" });
                     rowNumber++;
@@ -437,7 +440,8 @@ exports.bulkCreateStudents = async (req, res) => {
                     motherContact: row['Mother Contact'] || '',
                     fatherContact: row['Father Contact'] || '',
                     password: initialPassword,
-                    healthStatus: row['Health Status'] || 'No known conditions'
+                    healthStatus: row['Health Status'] || 'No known conditions',
+                    nationalIdNumber: row['National ID Number'] || '' // ALIGNED: Maps the new text field from Excel column
                 });
 
                 await newStudent.save();

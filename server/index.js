@@ -5,8 +5,8 @@ const path = require('path');
 const connectDB = require('./config/db');
 const User = require('./models/User');
 const cron = require('node-cron');
+const runMigration = require('./utils/migrateGrade');
 
-const { sanitizeDatabase } = require('./sanitizeDatabase');
 const app = express();
 
 // --- Middleware ---
@@ -84,9 +84,7 @@ const seedAdminUser = async () => {
 // --- STARTUP SEQUENCE ---
 const startServer = async () => {
     try {
-        // 1. Connect to DB
         await connectDB();
-        // 2. Seed Admin
         await seedAdminUser();
 
         const PORT = process.env.PORT || 5000;
