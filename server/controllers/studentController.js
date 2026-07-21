@@ -180,9 +180,9 @@ exports.getStudentById = async (req, res) => {
 // @desc    Create a single new student
 // @route   POST /api/students
 exports.createStudent = async (req, res) => {
-    const currentUser = req.user; 
-    const { fullName, gender, dateOfBirth, gradeLevel, year, motherName, motherContact, fatherContact, healthStatus } = req.body;
+    const currentUser = req.user;
 
+    const { fullName, gender, dateOfBirth, gradeLevel, year, motherName, motherContact, fatherContact, healthStatus } = req.body;
     try {
         if (!hasAccessToStudent(currentUser, gradeLevel, ['admin', 'accountant'])) {
             return res.status(403).json({ message: 'You are not authorized to register students for this grade.' });

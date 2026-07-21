@@ -2,6 +2,13 @@ const express = require('express');
 const router = express.Router();
 const studentController = require('../controllers/studentController');
 const { protect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/upload');
+
+const studentRegistrationUpload = upload.fields([
+    { name: 'transferLetter', maxCount: 1 },
+    { name: 'certificate', maxCount: 1 },
+    { name: 'nationalId', maxCount: 1 }
+]);
 
 router.get('/bulk-end-of-year/count', protect, studentController.getBulkEndOfYearCount);
 router.put('/end-of-year', protect, studentController.bulkSetEndOfYearByEC);
@@ -12,8 +19,8 @@ router.get('/getallstudents', protect,studentController.getAllStudents);
 router.post('/photo/:id', protect, studentController.uploadProfilePhoto);
 router.post('/reset/:studentId', protect, studentController.resetPassword);
 
-router.get('/', protect, studentController.getStudents);
-router.post('/', protect, studentController.createStudent);
+router.get('/', protect,studentController.getStudents);
+router.post('/', protect, studentRegistrationUpload, studentController.createStudent);
 router.get('/:id', protect, studentController.getStudentById);
 router.put('/:id', protect, studentController.updateStudent);
 router.delete('/:id', protect, studentController.deleteStudent);
