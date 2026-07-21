@@ -359,9 +359,9 @@ export const en = {
     
     // ሰነዶች
     scanned_documents: "Scanned Documents (Optional)",
-    transfer_letter: "Transfer Letter (መሸኛ)",
-    prev_certificate: "Report Card (ሰርተፊኬት)",
-    national_id: "National ID / Birth Cert.",
+    transfer_letter: "Transfer Letter",
+    prev_certificate: "Report Card",
+    national_id: "National ID",
     student_attachments: "Scanned Attachments",
     
     // መቅረትና መገኘት

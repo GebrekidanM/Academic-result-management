@@ -12,14 +12,12 @@ const StudentDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    // --- STATE ---
     const [currentUser] = useState(authService.getCurrentUser());
     const [student, setStudent] = useState(null);
     const [grades, setGrades] = useState([]);
     const [reports, setReports] = useState([]);
     const [ranks, setRanks] = useState({ sem1: '-', sem2: '-', overall: '-' });
     
-    // ንቁ ሴሚስተር መቆጣጠሪያ ስቴት (Default: First Semester)
     const [activeSemester, setActiveSemester] = useState('First Semester');
     
     const [loading, setLoading] = useState(true);
@@ -81,24 +79,20 @@ const StudentDetailPage = () => {
     const isHomeroomTeacher = currentUser?.role === 'teacher' && student && currentUser.homeroomGrade === student.gradeLevel;
     const canViewFullInsights = isAdmin || isHomeroomTeacher;
 
-    // ውጤቶችን በሴሚስተር ብቻ መለየት
     const semesterGrades = useMemo(() => {
         return grades.filter(g => g.semester === activeSemester);
     }, [grades, activeSemester]);
 
-    // ⚠️ 1. አዲሱ የባህሪ ሪፖርቶች በሴሚስተር የመለያ ሎጂክ
     const semesterReports = useMemo(() => {
         return reports.filter(r => r.semester === activeSemester);
     }, [reports, activeSemester]);
 
-    // የክፍል ደረጃን በሴሚስተር መለየት
     const displayRank = useMemo(() => {
         if (activeSemester === 'First Semester') return ranks.sem1;
         if (activeSemester === 'Second Semester') return ranks.sem2;
         return ranks.overall;
     }, [ranks, activeSemester]);
 
-    // አማካይ ውጤትን በሴሚስተር ብቻ ማስላት
     const academicStats = useMemo(() => {
         if (!semesterGrades || semesterGrades.length === 0) return { average: 0 };
         let grandTotal = 0;
@@ -131,7 +125,6 @@ const StudentDetailPage = () => {
         });
     }, [semesterGrades, currentUser, isAdmin, isHomeroomTeacher]);
 
-    // የአካዳሚክ ግንዛቤዎችን በሴሚስተር መለየት
     const insights = useMemo(() => {
         if (!semesterGrades || semesterGrades.length === 0) return null;
         const categories = { critical: [], average: [], good: [], excellent: [] };

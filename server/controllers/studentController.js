@@ -8,13 +8,11 @@ const cloudinary = require('cloudinary').v2;
 const { logActivity } = require('../utils/logger'); 
 const mongoose = require('mongoose');
 
-// Helper to capitalize full names neatly
 const capitalizeName = (name) => {
     if (!name || typeof name !== 'string') return '';
     return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 };
 
-// Helper to pull first name for default password generation
 const getFirstName = (fullName) => {
     if (!fullName || typeof fullName !== 'string') return 'User';
     const names = fullName.trim().split(/\s+/);
@@ -22,7 +20,6 @@ const getFirstName = (fullName) => {
     return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 };
 
-// Helper to safely parse dates from Excel rows (including serial numbers)
 const parseExcelDate = (excelDate) => {
     if (!excelDate) return null;
     if (excelDate instanceof Date) return excelDate;
@@ -31,14 +28,12 @@ const parseExcelDate = (excelDate) => {
         return isNaN(parsed) ? null : new Date(parsed);
     }
     if (typeof excelDate === 'number') {
-        // Excel base date starts on Jan 1, 1900
         const date = new Date((excelDate - 25569) * 86400 * 1000);
         return isNaN(date.getTime()) ? null : date;
     }
     return null;
 };
 
-// Dynamically calculate current Ethiopian Calendar (EC) Year
 const getEthiopianYear = (gregorianDate = new Date()) => {
     const year = gregorianDate.getFullYear();
     const month = gregorianDate.getMonth();
@@ -51,7 +46,6 @@ const getEthiopianYear = (gregorianDate = new Date()) => {
     return ethiopianYear;
 };
 
-// DRY Optimization: Shared authorization logic helper
 const hasAccessToStudent = (user, studentGradeLevel, allowedRoles = ['admin']) => {
     if (user.role === 'teacher') {
         return user.homeroomGrade && user.homeroomGrade === studentGradeLevel;
@@ -59,6 +53,17 @@ const hasAccessToStudent = (user, studentGradeLevel, allowedRoles = ['admin']) =
     return allowedRoles.includes(user.role);
 };
 
+// Shared grade level formatting logic
+function formatGrade(input) {
+  if (!input) return input;
+
+  let formatted = input.trim().toLowerCase();
+  formatted = formatted.replace(/\b([a-z])/g, (match) => match.toUpperCase());
+  formatted = formatted.replace(/(\d)\s*([a-z])/gi, (match, num, letter) => {
+    return num + letter.toUpperCase();
+  });
+  return formatted;
+}
 
 // @desc Get all students or by grade
 // @route GET /api/students
@@ -124,7 +129,7 @@ exports.getStudents = async (req, res) => {
 
 exports.getAllStudents = async (req,res)=>{
     try{
-        const students = await Student.find({}).select('studentId fullName gender gradeLevel status year');;
+        const students = await Student.find({}).select('studentId fullName gender gradeLevel status year');
         if(!students){
             return res.json({message:"no student"})
         }
@@ -132,11 +137,6 @@ exports.getAllStudents = async (req,res)=>{
     }catch(error){
         res.status(500).json({ message: 'Server Error' })
     }
-
-
-    
-
-
 }
 
 // @desc    Get single student by ID
@@ -182,9 +182,16 @@ exports.getStudentById = async (req, res) => {
 exports.createStudent = async (req, res) => {
     const currentUser = req.user;
 
-    const { fullName, gender, dateOfBirth, gradeLevel, year, motherName, motherContact, fatherContact, healthStatus } = req.body;
+    const { 
+        fullName, gender, dateOfBirth, gradeLevel, year, 
+        motherName, motherContact, fatherContact, healthStatus,
+        nationalIdNumber
+    } = req.body;
+
+    const newGradeLevel = formatGrade(gradeLevel);
+
     try {
-        if (!hasAccessToStudent(currentUser, gradeLevel, ['admin', 'accountant'])) {
+        if (!hasAccessToStudent(currentUser, newGradeLevel, ['admin', 'accountant'])) {
             return res.status(403).json({ message: 'You are not authorized to register students for this grade.' });
         }
 
@@ -193,23 +200,27 @@ exports.createStudent = async (req, res) => {
 
         const transferLetter = req.files && req.files['transferLetter'] ? req.files['transferLetter'][0] : null;
         const certificate = req.files && req.files['certificate'] ? req.files['certificate'][0] : null;
+        const birthCertificate = req.files && req.files['birthCertificate'] ? req.files['birthCertificate'][0] : null;
         const nationalId = req.files && req.files['nationalId'] ? req.files['nationalId'][0] : null;
 
         const student = new Student({
             fullName: capitalizedFullName,
             gender,
             dateOfBirth,
-            gradeLevel,
+            gradeLevel: newGradeLevel, // FIXED: Correctly matches your Student schema variable name
             year: String(year),
             password: initialPassword,
             motherName,
             motherContact,
             fatherContact,
             healthStatus,
+            nationalIdNumber: nationalIdNumber || '', 
             transferLetterUrl: transferLetter ? transferLetter.path : '',
             transferLetterPublicId: transferLetter ? transferLetter.filename : '',
             certificateUrl: certificate ? certificate.path : '',
             certificatePublicId: certificate ? certificate.filename : '',
+            birthCertificateUrl: birthCertificate ? birthCertificate.path : '', 
+            birthCertificatePublicId: birthCertificate ? birthCertificate.filename : '', 
             nationalIdUrl: nationalId ? nationalId.path : '',
             nationalIdPublicId: nationalId ? nationalId.filename : ''
         });
@@ -219,7 +230,7 @@ exports.createStudent = async (req, res) => {
         await logActivity(
             currentUser._id, 
             "Student Registration", 
-            `Registered a new student: ${capitalizedFullName} (${student.studentId}) for ${gradeLevel}`, 
+            `Registered a new student: ${capitalizedFullName} (${student.studentId}) for ${newGradeLevel}`, 
             req
         );
 
@@ -402,7 +413,9 @@ exports.bulkCreateStudents = async (req, res) => {
             try {
                 const fullName = capitalizeName(row['Full Name']);
                 const motherName = row['Mother Name'] || '';
-                const gradeLevel = row['Grade Level'];
+                
+                // OPTIMIZED: Clean and format grade level from Excel rows
+                const gradeLevel = formatGrade(row['Grade Level']); 
 
                 const exists = await Student.findOne({ fullName, motherName, gradeLevel });
                 if (exists) {
@@ -522,7 +535,7 @@ exports.getStudentForRegistration = async (req, res) => {
 // @route   POST /api/students/re-register
 exports.reRegisterStudent = async (req, res) => {
     const { studentId, newGradeLevel, newYear } = req.body;
-
+    const gradeLevel = formatGrade(newGradeLevel);
     try {
         const student = await Student.findOne({ studentId });
         if (!student) return res.status(404).json({ message: "Student not found" });
@@ -534,12 +547,12 @@ exports.reRegisterStudent = async (req, res) => {
         };
 
         student.academicHistory.push(historyEntry);
-        student.gradeLevel = newGradeLevel;
+        student.gradeLevel = gradeLevel;
         student.status = 'Active'; 
         student.year = newYear;
 
         await student.save();
-        res.json({ message: `${student.fullName} successfully registered for ${newGradeLevel}` });
+        res.json({ message: `${student.fullName} successfully registered for ${gradeLevel}` });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

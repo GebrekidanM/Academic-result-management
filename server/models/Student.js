@@ -27,7 +27,10 @@ const studentSchema = new mongoose.Schema({
     certificateUrl: { type: String, default: '' },
     certificatePublicId: { type: String, default: '' },
     nationalIdUrl: { type: String, default: '' },
-    nationalIdPublicId: { type: String, default: '' }
+    nationalIdPublicId: { type: String, default: '' },
+    nationalIdNumber: { type: String, trim: true, default: '' },
+    birthCertificateUrl: { type: String, default: '' },
+    birthCertificatePublicId: { type: String, default: '' },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

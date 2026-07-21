@@ -16,7 +16,6 @@ const AddStudentPage = () => {
     
     const [regMode, setRegMode] = useState('new'); 
 
-    // Search Toggle: 'id' for studentId, 'name' for student name autocomplete
     const [searchType, setSearchType] = useState('id'); 
     const [searchName, setSearchName] = useState('');
     const [allStudents, setAllStudents] = useState([]);
@@ -31,10 +30,12 @@ const AddStudentPage = () => {
         motherContact: '',
         fatherContact: '',
         healthStatus: 'No known conditions',
+        nationalIdNumber: '', // Added text field
     });
 
     const [transferLetter, setTransferLetter] = useState(null);
     const [certificate, setCertificate] = useState(null);
+    const [birthCertificate, setBirthCertificate] = useState(null); // Added file field
     const [nationalId, setNationalId] = useState(null);
 
     const [searchId, setSearchId] = useState('');
@@ -141,9 +142,11 @@ const AddStudentPage = () => {
                 formDataPayload.append('motherContact', studentData.motherContact);
                 formDataPayload.append('fatherContact', studentData.fatherContact);
                 formDataPayload.append('healthStatus', studentData.healthStatus);
+                formDataPayload.append('nationalIdNumber', studentData.nationalIdNumber); // Appended
 
                 if (transferLetter) formDataPayload.append('transferLetter', transferLetter);
                 if (certificate) formDataPayload.append('certificate', certificate);
+                if (birthCertificate) formDataPayload.append('birthCertificate', birthCertificate); // Appended
                 if (nationalId) formDataPayload.append('nationalId', nationalId);
 
                 const response = await studentService.createStudent(formDataPayload);
@@ -411,6 +414,22 @@ const AddStudentPage = () => {
                                     <label htmlFor="dateOfBirth" className={inputLabel}>{t('dob')}</label>
                                     <input id="dateOfBirth" type="text" placeholder='yyyy-mm-dd' name="dateOfBirth" value={studentData.dateOfBirth} onChange={handleChange} className={textInput} />
                                 </div>
+
+                                {/* ADDED: National ID Number text input */}
+                                <div>
+                                    <label htmlFor="nationalIdNumber" className={inputLabel}>
+                                        🪪 {t('national_id_number') || 'National ID Number (Optional)'}
+                                    </label>
+                                    <input 
+                                        id="nationalIdNumber" 
+                                        type="text" 
+                                        name="nationalIdNumber" 
+                                        value={studentData.nationalIdNumber} 
+                                        onChange={handleChange} 
+                                        className={textInput} 
+                                        placeholder="e.g. ID-89874" 
+                                    />
+                                </div>
                             </div>
 
                             <fieldset className="mt-8 border-t pt-6">
@@ -431,14 +450,16 @@ const AddStudentPage = () => {
                                 </div>
                             </fieldset>
 
+                            {/* UPDATED: Separate Birth Certificate & National ID scanned document slots */}
                             <fieldset className="mt-8 border-t pt-6">
                                 <legend className="text-lg font-bold text-gray-700 mb-4 uppercase tracking-wide">
                                     📂 {t('scanned_documents') || 'Scanned Documents (Optional)'}
                                 </legend>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {/* መሸኛ ደብዳቤ (Transfer Letter) */}
                                     <div>
                                         <label htmlFor="transferLetter" className={inputLabel}>
-                                            📄 {t('transfer_letter') || 'Transfer Letter (መሸኛ)'}
+                                            📄 {t('transfer_letter') || 'Transfer Letter'}
                                         </label>
                                         <input 
                                             id="transferLetter" 
@@ -449,9 +470,10 @@ const AddStudentPage = () => {
                                         />
                                     </div>
 
+                                    {/* ሰርተፊኬት (Report Card / Certificate) */}
                                     <div>
                                         <label htmlFor="certificate" className={inputLabel}>
-                                            🎓 {t('prev_certificate') || 'Report Card (ሰርተፊኬት)'}
+                                            🎓 {t('prev_certificate') || 'Report Card'}
                                         </label>
                                         <input 
                                             id="certificate" 
@@ -462,9 +484,24 @@ const AddStudentPage = () => {
                                         />
                                     </div>
 
+                                    {/* ልደት ምስክር ወረቀት (Birth Certificate) - SPLIT 1 */}
+                                    <div>
+                                        <label htmlFor="birthCertificate" className={inputLabel}>
+                                            👶 {t('birth_certificate') || 'Birth Certificate'}
+                                        </label>
+                                        <input 
+                                            id="birthCertificate" 
+                                            type="file" 
+                                            accept="image/*,application/pdf"
+                                            onChange={(e) => setBirthCertificate(e.target.files[0])} 
+                                            className={fileInput} 
+                                        />
+                                    </div>
+
+                                    {/* ብሄራዊ መታወቂያ (National ID) - SPLIT 2 */}
                                     <div>
                                         <label htmlFor="nationalId" className={inputLabel}>
-                                            🪪 {t('national_id') || 'National ID / Birth Cert.'}
+                                            🪪 {t('national_id') || 'National ID'}
                                         </label>
                                         <input 
                                             id="nationalId" 

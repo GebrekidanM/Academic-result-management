@@ -7,15 +7,12 @@ import { Link } from 'react-router-dom';
 function formatGrade(input) {
   if (!input) return input;
 
-  input = input.trim().toLowerCase();
-
-  input = input.charAt(0).toUpperCase() + input.slice(1);
-
-  input = input.replace(/(\d)([a-z])/g, (match, num, letter) => {
+  let formatted = input.trim().toLowerCase();
+  formatted = formatted.replace(/\b([a-z])/g, (match) => match.toUpperCase());
+  formatted = formatted.replace(/(\d)\s*([a-z])/gi, (match, num, letter) => {
     return num + letter.toUpperCase();
   });
-
-  return input;
+  return formatted;
 }
 
 const RosterPage = () => {
@@ -28,7 +25,7 @@ const RosterPage = () => {
     const [loading, setLoading] = useState(false);
     const [homeroomTeacher, setHomeroomTeacher] = useState('');
 
-     useEffect(() => {
+    useEffect(() => {
         if (currentUser.role === 'teacher' && currentUser.homeroomGrade) {
             handleGenerateRoster();
         }
