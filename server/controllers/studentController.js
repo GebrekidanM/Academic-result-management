@@ -254,6 +254,8 @@ exports.createStudent = async (req, res) => {
     }
 };
 
+// backend/controllers/studentController.js
+
 // @desc    Update a student's profile
 // @route   PUT /api/students/:id
 exports.updateStudent = async (req, res) => {
@@ -268,8 +270,32 @@ exports.updateStudent = async (req, res) => {
 
         const { fullName, ...otherData } = req.body;
         const updateData = { ...otherData };
+
         if (fullName) {
             updateData.fullName = capitalizeName(fullName);
+        }
+
+        // Process any newly uploaded documents and delete previous ones from Cloudinary [2]
+        const fileFields = ['transferLetter', 'certificate', 'birthCertificate', 'nationalId'];
+        
+        for (const field of fileFields) {
+            if (req.files && req.files[field]) {
+                const newFile = req.files[field][0];
+                
+                // 1. Delete old file from Cloudinary if it exists [2]
+                const oldPublicId = student[`${field}PublicId`];
+                if (oldPublicId) {
+                    try {
+                        await cloudinary.uploader.destroy(oldPublicId);
+                    } catch (destroyError) {
+                        console.error(`Failed to delete old ${field} from Cloudinary:`, destroyError);
+                    }
+                }
+
+                // 2. Set new file URL and Public ID
+                updateData[`${field}Url`] = newFile.path;
+                updateData[`${field}PublicId`] = newFile.filename;
+            }
         }
 
         const updatedStudent = await Student.findByIdAndUpdate(
@@ -281,6 +307,7 @@ exports.updateStudent = async (req, res) => {
         res.json({ success: true, data: updatedStudent });
 
     } catch (error) {
+        console.error("Error in updateStudent:", error);
         res.status(500).json({ message: 'Server Error', details: error.message });
     }
 };

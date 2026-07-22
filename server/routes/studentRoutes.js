@@ -28,7 +28,7 @@ router.post('/upload', protect, localUpload.single('studentsFile'), studentContr
 router.get('/', protect,studentController.getStudents);
 router.post('/', protect, studentRegistrationUpload, studentController.createStudent);
 router.get('/:id', protect, studentController.getStudentById);
-router.put('/:id', protect, studentController.updateStudent);
+router.put('/:id', protect,studentRegistrationUpload, studentController.updateStudent);
 router.delete('/:id', protect, studentController.deleteStudent);
 
 module.exports = router;

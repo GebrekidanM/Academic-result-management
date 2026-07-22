@@ -32,9 +32,9 @@ const createStudent = (studentData) => {
     return api.post(API_URL, studentData);
 };
 
-const updateStudent = (id, studentData) => {
-    return api.put(`${API_URL}/${id}`, studentData, {
-        headers: { 'Content-Type': 'application/json' }
+const updateStudent = (id, formDataPayload) => {
+    return api.put(`${API_URL}/${id}`, formDataPayload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
     });
 };
 
@@ -46,7 +46,7 @@ const uploadStudents = (file) => {
     const formData = new FormData();
     formData.append('studentsFile', file);
     formData.append('year', year);
-    
+
     return api.post(`${API_URL}/upload`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
