@@ -1,3 +1,4 @@
+// src/pages/StudentDetailPage.js
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -18,12 +19,14 @@ const StudentDetailPage = () => {
     const [reports, setReports] = useState([]);
     const [ranks, setRanks] = useState({ sem1: '-', sem2: '-', overall: '-' });
     
+    // NEW: Active Filter States
+    const [selectedYear, setSelectedYear] = useState(''); // Grouped Academic Year Filter
     const [activeSemester, setActiveSemester] = useState('First Semester');
     
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- 1. DATA FETCHING ---
+    // --- 1. INITIAL DATA FETCHING ---
     useEffect(() => {
         const fetchAllData = async () => {
             setLoading(true);
@@ -39,6 +42,9 @@ const StudentDetailPage = () => {
                 if (studentRes.status === 'fulfilled') {
                     studentData = studentRes.value.data.data;
                     setStudent(studentData);
+                    
+                    // ALIGNED: Initialize selected year with their current active year on load [1]
+                    setSelectedYear(studentData.year || '2019'); 
                 } else {
                     throw new Error(t('error_student_not_found') || "Student not found");
                 }
@@ -50,16 +56,6 @@ const StudentDetailPage = () => {
                     setReports(reportsRes.value.data.data);
                 } else {
                     setReports([]);
-                }
-
-                if (studentData) {
-                    const gradeLevel = studentData.gradeLevel;
-                    
-                    // ⚠️ ማስተካከያ፦ ግምቶችን በሙሉ በማጥፋት በቀጥታ የተማሪውን year ፊልድ መውሰድ [2]
-                    const academicYear = studentData.year || '2018';
-
-                    const rankResult = await rankService.getRankByStudent(id, gradeLevel, academicYear);
-                    setRanks(rankResult);
                 }
 
             } catch (err) {
@@ -74,18 +70,46 @@ const StudentDetailPage = () => {
         
     }, [id, t]);
 
-    // --- 2. STATS & PERMISSIONS LOGIC ---
+    // --- 2. DYNAMIC RANK FETCHING ---
+    // Fetches the student's rank whenever the selected academic year changes [1]
+    useEffect(() => {
+        const fetchRankForSelectedYear = async () => {
+            if (!student || !selectedYear) return;
+            try {
+                // Determine what grade level they were in during the selected year [1]
+                let gradeForYear = student.gradeLevel;
+                if (selectedYear !== student.year && Array.isArray(student.academicHistory)) {
+                    const historicalRecord = student.academicHistory.find(h => h.year === selectedYear);
+                    if (historicalRecord) {
+                        gradeForYear = historicalRecord.gradeAtThatTime;
+                    }
+                }
+
+                const rankResult = await rankService.getRankByStudent(id, gradeForYear, selectedYear);
+                setRanks(rankResult);
+            } catch (err) {
+                console.error("Error fetching rank:", err);
+                setRanks({ sem1: '-', sem2: '-', overall: '-' }); // Fallback on missing data
+            }
+        };
+        
+        fetchRankForSelectedYear();
+    }, [selectedYear, student, id]);
+
+    // --- 3. STATS & PERMISSIONS LOGIC ---
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'staff';
     const isHomeroomTeacher = currentUser?.role === 'teacher' && student && currentUser.homeroomGrade === student.gradeLevel;
     const canViewFullInsights = isAdmin || isHomeroomTeacher;
 
+    // ALIGNED: Filters grades by both selected Year and Semester [1]
     const semesterGrades = useMemo(() => {
-        return grades.filter(g => g.semester === activeSemester);
-    }, [grades, activeSemester]);
+        return grades.filter(g => g.academicYear === selectedYear && g.semester === activeSemester);
+    }, [grades, selectedYear, activeSemester]);
 
+    // ALIGNED: Filters behavioral reports by both selected Year and Semester [1]
     const semesterReports = useMemo(() => {
-        return reports.filter(r => r.semester === activeSemester);
-    }, [reports, activeSemester]);
+        return reports.filter(r => r.academicYear === selectedYear && r.semester === activeSemester);
+    }, [reports, selectedYear, activeSemester]);
 
     const displayRank = useMemo(() => {
         if (activeSemester === 'First Semester') return ranks.sem1;
@@ -224,7 +248,11 @@ const StudentDetailPage = () => {
                                     {t(student.status.toLowerCase()) || student.status}
                                 </span>
                             </h2>
-                            <p className="text-gray-500 mt-1 text-sm font-mono">{t('id_no')}: {student.studentId} | {t('academic_year')}: {student.year || '-'}</p>
+                            {/* ALIGNED: Displaying the active registration year and National ID [1] */}
+                            <p className="text-gray-500 mt-1 text-sm font-mono">
+                                {t('id_no')}: {student.studentId} | {t('academic_year')}: {student.year || '-'} 
+                                {student.nationalIdNumber && ` | ${t('national_id_number') || 'National ID'}: ${student.nationalIdNumber}`}
+                            </p>
                             
                             {/* የሴሚስተር ስም በአማካኝ እና በደረጃ ካርዶች ላይ ተጨምሯል */}
                             <div className="flex gap-4 mt-3">
@@ -274,28 +302,50 @@ const StudentDetailPage = () => {
                 </div>
             </div>
 
-            {/* የሴሚስተር ታብ መቀያየሪያ */}
-            <div className="flex gap-2 border-b pb-4 mb-4">
-                <button
-                    onClick={() => setActiveSemester('First Semester')}
-                    className={`px-4 py-2 rounded-md font-bold text-sm transition-all ${
-                        activeSemester === 'First Semester'
-                            ? 'bg-pink-600 text-white shadow'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                >
-                    🗓️ {t('sem_1')}
-                </button>
-                <button
-                    onClick={() => setActiveSemester('Second Semester')}
-                    className={`px-4 py-2 rounded-md font-bold text-sm transition-all ${
-                        activeSemester === 'Second Semester'
-                            ? 'bg-pink-600 text-white shadow'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                >
-                    🗓️ {t('sem_2')}
-                </button>
+            {/* Year & Semester Filter Navigation Panel */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 mb-4 gap-4 no-print">
+                {/* Year Dropdown Selector */}
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-500 uppercase">{t('academic_year') || 'Year'}:</span>
+                    <select
+                        value={selectedYear}
+                        onChange={e => setSelectedYear(e.target.value)}
+                        className="border border-gray-300 rounded-lg px-3 py-1.5 font-bold text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    >
+                        {student && [student.year, ...(student.academicHistory || []).map(h => h.year)]
+                            .filter(Boolean)
+                            .filter((value, index, self) => self.indexOf(value) === index) // De-duplicate values
+                            .sort((a, b) => b.localeCompare(a)) // Chronological descending order
+                            .map(yr => (
+                                <option key={yr} value={yr}>{yr} E.C.</option>
+                            ))
+                        }
+                    </select>
+                </div>
+
+                {/* Semester Selector Tabs */}
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setActiveSemester('First Semester')}
+                        className={`px-4 py-2 rounded-md font-bold text-sm transition-all ${
+                            activeSemester === 'First Semester'
+                                ? 'bg-pink-600 text-white shadow'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                        🗓️ {t('sem_1')}
+                    </button>
+                    <button
+                        onClick={() => setActiveSemester('Second Semester')}
+                        className={`px-4 py-2 rounded-md font-bold text-sm transition-all ${
+                            activeSemester === 'Second Semester'
+                                ? 'bg-pink-600 text-white shadow'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                        🗓️ {t('sem_2')}
+                    </button>
+                </div>
             </div>
 
             {/* 2A. Subject Teacher View */}
@@ -359,12 +409,12 @@ const StudentDetailPage = () => {
             )}
 
             {/* ⚠️ 3. አዲሱ የአባሪ ሰነዶች ክፍል (Scanned Attachments Section) */}
-            {canViewFullInsights && (student.transferLetterUrl || student.certificateUrl || student.nationalIdUrl) && (
+            {canViewFullInsights && (student.transferLetterUrl || student.certificateUrl || student.birthCertificateUrl || student.nationalIdUrl) && (
                 <div className={sectionWrapper}>
                     <h3 className={`${sectionTitle} mb-4 flex items-center gap-2`}>
                         📂 {t('student_attachments') || 'Scanned Attachments'}
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* መሸኛ ደብዳቤ (Transfer Letter) */}
                         {student.transferLetterUrl && (
                             <a 
@@ -373,7 +423,7 @@ const StudentDetailPage = () => {
                                 rel="noopener noreferrer" 
                                 className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:border-slate-300 transition-all font-bold text-sm text-slate-700"
                             >
-                                <span>📄 {t('transfer_letter') || 'Transfer Letter (መሸኛ)'}</span>
+                                <span>📄 {t('transfer_letter') || 'Transfer Letter'}</span>
                                 <span className="text-pink-600">View &rarr;</span>
                             </a>
                         )}
@@ -386,7 +436,20 @@ const StudentDetailPage = () => {
                                 rel="noopener noreferrer" 
                                 className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:border-slate-300 transition-all font-bold text-sm text-slate-700"
                             >
-                                <span>🎓 {t('prev_certificate') || 'Report Card (ሰርተፊኬት)'}</span>
+                                <span>🎓 {t('prev_certificate') || 'Report Card'}</span>
+                                <span className="text-pink-600">View &rarr;</span>
+                            </a>
+                        )}
+
+                        {/* ልደት ምስክር ወረቀት (Birth Certificate) */}
+                        {student.birthCertificateUrl && (
+                            <a 
+                                href={student.birthCertificateUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:border-slate-300 transition-all font-bold text-sm text-slate-700"
+                            >
+                                <span>👶 {t('birth_certificate') || 'Birth Certificate'}</span>
                                 <span className="text-pink-600">View &rarr;</span>
                             </a>
                         )}
@@ -399,7 +462,7 @@ const StudentDetailPage = () => {
                                 rel="noopener noreferrer" 
                                 className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:border-slate-300 transition-all font-bold text-sm text-slate-700"
                             >
-                                <span>🪪 {t('national_id') || 'National ID / Birth Cert.'}</span>
+                                <span>🪪 {t('national_id') || 'National ID'}</span>
                                 <span className="text-pink-600">View &rarr;</span>
                             </a>
                         )}
@@ -447,7 +510,6 @@ const StudentDetailPage = () => {
                     {canViewFullInsights && <Link to={`/reports/add/${student._id}`} className={`${buttonBase} bg-blue-500 hover:bg-blue-600 text-white`}>{t('add_new_report')}</Link>}
                 </div>
                 
-                {/* ⚠️ 4. የባህሪ ሪፖርቶች በ Memoized semesterReports ተተክተው በሴሚስተር እንዲለዩ ተደርጓል [2] */}
                 {semesterReports && semesterReports.length ? (
                     <div className="space-y-4">
                         {semesterReports.map(report => (
