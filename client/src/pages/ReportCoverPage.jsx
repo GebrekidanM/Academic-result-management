@@ -1,10 +1,26 @@
+// src/pages/ReportCoverPage.js
 import React from 'react';
+
+// Programmatic Ethiopian Calendar (E.C.) year calculator [2.1.8]
+const getEthiopianYear = (gregorianDate = new Date()) => {
+    const year = gregorianDate.getFullYear();
+    const month = gregorianDate.getMonth(); // 0-indexed (8 is September)
+    const day = gregorianDate.getDate();
+
+    let ethiopianYear = year - 8;
+    if (month > 8 || (month === 8 && day >= 11)) {
+        ethiopianYear = year - 7;
+    }
+    return ethiopianYear;
+};
 
 const ReportCoverPage = ({ studentInfo, schoolInfo ,getReportTitle}) => {
     const studentName = studentInfo?.fullName || "Student Name";
     const studentId = studentInfo?.studentId || "ID-001";
     const grade = studentInfo?.classId || "Grade --";
-    const year = studentInfo?.academicYear || new Date().getFullYear();
+    
+    // ALIGNED: Fallback evaluates to the current Ethiopian year (e.g. 2018) instead of the Gregorian year [2.1.8]
+    const year = studentInfo?.academicYear || getEthiopianYear().toString();
 
     return (
         <div className="w-[297mm] h-[210mm] bg-white relative flex overflow-hidden text-slate-800 font-sans print-break">

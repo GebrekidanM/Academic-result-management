@@ -1,45 +1,107 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/ClassReportGenerator.js
+import React, { useState, useEffect, useMemo } from 'react';
 import studentService from '@shared/services/studentService';
 import reportCardService from '@shared/services/reportCardService';
 import ReportCardDocument from '../components/ReportCardDocument';
 import rankService from '@shared/services/rankService';
 import { schoolInfoData } from '@shared/utils/schoolInfoData';
 
+// Programmatic Ethiopian Calendar (E.C.) year calculator
+const getEthiopianYear = (gregorianDate = new Date()) => {
+    const year = gregorianDate.getFullYear();
+    const month = gregorianDate.getMonth(); // 0-indexed (8 is September)
+    const day = gregorianDate.getDate();
+
+    let ethiopianYear = year - 8;
+    if (month > 8 || (month === 8 && day >= 11)) {
+        ethiopianYear = year - 7;
+    }
+    return ethiopianYear;
+};
+
 const ClassReportGenerator = () => {
     const [reportType, setReportType] = useState('year');
-    const [availableGrades, setAvailableGrades] = useState([]);
     const [selectedGrade, setSelectedGrade] = useState('');
+    
+    // Active Academic Year State (defaults to current calculated EC year)
+    const [selectedYear, setSelectedYear] = useState(getEthiopianYear().toString());
+    
+    const [allStudents, setAllStudents] = useState([]); // Master enrollment timeline list
     const [classReportData, setClassReportData] = useState([]); 
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
 
-    useEffect(() => {
-        const loadGrades = async () => {
-            try {
-                const res = await studentService.getAllStudents();
-                const students = res.data?.data || [];
-                const uniqueGrades = [...new Set(students.map(s => s.gradeLevel))].sort();
-                setAvailableGrades(uniqueGrades);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        loadGrades();
+    // Generate unique years for dropdown selection (e.g., last 3 years to next year)
+    const availableYears = useMemo(() => {
+        const currentEC = getEthiopianYear();
+        return Array.from({ length: 5 }, (_, i) => (currentEC - 3 + i).toString()).sort((a, b) => b.localeCompare(a));
     }, []);
 
+    // Load master list of all students including academicHistory on page load
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                // Calls GET /api/students/getallstudents
+                const res = await studentService.getAllStudentsForRe();
+                setAllStudents(res.data?.data || res.data || []);
+            } catch (err) {
+                console.error("Failed to load students:", err);
+            }
+        };
+        loadInitialData();
+    }, []);
+
+    // --- NEW: DYNAMIC GRADE LEVEL EXTRACTOR ---
+    // Scans all students and extracts grade levels that existed in the selectedYear [1]
+    const availableGrades = useMemo(() => {
+        if (!selectedYear || allStudents.length === 0) return [];
+        
+        const gradeSet = new Set();
+        
+        allStudents.forEach(student => {
+            // 1. If the student's active year matches, add their active grade Level [1]
+            if (String(student.year) === String(selectedYear)) {
+                if (student.gradeLevel) gradeSet.add(student.gradeLevel);
+            }
+            
+            // 2. If the student has historical records matching the year, add that grade Level [1]
+            if (Array.isArray(student.academicHistory)) {
+                student.academicHistory.forEach(history => {
+                    if (String(history.year) === String(selectedYear)) {
+                        if (history.gradeAtThatTime) gradeSet.add(history.gradeAtThatTime);
+                    }
+                });
+            }
+        });
+
+        // Convert the set to an alphabetically sorted array
+        return Array.from(gradeSet).sort((a, b) => 
+            a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+        );
+    }, [allStudents, selectedYear]);
+
+    // SAFE-GUARD: Reset the selected grade if it does not exist in the newly selected year's directory [1]
+    useEffect(() => {
+        if (selectedGrade && !availableGrades.includes(selectedGrade)) {
+            setSelectedGrade('');
+            setClassReportData([]);
+        }
+    }, [selectedYear, availableGrades, selectedGrade]);
+
     const handleGenerate = async () => {
-        if (!selectedGrade) return;
+        if (!selectedGrade || !selectedYear) return;
         
         setLoading(true);
         setClassReportData([]);
-        setProgress(10); // የሂደት አሞሌ ማስጀመሪያ
+        setProgress(10); 
 
         try {
-            const res = await reportCardService.getClassReports(selectedGrade);
+            // Passes both Grade Level and Selected Year to the backend
+            const res = await reportCardService.getClassReports(selectedGrade, selectedYear);
             let reports = res.data.data;
 
             if (!reports || reports.length === 0) {
-                alert("No reports found for this class.");
+                alert(`No reports found for ${selectedGrade} in the year ${selectedYear} E.C.`);
                 setLoading(false);
                 setProgress(0);
                 return;
@@ -47,8 +109,8 @@ const ClassReportGenerator = () => {
 
             setProgress(40);
 
-            const academicYear = reports[0]?.studentInfo?.academicYear || '2018';
-            const batchRanks = await rankService.getClassRanksBatch(selectedGrade, academicYear);
+            // Fetches batch ranks using the explicitly selected academic year
+            const batchRanks = await rankService.getClassRanksBatch(selectedGrade, selectedYear);
 
             setProgress(70);
 
@@ -67,7 +129,7 @@ const ClassReportGenerator = () => {
 
         } catch (err) {
             console.error("Error generating reports:", err);
-            alert("Error generating reports");
+            alert("Error generating reports. Make sure student grades and ranks are recorded.");
             setProgress(0);
         } finally {
             setTimeout(() => {
@@ -97,16 +159,37 @@ const ClassReportGenerator = () => {
                     <h1 className="text-xl font-bold text-slate-800">🖨️ Batch Report Generator</h1>
                     
                     <div className="flex flex-col md:flex-row gap-4 items-center w-full md:w-auto">
-                        <select 
-                            className="border p-2 rounded w-full md:w-48 bg-white font-semibold text-slate-700" 
-                            value={selectedGrade} 
-                            onChange={(e) => setSelectedGrade(e.target.value)}
-                            disabled={loading}
-                        >
-                            <option value="">-- Select Grade --</option>
-                            {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
-                        </select>
+                        
+                        {/* Year Selector Dropdown (Must be selected first) */}
+                        <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-1">Year:</span>
+                            <select 
+                                className="border p-2 rounded w-full md:w-36 bg-white font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500" 
+                                value={selectedYear} 
+                                onChange={(e) => setSelectedYear(e.target.value)}
+                                disabled={loading}
+                            >
+                                {availableYears.map(yr => (
+                                    <option key={yr} value={yr}>{yr} E.C.</option>
+                                ))}
+                            </select>
+                        </div>
 
+                        {/* Grade Level Selector (Dynamically filtered by selectedYear) [1] */}
+                        <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-1">Class:</span>
+                            <select 
+                                className="border p-2 rounded w-full md:w-48 bg-white font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500" 
+                                value={selectedGrade} 
+                                onChange={(e) => setSelectedGrade(e.target.value)}
+                                disabled={loading || availableGrades.length === 0}
+                            >
+                                <option value="">-- Select Grade --</option>
+                                {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Semester Option Buttons */}
                         <div className="bg-gray-100 p-1 rounded-lg flex border">
                             {['sem1', 'sem2', 'year'].map(type => (
                                 <button 
@@ -121,7 +204,7 @@ const ClassReportGenerator = () => {
 
                         <button 
                             onClick={handleGenerate} 
-                            disabled={loading || !selectedGrade}
+                            disabled={loading || !selectedGrade || !selectedYear}
                             className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2 rounded font-bold disabled:opacity-50 transition-colors"
                         >
                             {loading ? `Generating... ${progress}%` : "Generate All"}
@@ -159,7 +242,7 @@ const ClassReportGenerator = () => {
                 </div>
             ) : (
                 <div className="flex h-64 items-center justify-center text-gray-400 no-print font-medium">
-                    {loading ? "Generating Reports..." : "Select a grade and click Generate to see reports."}
+                    {loading ? "Generating Reports..." : "Select academic year and grade level, then click Generate."}
                 </div>
             )}
         </div>

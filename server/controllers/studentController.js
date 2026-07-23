@@ -127,17 +127,21 @@ exports.getStudents = async (req, res) => {
     }
 };
 
-exports.getAllStudents = async (req,res)=>{
-    try{
-        const students = await Student.find({}).select('studentId fullName gender gradeLevel status year');
-        if(!students){
-            return res.json({message:"no student"})
+// @desc    Get all students with minimum fields for re-registration / analytics
+// @route   GET /api/students/getallstudents
+exports.getAllStudents = async (req, res) => {
+    try {
+        // ALIGNED: Added 'academicHistory' to the selected fields
+        const students = await Student.find({}).select('studentId fullName gender gradeLevel status year academicHistory');
+        
+        if (!students) {
+            return res.json({ message: "no student" });
         }
         res.status(200).json({ success: true, count: students.length, data: students });
-    }catch(error){
-        res.status(500).json({ message: 'Server Error' })
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
     }
-}
+};
 
 // @desc    Get single student by ID
 // @route   GET /api/students/:id

@@ -1,9 +1,24 @@
+// server/controllers/reportCardController.js
 const Grade = require('../models/Grade');
 const Student = require('../models/Student');
 const BehavioralReport = require('../models/BehavioralReport');
 const SupportiveGrade = require('../models/SupportiveGrade');
-const calculateAge = require("../utils/calculateAge")
-const Subject = require("../models/Subject")
+const calculateAge = require("../utils/calculateAge");
+const Subject = require("../models/Subject");
+const mongoose = require('mongoose');
+
+// Dynamically calculate current Ethiopian Calendar (EC) Year
+const getEthiopianYear = (gregorianDate = new Date()) => {
+    const year = gregorianDate.getFullYear();
+    const month = gregorianDate.getMonth(); // 0-indexed (8 is September)
+    const day = gregorianDate.getDate();
+
+    let ethiopianYear = year - 8;
+    if (month > 8 || (month === 8 && day >= 11)) {
+        ethiopianYear = year - 7;
+    }
+    return ethiopianYear;
+};
 
 /**
  * HELPER 1: CLEAN & MERGE ACADEMIC GRADES (Numeric)
@@ -11,30 +26,25 @@ const Subject = require("../models/Subject")
  * - Merges duplicate subjects.
  * - Deduplicates assessments.
  */
-const mergeDuplicateGrades = (rawGrades, currentGradeLevel) => {
-    // 1. Strict Filter: Only keep subjects for the current Grade Level
+const mergeDuplicateGrades = (rawGrades, targetGradeLevel) => {
+    // 1. Strict Filter: Only keep subjects for the active or historical Grade Level [1]
     const filteredGrades = rawGrades.filter(g => 
-        g.subject && g.subject.gradeLevel === currentGradeLevel
+        g.subject && g.subject.gradeLevel === targetGradeLevel
     );
 
     const gradeMap = new Map();
 
     filteredGrades.forEach(grade => {
-        // Clean assessments (remove nulls)
         const cleanAssessments = (grade.assessments || []).filter(a => a.assessmentType != null);
-        
-        // Key: "First Semester-Mathematics"
         const key = `${grade.semester}-${grade.subject.name.trim().toLowerCase()}`;
 
         if (gradeMap.has(key)) {
             const existing = gradeMap.get(key);
             
-            // Prefer entry with valid Academic Year
             if (!existing.academicYear && grade.academicYear) {
                 existing.academicYear = grade.academicYear;
             }
 
-            // Deduplicate Assessments by ID
             const assessmentMap = new Map();
             existing.assessments.forEach(a => assessmentMap.set(a.assessmentType._id.toString(), a));
             
@@ -44,8 +54,6 @@ const mergeDuplicateGrades = (rawGrades, currentGradeLevel) => {
             });
 
             existing.assessments = Array.from(assessmentMap.values());
-            
-            // Recalculate Final Score
             existing.finalScore = existing.assessments.reduce((sum, a) => sum + (a.score || 0), 0);
 
         } else {
@@ -60,7 +68,6 @@ const mergeDuplicateGrades = (rawGrades, currentGradeLevel) => {
 
 /**
  * HELPER 2: PROCESS SUPPORTIVE GRADES (Letters: A, B, C)
- * Groups data by Subject Name so Sem 1 and Sem 2 appear in one row.
  */
 const processSupportiveGrades = (supportiveDocs) => {
     const map = new Map();
@@ -81,11 +88,10 @@ const processSupportiveGrades = (supportiveDocs) => {
 };
 
 /**
- * HELPER 3: CALCULATE STATS (Sum & Average for Academic Only)
+ * HELPER 3: CALCULATE STATS
  */
 const calculateStats = (cleanedGrades, semesterName) => {
     const semesterGrades = cleanedGrades.filter(g => g.semester === semesterName);
-    
     if (semesterGrades.length === 0) return { sum: 0, avg: 0 };
 
     const totalScore = semesterGrades.reduce((acc, curr) => acc + (curr.finalScore || 0), 0);
@@ -148,26 +154,41 @@ const processAttendanceAndConduct = (behaviorDocs) => {
 
 /**
  * MAIN CONTROLLER
- * @route GET /api/reports/student/:studentId
+ * @route GET /api/reports/student/:studentId?academicYear=2018
  */
 exports.generateStudentReport = async (req, res) => {
   try {
     const targetStudentId = req.params.studentId || req.params.id;
 
+    if (!mongoose.Types.ObjectId.isValid(targetStudentId)) {
+        return res.status(400).json({ message: 'Invalid Student ID format.' });
+    }
+
     // 1. Find Student
     const student = await Student.findById(targetStudentId);
     if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-    // 2. Fetch All Raw Data Parallelly
+    // Determine target year (Defaults to student's current active year) [1]
+    const targetYear = req.query.academicYear || student.year || getEthiopianYear().toString();
+
+    // Determine what grade level they were in during that target year [1]
+    let targetGradeLevel = student.gradeLevel;
+    if (targetYear !== student.year && Array.isArray(student.academicHistory)) {
+        const historicalRecord = student.academicHistory.find(h => h.year === targetYear);
+        if (historicalRecord) {
+            targetGradeLevel = historicalRecord.gradeAtThatTime;
+        }
+    }
+
+    // 2. Fetch Raw Data Filtered by Student & Year in Parallel
     const [rawGrades, behaviorDocs, rawSupportive] = await Promise.all([
-        Grade.find({ student: student._id }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
-        BehavioralReport.find({ student: student._id }),
-        SupportiveGrade.find({ student: student._id }).populate('subject', 'name').lean()
+        Grade.find({ student: student._id, academicYear: targetYear }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
+        BehavioralReport.find({ student: student._id, academicYear: targetYear }),
+        SupportiveGrade.find({ student: student._id, academicYear: targetYear }).populate('subject', 'name').lean()
     ]);
 
-    // 3. Process Academic Grades (Numeric)
-    const currentGradeLevel = student.gradeLevel.trim();
-    const cleanedGrades = mergeDuplicateGrades(rawGrades, currentGradeLevel);
+    // 3. Process Academic Grades (using correct active/historical grade level) [1]
+    const cleanedGrades = mergeDuplicateGrades(rawGrades, targetGradeLevel);
 
     // 4. Calculate Stats (Academic Only)
     const statsSem1 = calculateStats(cleanedGrades, 'First Semester');
@@ -180,8 +201,8 @@ exports.generateStudentReport = async (req, res) => {
     // 5. Process Supportive Grades (Letters)
     const supportiveData = processSupportiveGrades(rawSupportive);
 
-    // 6. Promotion Logic
-    const gradeNumMatch = student.gradeLevel.match(/\d+/);
+    // 6. Promotion Logic (using correct class level for that year) [1]
+    const gradeNumMatch = targetGradeLevel.match(/\d+/);
     const nextGrade = gradeNumMatch ? parseInt(gradeNumMatch[0]) + 1 : null;
     const promotedStr = nextGrade ? `Grade ${nextGrade}` : 'Next Level';
 
@@ -192,26 +213,19 @@ exports.generateStudentReport = async (req, res) => {
         studentId: student.studentId,
         sex: student.gender,
         age: calculateAge(student.dateOfBirth),
-        classId: student.gradeLevel,
-        academicYear: rawGrades[0]?.academicYear || '2018',
+        classId: targetGradeLevel, // Standardized to show class they took *that* year
+        academicYear: targetYear,
         photoUrl: student.imageUrl,
         promotedTo: studentFinalAvg >= 50 ? promotedStr : 'Retained',
       },
       semester1: statsSem1,
       semester2: statsSem2,
       finalAverage: parseFloat(studentFinalAvg.toFixed(2)),
-      
-      // Academic Data
       grades: cleanedGrades, 
-      
-      // Non-Academic Data (New Field)
       supportiveGrades: supportiveData, 
-      
-      // Behavior & Footer
       behavior: processBehaviorData(behaviorDocs),
       footerData: processAttendanceAndConduct(behaviorDocs),
-      
-      rank: null // Rank is fetched by frontend service
+      rank: null 
     };
 
     res.status(200).json(finalReport);
@@ -224,26 +238,40 @@ exports.generateStudentReport = async (req, res) => {
 
 
 // @desc    Generate class reports in batch
-// @route   GET /api/reports/class/:gradeLevel
+// @route   GET /api/reports/class/:gradeLevel?academicYear=2018
 exports.generateClassReports = async (req, res) => {
     try {
         const { gradeLevel } = req.params;
-        const { academicYear } = req.query; 
+        const academicYear = req.query.academicYear || getEthiopianYear().toString(); 
 
-        // 1. Find all Active Students in this Grade
-        const students = await Student.find({ gradeLevel, status: 'Active' }).sort({ fullName: 1 });
+        // 1. ALIGNED: Find all students who took this gradeLevel during the targeted year [1]
+        const studentQuery = {
+            $or: [
+                { year: academicYear, gradeLevel: gradeLevel },
+                {
+                    academicHistory: {
+                        $elemMatch: {
+                            year: academicYear,
+                            gradeAtThatTime: gradeLevel
+                        }
+                    }
+                }
+            ]
+        };
+
+        const students = await Student.find(studentQuery).sort({ fullName: 1 });
 
         if (!students.length) {
-            return res.status(404).json({ message: 'No students found in this grade.' });
+            return res.status(404).json({ message: `No students found for class ${gradeLevel} in academic year ${academicYear}.` });
         }
 
         const studentIds = students.map(s => s._id);
 
-        // 2. BULK FETCH
+        // 2. BULK FETCH Filtered by Year
         const [allGrades, allBehaviors, allSupportive] = await Promise.all([
-            Grade.find({ student: { $in: studentIds } }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
-            BehavioralReport.find({ student: { $in: studentIds } }),
-            SupportiveGrade.find({ student: { $in: studentIds } }).populate('subject', 'name').lean()
+            Grade.find({ student: { $in: studentIds }, academicYear }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
+            BehavioralReport.find({ student: { $in: studentIds }, academicYear }),
+            SupportiveGrade.find({ student: { $in: studentIds }, academicYear }).populate('subject', 'name').lean()
         ]);
 
         // 3. Process in Memory
@@ -253,7 +281,14 @@ exports.generateClassReports = async (req, res) => {
                 const behaviorDocs = allBehaviors.filter(b => b.student.toString() === student._id.toString());
                 const rawSupportive = allSupportive.filter(s => s.student.toString() === student._id.toString());
 
-                const cleanedGrades = mergeDuplicateGrades(rawGrades, student.gradeLevel);
+                // Find class placement for this year
+                let targetGrade = student.gradeLevel;
+                if (academicYear !== student.year && Array.isArray(student.academicHistory)) {
+                    const historicalRecord = student.academicHistory.find(h => h.year === academicYear);
+                    if (historicalRecord) targetGrade = historicalRecord.gradeAtThatTime;
+                }
+
+                const cleanedGrades = mergeDuplicateGrades(rawGrades, targetGrade);
                 const statsSem1 = calculateStats(cleanedGrades, 'First Semester');
                 const statsSem2 = calculateStats(cleanedGrades, 'Second Semester');
 
@@ -263,18 +298,22 @@ exports.generateClassReports = async (req, res) => {
                 if (statsSem1.avg > 0 && statsSem2.avg > 0) finalAverage = (statsSem1.avg + statsSem2.avg) / 2;
                 else finalAverage = statsSem1.avg + statsSem2.avg;
 
+                const gradeNumMatch = targetGrade.match(/\d+/);
+                const nextGrade = gradeNumMatch ? parseInt(gradeNumMatch[0]) + 1 : null;
+                const promotedStr = nextGrade ? `Grade ${nextGrade}` : 'Next Level';
+
                 return {
                     studentInfo: {
                         _id: student._id,
                         fullName: student.fullName,
                         studentId: student.studentId,
-                        gradeLevel: student.gradeLevel,
-                        classId: student.gradeLevel,
-                        academicYear: cleanedGrades[0]?.academicYear || academicYear || '2018',
+                        gradeLevel: targetGrade,
+                        classId: targetGrade,
+                        academicYear: academicYear,
                         photoUrl: student.imageUrl,
                         sex: student.gender,
                         age: calculateAge(student.dateOfBirth),
-                        promotedTo: finalAverage >= 50 ? 'Promoted' : 'Retained',
+                        promotedTo: finalAverage >= 50 ? promotedStr : 'Retained',
                     },
                     grades: cleanedGrades,
                     supportiveGrades: supportiveData,
@@ -300,10 +339,9 @@ exports.generateClassReports = async (req, res) => {
     }
 };
 
-/**
- * @desc    Get Lightweight Data for Certificates (Rank, Total, Avg only)
- * @route   GET /api/reports/certificate-data
- */
+
+// @desc    Get Lightweight Data for Certificates (Rank, Total, Avg only)
+// @route   GET /api/reports/certificate-data
 exports.getCertificateData = async (req, res) => {
     const { gradeLevel, academicYear } = req.query;
 
@@ -312,20 +350,34 @@ exports.getCertificateData = async (req, res) => {
     }
 
     try {
-        // 1. Fetch Students
-        const students = await Student.find({ gradeLevel, status: 'Active' })
-            .select('studentId fullName gender dateOfBirth photoUrl')
+        // 1. ALIGNED: Find all students who took this gradeLevel during the targeted year [1]
+        const studentQuery = {
+            $or: [
+                { year: academicYear, gradeLevel: gradeLevel },
+                {
+                    academicHistory: {
+                        $elemMatch: {
+                            year: academicYear,
+                            gradeAtThatTime: gradeLevel
+                        }
+                    }
+                }
+            ]
+        };
+
+        const students = await Student.find(studentQuery)
+            .select('studentId fullName gender dateOfBirth photoUrl academicHistory year')
             .sort({ fullName: 1 });
 
         if (students.length === 0) return res.status(404).json({ message: 'No students found.' });
 
-        // 2. Fetch Only ACADEMIC Subjects (Supportive subjects don't count for Rank)
+        // 2. Fetch Only ACADEMIC Subjects
         const academicSubjects = await Subject.find({ gradeLevel }).sort({ name: 1 }).lean();
         
         // 3. Fetch Grades
         const studentIds = students.map(s => s._id);
         const grades = await Grade.find({ student: { $in: studentIds }, academicYear })
-            .select('student subject semester finalScore'); // We only need these fields
+            .select('student subject semester finalScore'); 
 
         // --- CALCULATE TOTALS & AVERAGES ---
         let certificateList = students.map(student => {
@@ -334,21 +386,17 @@ exports.getCertificateData = async (req, res) => {
 
             // Iterate through Academic Subjects only
             academicSubjects.forEach(sub => {
-                // Find marks for this subject
                 const g1 = grades.find(g => g.student.equals(student._id) && g.subject.equals(sub._id) && g.semester === 'First Semester');
                 const g2 = grades.find(g => g.student.equals(student._id) && g.subject.equals(sub._id) && g.semester === 'Second Semester');
 
-                // Parse Scores
                 const score1 = g1 && g1.finalScore !== null ? parseFloat(g1.finalScore) : null;
                 const score2 = g2 && g2.finalScore !== null ? parseFloat(g2.finalScore) : null;
 
-                // Accumulate S1
                 if (score1 !== null && !isNaN(score1)) {
                     s1Total += score1;
                     s1Count++;
                 }
 
-                // Accumulate S2
                 if (score2 !== null && !isNaN(score2)) {
                     s2Total += score2;
                     s2Count++;
@@ -359,7 +407,6 @@ exports.getCertificateData = async (req, res) => {
             const s1Avg = s1Count > 0 ? s1Total / s1Count : 0;
             const s2Avg = s2Count > 0 ? s2Total / s2Count : 0;
 
-            // Overall (Average of averages logic)
             let overallAvgCalc = 0;
             let divisor = 0;
             if (s1Count > 0) { overallAvgCalc += s1Avg; divisor++; }
@@ -375,30 +422,27 @@ exports.getCertificateData = async (req, res) => {
                 gender: student.gender,
                 photoUrl: student.photoUrl,
                 
-                // Semester 1 Stats
                 sem1: {
                     total: parseFloat(s1Total.toFixed(2)),
                     avg: parseFloat(s1Avg.toFixed(2)),
-                    rank: 0 // Placeholder
+                    rank: 0 
                 },
 
-                // Semester 2 Stats
                 sem2: {
                     total: parseFloat(s2Total.toFixed(2)),
                     avg: parseFloat(s2Avg.toFixed(2)),
                     rank: 0 
                 },
 
-                // Overall Stats
                 overall: {
                     total: parseFloat(finalOverallTotal.toFixed(2)),
                     avg: parseFloat(finalOverallAvg.toFixed(2)),
-                    rank: 0 // Placeholder
+                    rank: 0 
                 }
             };
         });
 
-        // --- RANKING LOGIC (Sort & Assign) ---
+        // --- RANKING LOGIC ---
 
         // 1. Rank Semester 1
         certificateList.sort((a, b) => b.sem1.avg - a.sem1.avg);
@@ -421,7 +465,6 @@ exports.getCertificateData = async (req, res) => {
         currentRank = 1;
         for (let i = 0; i < certificateList.length; i++) {
             if (i > 0 && certificateList[i].overall.avg < certificateList[i - 1].overall.avg) { currentRank = i + 1; }
-            // Only rank if they have at least some data
             const hasData = certificateList[i].sem1.total > 0 || certificateList[i].sem2.total > 0;
             certificateList[i].overall.rank = hasData ? currentRank : '-';
         }
@@ -454,8 +497,38 @@ exports.getHighScorers = async (req, res) => {
             { $match: { 'studentInfo.status': 'Active' } },
             { $lookup: { from: 'subjects', localField: 'subject', foreignField: '_id', as: 'subjectInfo' } },
             { $unwind: '$subjectInfo' },
-            // Strict Grade Level Filter
-            { $match: { $expr: { $eq: ["$studentInfo.gradeLevel", "$subjectInfo.gradeLevel"] } } },
+            
+            // ALIGNED: Allows matching gradeLevel using either active year OR historical academicHistory
+            { 
+                $match: { 
+                    $expr: { 
+                        $or: [
+                            // Current Active Year matches
+                            {
+                                $and: [
+                                    { $eq: ["$studentInfo.year", academicYear] },
+                                    { $eq: ["$studentInfo.gradeLevel", "$subjectInfo.gradeLevel"] }
+                                ]
+                            },
+                            // Historical Year matches in academicHistory array [1]
+                            {
+                                $anyElementTrue: {
+                                    $map: {
+                                        input: "$studentInfo.academicHistory",
+                                        as: "hist",
+                                        in: {
+                                            $and: [
+                                                { $eq: ["$$hist.year", academicYear] },
+                                                { $eq: ["$$hist.gradeAtThatTime", "$subjectInfo.gradeLevel"] }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                } 
+            },
             
             // GROUPING: Calculate SUMS only
             {
@@ -463,18 +536,14 @@ exports.getHighScorers = async (req, res) => {
                     _id: "$student",
                     fullName: { $first: "$studentInfo.fullName" },
                     studentId: { $first: "$studentInfo.studentId" },
-                    gradeLevel: { $first: "$studentInfo.gradeLevel" },
+                    gradeLevel: { $first: "$subjectInfo.gradeLevel" }, // Keep target grade Level
                     photoUrl: { $first: "$studentInfo.imageUrl" },
                     gender: { $first: "$studentInfo.gender" },
                     
-                    // Semester 1 Total
                     s1Sum: { $sum: { $cond: [{ $eq: ["$semester", "First Semester"] }, "$finalScore", 0] } },
-                    
-                    // Semester 2 Total
                     s2Sum: { $sum: { $cond: [{ $eq: ["$semester", "Second Semester"] }, "$finalScore", 0] } }
                 }
             },
-            // CALCULATE OVERALL TOTAL (S1 + S2)
             {
                 $addFields: {
                     overallTotal: { $add: ["$s1Sum", "$s2Sum"] }
@@ -482,8 +551,7 @@ exports.getHighScorers = async (req, res) => {
             }
         ]);
 
-        // --- STEP 2: RANKING LOGIC (Based on Total) ---
-        
+        // --- STEP 2: RANKING LOGIC ---
         const groupedByGrade = {};
 
         studentTotals.forEach(student => {
@@ -498,16 +566,12 @@ exports.getHighScorers = async (req, res) => {
         Object.keys(groupedByGrade).forEach(grade => {
             const classList = groupedByGrade[grade];
 
-            // Helper to Rank based on a specific Key (s1Sum, s2Sum, or overallTotal)
             const getTop3 = (key) => {
-                // 1. Map to rounded values to fix floating point tie issues
-                // Example: 980.5000001 becomes 980.50
                 const processedList = classList.map(s => ({
                     ...s,
                     compareVal: parseFloat(s[key].toFixed(2)) 
                 }));
 
-                // 2. Sort Descending by TOTAL
                 const sorted = processedList
                     .filter(s => s.compareVal > 0) 
                     .sort((a, b) => b.compareVal - a.compareVal);
@@ -515,9 +579,7 @@ exports.getHighScorers = async (req, res) => {
                 const results = [];
                 let currentRank = 1;
 
-                // 3. Assign Ranks
                 for (let i = 0; i < sorted.length; i++) {
-                    // Tie-breaking logic
                     if (i > 0 && sorted[i].compareVal < sorted[i - 1].compareVal) {
                         currentRank = i + 1;
                     }
@@ -530,11 +592,7 @@ exports.getHighScorers = async (req, res) => {
                         studentId: sorted[i].studentId,
                         photoUrl: sorted[i].photoUrl,
                         gender: sorted[i].gender,
-                        
-                        // We send the Total Score as 'average' so your frontend doesn't break, 
-                        // OR you can rename this to 'totalScore' if you update the frontend.
                         average: sorted[i].compareVal, 
-                        
                         rank: currentRank
                     });
                 }
@@ -542,9 +600,9 @@ exports.getHighScorers = async (req, res) => {
             };
 
             finalResult[grade] = {
-                sem1: getTop3('s1Sum'),       // Rank by Sem 1 Total
-                sem2: getTop3('s2Sum'),       // Rank by Sem 2 Total
-                overall: getTop3('overallTotal') // Rank by Annual Total
+                sem1: getTop3('s1Sum'),       
+                sem2: getTop3('s2Sum'),       
+                overall: getTop3('overallTotal') 
             };
         });
 
