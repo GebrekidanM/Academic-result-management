@@ -22,12 +22,8 @@ const getEthiopianYear = (gregorianDate = new Date()) => {
 
 /**
  * HELPER 1: CLEAN & MERGE ACADEMIC GRADES (Numeric)
- * - Filters by current grade level.
- * - Merges duplicate subjects.
- * - Deduplicates assessments.
  */
 const mergeDuplicateGrades = (rawGrades, targetGradeLevel) => {
-    // 1. Strict Filter: Only keep subjects for the active or historical Grade Level [1]
     const filteredGrades = rawGrades.filter(g => 
         g.subject && g.subject.gradeLevel === targetGradeLevel
     );
@@ -180,7 +176,7 @@ exports.generateStudentReport = async (req, res) => {
         }
     }
 
-    // 2. Fetch Raw Data Filtered by Student & Year in Parallel
+    // 2. Fetch Raw Data Filtered by Student & Year in Parallel [1]
     const [rawGrades, behaviorDocs, rawSupportive] = await Promise.all([
         Grade.find({ student: student._id, academicYear: targetYear }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
         BehavioralReport.find({ student: student._id, academicYear: targetYear }),
@@ -244,7 +240,8 @@ exports.generateClassReports = async (req, res) => {
         const { gradeLevel } = req.params;
         const academicYear = req.query.academicYear || getEthiopianYear().toString(); 
 
-        // 1. ALIGNED: Find all students who took this gradeLevel during the targeted year [1]
+        // 1. FIXED: Find only students who took this gradeLevel during the targeted year [1]
+        // Matches either their current active year/class, or their historical academicHistory [1]
         const studentQuery = {
             $or: [
                 { year: academicYear, gradeLevel: gradeLevel },
@@ -267,7 +264,7 @@ exports.generateClassReports = async (req, res) => {
 
         const studentIds = students.map(s => s._id);
 
-        // 2. BULK FETCH Filtered by Year
+        // 2. BULK FETCH Filtered by Year [1]
         const [allGrades, allBehaviors, allSupportive] = await Promise.all([
             Grade.find({ student: { $in: studentIds }, academicYear }).populate('subject', 'name gradeLevel').populate('assessments.assessmentType', 'name totalMarks month').lean(),
             BehavioralReport.find({ student: { $in: studentIds }, academicYear }),
@@ -281,7 +278,7 @@ exports.generateClassReports = async (req, res) => {
                 const behaviorDocs = allBehaviors.filter(b => b.student.toString() === student._id.toString());
                 const rawSupportive = allSupportive.filter(s => s.student.toString() === student._id.toString());
 
-                // Find class placement for this year
+                // Find class placement for this year [1]
                 let targetGrade = student.gradeLevel;
                 if (academicYear !== student.year && Array.isArray(student.academicHistory)) {
                     const historicalRecord = student.academicHistory.find(h => h.year === academicYear);
@@ -350,7 +347,7 @@ exports.getCertificateData = async (req, res) => {
     }
 
     try {
-        // 1. ALIGNED: Find all students who took this gradeLevel during the targeted year [1]
+        // 1. FIXED: Find only students who took this gradeLevel during the targeted year [1]
         const studentQuery = {
             $or: [
                 { year: academicYear, gradeLevel: gradeLevel },
@@ -374,7 +371,7 @@ exports.getCertificateData = async (req, res) => {
         // 2. Fetch Only ACADEMIC Subjects
         const academicSubjects = await Subject.find({ gradeLevel }).sort({ name: 1 }).lean();
         
-        // 3. Fetch Grades
+        // 3. Fetch Grades Filtered by Year [1]
         const studentIds = students.map(s => s._id);
         const grades = await Grade.find({ student: { $in: studentIds }, academicYear })
             .select('student subject semester finalScore'); 
@@ -480,7 +477,8 @@ exports.getCertificateData = async (req, res) => {
     }
 };
 
-// ... imports (Student, Grade, Subject)
+// @desc    Get top scorers ranked by class total score [1]
+// @route   GET /api/reports/high-scorers?academicYear=2018
 exports.getHighScorers = async (req, res) => {
     const { academicYear } = req.query;
 
@@ -498,7 +496,7 @@ exports.getHighScorers = async (req, res) => {
             { $lookup: { from: 'subjects', localField: 'subject', foreignField: '_id', as: 'subjectInfo' } },
             { $unwind: '$subjectInfo' },
             
-            // ALIGNED: Allows matching gradeLevel using either active year OR historical academicHistory
+            // FIXED: Matches correct gradeLevel using either active year OR historical academicHistory [1]
             { 
                 $match: { 
                     $expr: { 
@@ -536,7 +534,7 @@ exports.getHighScorers = async (req, res) => {
                     _id: "$student",
                     fullName: { $first: "$studentInfo.fullName" },
                     studentId: { $first: "$studentInfo.studentId" },
-                    gradeLevel: { $first: "$subjectInfo.gradeLevel" }, // Keep target grade Level
+                    gradeLevel: { $first: "$subjectInfo.gradeLevel" }, // Keep target grade Level [1]
                     photoUrl: { $first: "$studentInfo.imageUrl" },
                     gender: { $first: "$studentInfo.gender" },
                     
