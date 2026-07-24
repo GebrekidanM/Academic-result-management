@@ -2,15 +2,42 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const StatCard = ({ title, value, icon, link }) => {
+  // Reusable card content layout
+  const CardContent = () => (
+    <>
+      {/* Soft-colored, modern translucent icon container */}
+      <div className="w-12 h-12 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center transition-colors group-hover:bg-pink-100 shrink-0">
+        {icon}
+      </div>
+      <div className="grow">
+        {/* Clean, uppercase tracking label */}
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{title}</p>
+        {/* Bold, tracking-tight numerical value */}
+        <h4 className="text-2xl font-black text-slate-800 mt-1 transition-colors group-hover:text-pink-600">
+          {value}
+        </h4>
+      </div>
+    </>
+  );
+
+  // Soft transitions: slight lift, subtle shadow, and pink border tint on hover
+  const baseClasses = "group bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-pink-200 cursor-pointer";
+
+  // If a destination link is provided, render as a React Router Link
+  if (link) {
     return (
-        <div className="group relative cursor-pointer bg-white border border-slate-200 rounded-sm p-5 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:border-gray-400 flex items-center gap-3">
-            <div className="w-12 h-12 shrink-0 rounded-xl bg-pink-600 shadow-md flex items-center justify-center text-white transition-colors duration-300 group-hover:bg-gray-700">{icon}</div>
-            <div className='flex gap-3 items-center'>
-                <p className="text-xs font-bold text-slate-500 capitilize tracking-wider mb-1"> {title}</p>
-                <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">{value}</h3>
-            </div>
-        </div>
+      <Link to={link} className={baseClasses}>
+        <CardContent />
+      </Link>
     );
+  }
+
+  // Fallback to static div if no link is provided
+  return (
+    <div className={baseClasses}>
+      <CardContent />
+    </div>
+  );
 };
 
 export default StatCard;
