@@ -3,17 +3,19 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const Student = require('../models/Student');
 
-// Our optimized grade formatting formula
+// Shared grade level formatting logic
 function formatGrade(input) {
   if (!input) return input;
-
   let formatted = input.trim().toLowerCase();
+  formatted = formatted.replace(/-/g, ' ');
+  formatted = formatted.replace(/\bgtade\b/g, 'grade');
   formatted = formatted.replace(/\b([a-z])/g, (match) => match.toUpperCase());
   formatted = formatted.replace(/(\d)\s*([a-z])/gi, (match, num, letter) => {
     return num + letter.toUpperCase();
   });
   return formatted;
 }
+
 
 const runMigration = async () => {
     try {
