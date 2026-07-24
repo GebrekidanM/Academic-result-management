@@ -81,7 +81,7 @@ exports.getStats = async (req, res) => {
 
         activeStudents.forEach(s => {
             const section = getSchoolSection(s.gradeLevel);
-            const gender = (s.gender || '').trim().toLowerCase(); // Safe-guard: Case-insensitive gender checks
+            const gender = (s.gender || '').trim().toLowerCase();
 
             if (section === 'kg') {
                 if (gender === 'male') kgMale++;
@@ -139,27 +139,31 @@ exports.getStats = async (req, res) => {
             const g = (student.gender || '').trim().toLowerCase();
             if (!g || !['male', 'female'].includes(g)) return;
 
+            // SAFE-GUARD: Use a Set to ensure this specific student is only counted ONCE per academic year
+            const uniqueYearsForThisStudent = new Set();
+
             const currentYear = student.year;
             if (currentYear) {
-                if (!yearlyGenderMap[currentYear]) {
-                    yearlyGenderMap[currentYear] = { male: 0, female: 0 };
-                }
-                if (g === 'male') yearlyGenderMap[currentYear].male++;
-                else if (g === 'female') yearlyGenderMap[currentYear].female++;
+                uniqueYearsForThisStudent.add(currentYear);
             }
 
             if (Array.isArray(student.academicHistory)) {
                 student.academicHistory.forEach(history => {
                     const histYear = history.year;
                     if (histYear) {
-                        if (!yearlyGenderMap[histYear]) {
-                            yearlyGenderMap[histYear] = { male: 0, female: 0 };
-                        }
-                        if (g === 'male') yearlyGenderMap[histYear].male++;
-                        else if (g === 'female') yearlyGenderMap[histYear].female++;
+                        uniqueYearsForThisStudent.add(histYear);
                     }
                 });
             }
+
+            // Now, we only increment the gender count once per unique year for this student
+            uniqueYearsForThisStudent.forEach(yr => {
+                if (!yearlyGenderMap[yr]) {
+                    yearlyGenderMap[yr] = { male: 0, female: 0 };
+                }
+                if (g === 'male') yearlyGenderMap[yr].male++;
+                else if (g === 'female') yearlyGenderMap[yr].female++;
+            });
         });
 
         const genderHistory = Object.keys(yearlyGenderMap)
@@ -169,6 +173,7 @@ exports.getStats = async (req, res) => {
                 male: yearlyGenderMap[yr].male,
                 female: yearlyGenderMap[yr].female
             }));
+        // ====================================================
 
 
         res.status(200).json({
