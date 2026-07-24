@@ -5,7 +5,6 @@ const path = require('path');
 const connectDB = require('./config/db');
 const User = require('./models/User');
 const cron = require('node-cron');
-const runMigration = require('./utils/migrateGrade')
 const app = express();
 
 // --- Middleware ---
