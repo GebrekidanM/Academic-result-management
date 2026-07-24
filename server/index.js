@@ -6,7 +6,6 @@ const connectDB = require('./config/db');
 const User = require('./models/User');
 const cron = require('node-cron');
 const app = express();
-const performBackup = require('./utils/backup')
 
 // --- Middleware ---
 app.use(cors());
@@ -85,7 +84,7 @@ const startServer = async () => {
     try {
         await connectDB();
         await seedAdminUser();
-
+        await performBackup();
         const PORT = process.env.PORT || 5000;
 
         app.listen(PORT, () => {
