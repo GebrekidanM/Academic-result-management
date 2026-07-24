@@ -5,16 +5,44 @@ const Subject = require('../models/Subject');
 const AuditLog = require('../models/AuditLog');
 const Attendance = require('../models/Attendance');
 
+// Self-healing school section classifier to handle any database typos/variations safely
+const getSchoolSection = (gradeLevel) => {
+    const grade = (gradeLevel || '').trim().toLowerCase();
+    
+    if (/^(kg|nursery|pre)/i.test(grade)) {
+        return 'kg';
+    }
+    
+    const match = grade.match(/\d+/);
+    if (match) {
+        const num = parseInt(match[0], 10);
+        if (num >= 1 && num <= 8) {
+            return 'primary';
+        }
+        if (num >= 9 && num <= 12) {
+            return 'highSchool';
+        }
+    }
+    
+    if (/grade|gtade/i.test(grade)) {
+        if (/(9|1[0-2])/.test(grade)) {
+            return 'highSchool';
+        }
+        return 'primary';
+    }
+    
+    return 'primary'; 
+};
+
 exports.getStats = async (req, res) => {
     try {
-        // Use Subject.distinct('name') to retrieve only unique subject names across the curriculum
         const [students, teachers, uniqueSubjects] = await Promise.all([
             Student.countDocuments({ status: 'Active' }),
             User.countDocuments({ role: 'teacher' }),
-            Subject.distinct('name') // Returns an array of unique names (e.g. ['Math', 'Physics'])
+            Subject.distinct('name')
         ]);
 
-        const subjects = uniqueSubjects.length; // Count of unique subjects
+        const subjects = uniqueSubjects.length;
 
         const recentLogs = await AuditLog.find({})
             .populate('user', 'fullName role')
@@ -52,20 +80,18 @@ exports.getStats = async (req, res) => {
         let hsMale = 0, hsFemale = 0;
 
         activeStudents.forEach(s => {
-            const grade = s.gradeLevel || '';
-            const isKg = /^(kg|nursery|pre)/i.test(grade);
-            const isPrimary = /^Grade\s*[1-8](\D|$)/i.test(grade);
-            const isHigh = /^Grade\s*(9|1[0-2])(\D|$)/i.test(grade);
+            const section = getSchoolSection(s.gradeLevel);
+            const gender = (s.gender || '').trim().toLowerCase(); // Safe-guard: Case-insensitive gender checks
 
-            if (isKg) {
-                if (s.gender === 'Male') kgMale++;
-                else if (s.gender === 'Female') kgFemale++;
-            } else if (isPrimary) {
-                if (s.gender === 'Male') primaryMale++;
-                else if (s.gender === 'Female') primaryFemale++;
-            } else if (isHigh) {
-                if (s.gender === 'Male') hsMale++;
-                else if (s.gender === 'Female') hsFemale++;
+            if (section === 'kg') {
+                if (gender === 'male') kgMale++;
+                else if (gender === 'female') kgFemale++;
+            } else if (section === 'primary') {
+                if (gender === 'male') primaryMale++;
+                else if (gender === 'female') primaryFemale++;
+            } else if (section === 'highSchool') {
+                if (gender === 'male') hsMale++;
+                else if (gender === 'female') hsFemale++;
             }
         });
 
@@ -105,27 +131,23 @@ exports.getStats = async (req, res) => {
         });
 
 
-        // ====================================================
         // PROGRAMMATIC ENROLLMENT HISTORY COMPILATION
-        // ====================================================
         const studentsDataForHistory = await Student.find({}, 'gender year academicHistory').lean();
         const yearlyGenderMap = {};
 
         studentsDataForHistory.forEach(student => {
-            const g = student.gender;
-            if (!g || !['Male', 'Female'].includes(g)) return;
+            const g = (student.gender || '').trim().toLowerCase();
+            if (!g || !['male', 'female'].includes(g)) return;
 
-            // 1. Process current academic year ("are")
             const currentYear = student.year;
             if (currentYear) {
                 if (!yearlyGenderMap[currentYear]) {
                     yearlyGenderMap[currentYear] = { male: 0, female: 0 };
                 }
-                if (g === 'Male') yearlyGenderMap[currentYear].male++;
-                else if (g === 'Female') yearlyGenderMap[currentYear].female++;
+                if (g === 'male') yearlyGenderMap[currentYear].male++;
+                else if (g === 'female') yearlyGenderMap[currentYear].female++;
             }
 
-            // 2. Process historical academic years ("were")
             if (Array.isArray(student.academicHistory)) {
                 student.academicHistory.forEach(history => {
                     const histYear = history.year;
@@ -133,22 +155,20 @@ exports.getStats = async (req, res) => {
                         if (!yearlyGenderMap[histYear]) {
                             yearlyGenderMap[histYear] = { male: 0, female: 0 };
                         }
-                        if (g === 'Male') yearlyGenderMap[histYear].male++;
-                        else if (g === 'Female') yearlyGenderMap[histYear].female++;
+                        if (g === 'male') yearlyGenderMap[histYear].male++;
+                        else if (g === 'female') yearlyGenderMap[histYear].female++;
                     }
                 });
             }
         });
 
-        // Convert the map to a sorted chronological array for the chart
         const genderHistory = Object.keys(yearlyGenderMap)
-            .sort() // Chronological order (e.g. 2016, 2017, 2018)
+            .sort()
             .map(yr => ({
-                year: `${yr} E.C.`, // Display year labeled as Ethiopian Calendar
+                year: `${yr} E.C.`,
                 male: yearlyGenderMap[yr].male,
                 female: yearlyGenderMap[yr].female
             }));
-        // ====================================================
 
 
         res.status(200).json({
@@ -163,7 +183,7 @@ exports.getStats = async (req, res) => {
                 primary: { male: primaryMale, female: primaryFemale },
                 highSchool: { male: hsMale, female: hsFemale }
             },
-            genderHistory, // Included here for chart rendering
+            genderHistory,
             attendanceTrend: trendData
         });
     } catch (error) {
