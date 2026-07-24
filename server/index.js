@@ -6,6 +6,7 @@ const connectDB = require('./config/db');
 const User = require('./models/User');
 const cron = require('node-cron');
 const app = express();
+const performBackup = require('./utils/backup')
 
 // --- Middleware ---
 app.use(cors());
