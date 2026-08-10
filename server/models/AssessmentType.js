@@ -20,7 +20,8 @@ const assessmentTypeSchema = new mongoose.Schema({
         required: true
     },
     gradeLevel: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'GradeLevel',
         required: true
     },
     month: {

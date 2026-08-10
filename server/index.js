@@ -40,6 +40,8 @@ app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/assessment-names', require('./routes/assessmentNameRoutes'))
 app.use('/api/attendance', require("./routes/attendanceRoutes"));
 app.use('/api/payments', require('./routes/paymentRoutes'));
+app.use('/api/gradelevels', require('./routes/gradeLevelRoutes'));
+
 app.use((err, req, res, next) => {
     console.error("❌ Express Global Error Caught:", err);
     res.status(500).json({ 

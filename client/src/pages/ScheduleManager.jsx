@@ -1,7 +1,8 @@
+// src/components/ScheduleManager.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import scheduleService from '@shared/services/scheduleService';
-import studentService from '@shared/services/studentService';
+import gradeLevelService from '@shared/services/gradeLevelService';
 import subjectService from '@shared/services/subjectService'; 
 import userService from '@shared/services/userService';
 
@@ -20,11 +21,25 @@ const getEthiopianYear = (gregorianDate = new Date()) => {
     return ethiopianYear;
 };
 
+// Safe helper to extract GradeLevel ObjectID
+const getGradeId = (gl) => {
+    if (!gl) return '';
+    if (typeof gl === 'object' && gl._id) return gl._id.toString();
+    return String(gl);
+};
+
+// Safe helper to extract GradeLevel Name
+const getGradeName = (gl) => {
+    if (!gl) return '';
+    if (typeof gl === 'object' && gl.name) return gl.name;
+    return String(gl);
+};
+
 const ScheduleManager = () => {
     const { t } = useTranslation();
 
-    const [gradeLevel, setGradeLevel] = useState('');
-    const [availableGrades, setAvailableGrades] = useState([]);
+    const [gradeLevel, setGradeLevel] = useState(''); // Stores GradeLevel ObjectId
+    const [availableGrades, setAvailableGrades] = useState([]); // Array of GradeLevel objects { _id, name }
     const [scheduleData, setScheduleData] = useState([]); 
     const [academicYear] = useState(getEthiopianYear().toString()); 
     
@@ -35,22 +50,35 @@ const ScheduleManager = () => {
     const [formSubject, setFormSubject] = useState('');
     const [formTeacher, setFormTeacher] = useState('');
 
+    // Active Grade Level display name
+    const activeGradeName = useMemo(() => {
+        const found = availableGrades.find(g => g._id === gradeLevel || g.name === gradeLevel);
+        return found ? found.name : gradeLevel;
+    }, [availableGrades, gradeLevel]);
+
+    // --- LOAD RESOURCES ---
     useEffect(() => {
         const loadResources = async () => {
             try {
                 const [gradesRes, subRes, teachRes] = await Promise.all([
-                    studentService.getAllStudents(), 
+                    gradeLevelService.getAllGradeLevels(), 
                     subjectService.getAllSubjects(),
                     userService.getAll() 
                 ]);
 
-                const uniqueGrades = [...new Set(gradesRes.data.data.map(s => s.gradeLevel))].sort();
-                setAvailableGrades(uniqueGrades);
-                setAllSubjects(subRes.data.data);
+                const grades = gradesRes.data?.data || gradesRes.data || [];
+                const subjects = subRes.data?.data || subRes.data || [];
+                const users = teachRes.data?.data || teachRes.data || [];
 
-                setAllTeachers(teachRes.data.filter(u => u.role === 'teacher'));
+                setAvailableGrades(grades.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })));
+                setAllSubjects(subjects);
 
-            } catch (err) { console.error(err); }
+                const teachersList = Array.isArray(users) ? users.filter(u => u.role === 'teacher') : [];
+                setAllTeachers(teachersList);
+
+            } catch (err) { 
+                console.error("Error loading schedule resources:", err); 
+            }
         };
         loadResources();
     }, []);
@@ -60,33 +88,55 @@ const ScheduleManager = () => {
         if (!gradeLevel) return;
         try {
             const res = await scheduleService.getClassSchedule(gradeLevel, academicYear);
-            setScheduleData(res.data.data);
+            setScheduleData(res.data?.data || res.data || []);
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching schedule:", err);
+            setScheduleData([]);
         }
     };
 
     useEffect(() => {
         fetchSchedule();
-    }, [gradeLevel]);
+    }, [gradeLevel, academicYear]);
 
+    // --- WORKLOAD SUMMARY CALCULATION ---
     const workloadSummary = useMemo(() => {
         if (!gradeLevel) return [];
 
         return allSubjects
-            .filter(s => Array.isArray(s.gradeLevels) && s.gradeLevels.some(gl => gl.gradeLevel === gradeLevel))
+            .filter(s => Array.isArray(s.gradeLevels) && s.gradeLevels.some(gl => {
+                const gId = getGradeId(gl.gradeLevel);
+                const gName = getGradeName(gl.gradeLevel);
+                return gId === gradeLevel || gName === gradeLevel || gId === activeGradeName;
+            }))
             .map(subj => {
-                const gradeConfig = subj.gradeLevels.find(gl => gl.gradeLevel === gradeLevel);
+                const gradeConfig = subj.gradeLevels.find(gl => {
+                    const gId = getGradeId(gl.gradeLevel);
+                    const gName = getGradeName(gl.gradeLevel);
+                    return gId === gradeLevel || gName === gradeLevel || gId === activeGradeName;
+                });
+
                 const totalNeeded = gradeConfig ? parseInt(gradeConfig.sessionsPerWeek, 10) : 0;
                 
-                const assignedCount = scheduleData.filter(slot => slot.subject?._id === subj._id).length;
+                const assignedCount = scheduleData.filter(slot => {
+                    const slotSubjId = slot.subject?._id || slot.subject;
+                    return String(slotSubjId) === String(subj._id);
+                }).length;
+
                 const remaining = Math.max(0, totalNeeded - assignedCount);
 
+                // Find assigned teacher for this subject and grade level
                 const assignedTeacher = allTeachers.find(teacher => 
                     Array.isArray(teacher.subjectsTaught) &&
                     teacher.subjectsTaught.some(st => {
                         const subjId = st.subject?._id || st.subject;
-                        return String(subjId) === String(subj._id) && String(st.gradeLevel) === String(gradeLevel);
+                        const stGradeId = getGradeId(st.gradeLevel);
+                        const stGradeName = getGradeName(st.gradeLevel);
+
+                        const subjectMatches = String(subjId) === String(subj._id);
+                        const gradeMatches = stGradeId === gradeLevel || stGradeName === activeGradeName || stGradeId === activeGradeName;
+
+                        return subjectMatches && gradeMatches;
                     })
                 );
 
@@ -98,7 +148,7 @@ const ScheduleManager = () => {
                     remaining
                 };
             });
-    }, [allSubjects, scheduleData, allTeachers, gradeLevel]);
+    }, [allSubjects, scheduleData, allTeachers, gradeLevel, activeGradeName]);
 
     // --- HELPERS ---
     const getSlotData = (day, period) => {
@@ -108,8 +158,8 @@ const ScheduleManager = () => {
     const handleCellClick = (day, period) => {
         const existing = getSlotData(day, period);
         setSelectedSlot({ day, period });
-        setFormSubject(existing?.subject?._id || '');
-        setFormTeacher(existing?.teacher?._id || '');
+        setFormSubject(existing?.subject?._id || existing?.subject || '');
+        setFormTeacher(existing?.teacher?._id || existing?.teacher || '');
     };
 
     const handleSubjectSelection = (subjectId) => {
@@ -124,7 +174,7 @@ const ScheduleManager = () => {
     };
      
     const handleAutoGenerate = async (category) => {
-        const confirmMsg = `⚠️ WARNING: This will DELETE the existing ${category} schedule for ${academicYear}.\n\nAre you sure?`;
+        const confirmMsg = `⚠️ WARNING: This will DELETE the existing ${category} schedule for ${academicYear} E.C.\n\nAre you sure you want to auto-generate?`;
         if (!window.confirm(confirmMsg)) return;
 
         try {
@@ -137,7 +187,10 @@ const ScheduleManager = () => {
     };
 
     const handleSaveSlot = async () => {
-        if (!formSubject || !formTeacher) return;
+        if (!formSubject || !formTeacher) {
+            alert("Please select both a Subject and a Teacher.");
+            return;
+        }
         try {
             await scheduleService.assignSlot({
                 gradeLevel,
@@ -176,12 +229,14 @@ const ScheduleManager = () => {
                 <div className="flex gap-4 items-center">
                     <h2 className="text-xl font-bold text-gray-800">📅 Class Schedule</h2>
                     <select 
-                        className="border p-2 rounded" 
+                        className="border p-2 rounded bg-gray-50 font-bold text-gray-700" 
                         value={gradeLevel} 
                         onChange={e => setGradeLevel(e.target.value)}
                     >
-                        <option value="">-- Select Grade --</option>
-                        {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                        <option value="">-- Select Grade Level --</option>
+                        {availableGrades.map(g => (
+                            <option key={g._id} value={g._id}>{g.name}</option>
+                        ))}
                     </select>
                 </div>
                 
@@ -216,7 +271,7 @@ const ScheduleManager = () => {
                         {/* Print Header */}
                         <div className="hidden print:block text-center mb-6 border-b-4 border-slate-900 pb-2">
                             <h1 className="text-3xl font-black uppercase">Freedom KG & Primary School</h1>
-                            <h2 className="text-xl font-bold mt-1">Class Schedule: <span className="text-blue-700">{gradeLevel}</span></h2>
+                            <h2 className="text-xl font-bold mt-1">Class Schedule: <span className="text-blue-700">{activeGradeName}</span></h2>
                             <p className="text-sm text-gray-500">{academicYear} E.C.</p>
                         </div>
 
@@ -251,8 +306,12 @@ const ScheduleManager = () => {
                                                     >
                                                         {data ? (
                                                             <div className="flex flex-col justify-center h-full">
-                                                                <span className="font-bold text-slate-800 text-sm">{data.subject?.name}</span>
-                                                                <span className="text-xs text-gray-500 mt-1">{data.teacher?.fullName}</span>
+                                                                <span className="font-bold text-slate-800 text-sm">
+                                                                    {data.subject?.name || 'Subject'}
+                                                                </span>
+                                                                <span className="text-xs text-gray-500 mt-1">
+                                                                    {data.teacher?.fullName || 'Teacher'}
+                                                                </span>
                                                             </div>
                                                         ) : (
                                                             <span className="text-gray-200 text-xs no-print">+ Add</span>
@@ -277,37 +336,41 @@ const ScheduleManager = () => {
                             📋 Pending Assignments
                         </h3>
                         <p className="text-xs text-gray-500 mb-4">
-                            Ensure all curriculum periods required for <strong className="text-slate-700">{gradeLevel}</strong> are allocated.
+                            Ensure all curriculum periods required for <strong className="text-slate-700">{activeGradeName}</strong> are allocated.
                         </p>
 
                         <div className="space-y-3">
-                            {workloadSummary.map(({ subject, teacher, totalNeeded, assignedCount, remaining }) => (
-                                <div 
-                                    key={subject._id} 
-                                    className={`p-3 rounded-lg border text-xs transition-all ${
-                                        remaining === 0 
-                                            ? 'bg-green-50 border-green-200 text-green-800' 
-                                            : 'bg-amber-50 border-amber-200 text-amber-800'
-                                    }`}
-                                >
-                                    <div className="flex justify-between items-center font-bold mb-1">
-                                        <span className="text-sm">{subject.name}</span>
-                                        <span>{remaining === 0 ? '✓' : `Pending: ${remaining}`}</span>
+                            {workloadSummary.length === 0 ? (
+                                <p className="text-xs text-gray-400 italic">No subjects assigned to this grade level yet.</p>
+                            ) : (
+                                workloadSummary.map(({ subject, teacher, totalNeeded, assignedCount, remaining }) => (
+                                    <div 
+                                        key={subject._id} 
+                                        className={`p-3 rounded-lg border text-xs transition-all ${
+                                            remaining === 0 
+                                                ? 'bg-green-50 border-green-200 text-green-800' 
+                                                : 'bg-amber-50 border-amber-200 text-amber-800'
+                                        }`}
+                                    >
+                                        <div className="flex justify-between items-center font-bold mb-1">
+                                            <span className="text-sm">{subject.name}</span>
+                                            <span>{remaining === 0 ? '✓' : `Pending: ${remaining}`}</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 mt-1">
+                                            Allocated: <strong className="text-slate-700">{assignedCount} of {totalNeeded}</strong> periods/wk
+                                        </p>
+                                        {teacher ? (
+                                            <p className="text-[10px] text-gray-500 mt-0.5">
+                                                Teacher: <strong className="text-slate-700">{teacher.fullName}</strong>
+                                            </p>
+                                        ) : (
+                                            <p className="text-[10px] text-red-500 font-semibold mt-0.5">
+                                                ⚠️ No teacher assigned in settings
+                                            </p>
+                                        )}
                                     </div>
-                                    <p className="text-[10px] text-gray-500 mt-1">
-                                        Allocated: <strong className="text-slate-700">{assignedCount} of {totalNeeded}</strong> periods/wk
-                                    </p>
-                                    {teacher ? (
-                                        <p className="text-[10px] text-gray-500 mt-0.5">
-                                            Teacher: <strong className="text-slate-700">{teacher.fullName}</strong>
-                                        </p>
-                                    ) : (
-                                        <p className="text-[10px] text-red-500 font-semibold mt-0.5">
-                                            ⚠️ No teacher assigned in settings
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
 
@@ -345,7 +408,7 @@ const ScheduleManager = () => {
                                     className="w-full border p-2 rounded bg-gray-50 cursor-not-allowed"
                                     value={formTeacher}
                                     onChange={e => setFormTeacher(e.target.value)}
-                                    disabled={true} // Locked because teacher is tied directly to subject settings
+                                    disabled={true}
                                 >
                                     <option value="">Select Teacher</option>
                                     {allTeachers.map(t => (

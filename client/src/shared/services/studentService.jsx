@@ -3,9 +3,13 @@ import api from './api.jsx';
 
 const API_URL = '/students';
 
+//only all students with active status will be returned by default. If you want to get all students regardless of their status, you can use the getAllStudents function. 
+const getStudents = () => {
+    return api.get(API_URL);
+};
 
 const getAllStudents = () => {
-    return api.get(API_URL);
+    return api.get(`${API_URL}/getallstudents`);
 };
 
 const getStudentsByGrade = (gradeLevel) => {
@@ -82,21 +86,8 @@ const setStudentEndOfYear = (id, statusAtEnd) => {
 };
 
 
-// --- The final, complete export block ---
-export default {
-    resetPassword,
-    getAllStudents,
-    getAllStudentsForRe,
-    getStudentById,
-    createStudent,
-    updateStudent,
-    deleteStudent,
-    uploadStudents,
-    uploadPhoto,
-    getStudentsByGrade,
-    getStudentByStudentId,
-    reRegisterStudent,
-    getBulkEndOfYearCount,
-    bulkSetEndOfYearByEC,
-    setStudentEndOfYear
+export default {resetPassword, getAllStudents, getAllStudentsForRe,
+    getStudentById, createStudent, updateStudent, deleteStudent,
+    uploadStudents, uploadPhoto, getStudentsByGrade, getStudentByStudentId,
+    reRegisterStudent, getBulkEndOfYearCount, bulkSetEndOfYearByEC, setStudentEndOfYear
 };

@@ -1,32 +1,31 @@
-// src/services/assessmentTypeService.js
 import api from './api';
-
 const API_URL = '/assessment-types';
 
-const getBySubject = (subjectId,semester) => {
-    return api.get(API_URL, { params: { subjectId, semester } });
+const assessmentTypeService = {
+    getBySubject: async (subjectId, gradeLevel, semester) => {
+        const params = new URLSearchParams();
+        if (subjectId) params.append('subjectId', subjectId);
+        if (gradeLevel) params.append('gradeLevel', gradeLevel);
+        if (semester) params.append('semester', semester);
+        
+        return await api.get(`${API_URL}?${params.toString()}`);
+    },
+
+    getAllAssessments : async (year,semester)=>{
+        return await api.get(`${API_URL}/all`,{params:{year,semester}})
+    },
+
+    create: async (data) => {
+        return await api.post(`${API_URL}`, data);
+    },
+
+    update: async (id, data) => {
+        return await api.put(`${API_URL}/${id}`, data);
+    },
+
+    remove: async (id) => {
+        return await api.delete(`${API_URL}/${id}`);
+    }
 };
 
-const getAllAssessments = (year,semester)=>{
-    return api.get(`${API_URL}/all`,{params:{year,semester}})
-}
-
-const create = (data) => {
-    return api.post(API_URL, data);
-};
-
-const update = (id, data) => {
-    return api.put(`${API_URL}/${id}`, data);
-};
-
-const remove = (id) => {
-    return api.delete(`${API_URL}/${id}`);
-};
-
-export default {
-    getBySubject,
-    getAllAssessments,
-    create,
-    update,
-    remove
-};
+export default assessmentTypeService;

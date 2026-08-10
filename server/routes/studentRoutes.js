@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const studentController = require('../controllers/studentController');
-const { protect, canViewStudentData } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 const multer = require('multer');
-
 
 const studentRegistrationUpload = upload.fields([
     { name: 'transferLetter', maxCount: 1 },
@@ -13,22 +12,29 @@ const studentRegistrationUpload = upload.fields([
     { name: 'birthCertificate', maxCount: 1 }
 ]);
 
+// Year-End Operations
 router.get('/bulk-end-of-year/count', protect, studentController.getBulkEndOfYearCount);
 router.put('/end-of-year', protect, studentController.bulkSetEndOfYearByEC);
-router.get('/search/:studentId', studentController.getStudentForRegistration);
+
+// Search & Re-registration (Protected)
+router.get('/search/:studentId', protect, studentController.getStudentForRegistration);
 router.post('/re-register', protect, studentController.reRegisterStudent);
 
-router.get('/getallstudents', protect,studentController.getAllStudents);
+// Student Query & Management
+router.get('/getallstudents', protect, studentController.getAllStudents);
 router.post('/photo/:id', protect, upload.single('profilePhoto'), studentController.uploadProfilePhoto);
 router.post('/reset/:studentId', protect, studentController.resetPassword);
+router.patch('/:id/deactivate', protect, studentController.deactiveStudent); 
 
+// Bulk Excel Upload
 const localUpload = multer({ dest: 'uploads/' });
 router.post('/upload', protect, localUpload.single('studentsFile'), studentController.bulkCreateStudents);
 
-router.get('/', protect,studentController.getStudents);
+// Standard CRUD
+router.get('/', protect, studentController.getStudents);
 router.post('/', protect, studentRegistrationUpload, studentController.createStudent);
 router.get('/:id', protect, studentController.getStudentById);
-router.put('/:id', protect,studentRegistrationUpload, studentController.updateStudent);
+router.put('/:id', protect, studentRegistrationUpload, studentController.updateStudent);
 router.delete('/:id', protect, studentController.deleteStudent);
 
 module.exports = router;

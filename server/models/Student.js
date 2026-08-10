@@ -8,7 +8,11 @@ const studentSchema = new mongoose.Schema({
     fullName: { type: String, required: true, trim: true },
     gender: { type: String, required: true, enum: ['Male', 'Female'] },
     dateOfBirth: { type: Date },
-    gradeLevel: { type: String, required: true, trim: true },
+    gradeLevel: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'GradeLevel',
+        required: true
+    },
     
     year: { type: String, required: true }, 
 

@@ -13,11 +13,13 @@ const userSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     isInitialPassword: { type: Boolean, default: true },
 
-    schoolLevel: { type: String, required: true, enum: ['kg', 'primary', 'High School', 'all'], default: 'primary' },
+    schoolLevel: { type: String, required: true, enum: ['kg', 'primary', 'high school', 'all'], default: 'primary' },
     role: { type: String, required: true, enum: ['admin', 'teacher', 'staff', 'accountant'], default: 'teacher' },
-    homeroomGrade: { type: String, default: null },
+    homeroomGrade: { type: mongoose.Schema.Types.ObjectId, ref: 'GradeLevel', default: null },
+    
     subjectsTaught: [{
-        subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject' },
+        subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
+        gradeLevel: { type: mongoose.Schema.Types.ObjectId, ref: 'GradeLevel', required: true },
         _id: false
     }]
 }, { timestamps: true });

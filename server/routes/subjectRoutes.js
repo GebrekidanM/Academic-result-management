@@ -4,7 +4,7 @@ const multer = require('multer');
 
 const upload = multer({ dest: 'uploads/' });
 
-const { createSubject, getSubjects, getSubjectById, updateSubject, deleteSubject, bulkCreateSubjects } = require('../controllers/subjectController');
+const { createSubject, getSubjects, getSubjectById, updateSubject, assignSubjectsToGradeLevel, deleteSubject, bulkCreateSubjects } = require('../controllers/subjectController');
 
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -17,5 +17,6 @@ router.post('/', protect, authorize('admin'), createSubject);
 router.put('/:id', protect, authorize('admin'), updateSubject);
 router.delete('/:id', protect, authorize('admin'), deleteSubject);
 router.post('/upload', protect, authorize('admin'), upload.single('subjectsFile'), bulkCreateSubjects);
+router.post('/assign-to-grade', protect, assignSubjectsToGradeLevel);
 
 module.exports = router;

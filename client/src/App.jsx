@@ -85,6 +85,9 @@ import PaymentRegistryPage from './pages/PaymentRegistryPage';
 import PaymentAnalyticsPage from './pages/PaymentAnalyticsPage';
 import OverallAverageAnalysisPage from './pages/OverallAverageAnalysisPage';
 import RegionalPerformancePage from './pages/RegionalPerformancePage';
+import AddGradeLevelPage from './pages/AddGradeLevelPage';
+import GradeLevelListPage from './pages/GradeLevelListPage';
+import AssignSubjectsToGradePage from './pages/AssignSubjectsToGradePage';
 
 function App() {
   const [isOpen, setIsOpen] = useState(false);
@@ -165,6 +168,9 @@ function App() {
 
             {/* --- ADMIN-ONLY SUB-ROUTES --- */}
             <Route element={<AdminRoute />}>
+              <Route path="/subjects/assign" element={<AssignSubjectsToGradePage />} />
+              <Route path='/admin/gradeLevel' element={<AddGradeLevelPage/>}/>
+              <Route path="/grade-levels" element={<GradeLevelListPage />} />
               <Route path='/admin/allgradeAnalysis' element={<OverallAverageAnalysisPage/>}/>
               <Route path='/admin/regionalAnalysis' element={<RegionalPerformancePage/>}/>
 

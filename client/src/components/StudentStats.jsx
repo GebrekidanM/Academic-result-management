@@ -44,7 +44,7 @@ const StudentStats = ({ students, sectionName }) => {
     const gradeData = useMemo(() => {
         const counts = {};
         students.forEach(s => {
-            const g = s.gradeLevel;
+            const g = s.gradeLevel?.name;
             counts[g] = (counts[g] || 0) + 1;
         });
         const sortedLabels = Object.keys(counts).sort((a, b) => 

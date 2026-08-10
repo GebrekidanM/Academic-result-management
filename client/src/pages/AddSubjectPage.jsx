@@ -1,58 +1,93 @@
-import React, { useState } from 'react';
+// src/pages/AddSubjectPage.jsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; 
 import subjectService from '@shared/services/subjectService';
-
-
-function formatGrade(input) {
-  if (!input) return input;
-
-  input = input.trim().toLowerCase();
-
-  input = input.charAt(0).toUpperCase() + input.slice(1);
-
-  input = input.replace(/(\d)([a-z])/g, (match, num, letter) => {
-    return num + letter.toUpperCase();
-  });
-
-  return input;
-}
+import gradeLevelService from '@shared/services/gradeLevelService';
 
 const AddSubjectPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
 
+    const [availableGrades, setAvailableGrades] = useState([]);
     const [subjectData, setSubjectData] = useState({
         name: '',
         code: '',
-        gradeLevel: ''
+        selectedGrades: [], // Stores selected GradeLevel ObjectIDs
+        sessionsPerWeek: 3
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Fetch existing GradeLevel objects from backend on load
+    useEffect(() => {
+        const fetchGrades = async () => {
+            try {
+                const res = await gradeLevelService.getAllGradeLevels();
+                const grades = res.data?.data || res.data || [];
+                setAvailableGrades(
+                    grades.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+                );
+            } catch (err) {
+                console.error("Error fetching grade levels:", err);
+            }
+        };
+        fetchGrades();
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setSubjectData({ ...subjectData, [name]: value });
     };
 
+    // Toggle grade level checkboxes
+    const handleGradeToggle = (gradeId) => {
+        setSubjectData(prev => {
+            const exists = prev.selectedGrades.includes(gradeId);
+            const updated = exists 
+                ? prev.selectedGrades.filter(id => id !== gradeId)
+                : [...prev.selectedGrades, gradeId];
+            return { ...prev, selectedGrades: updated };
+        });
+    };
+
+    // Select/Deselect All Grade Levels
+    const handleSelectAll = (selectAll) => {
+        setSubjectData(prev => ({
+            ...prev,
+            selectedGrades: selectAll ? availableGrades.map(g => g._id) : []
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (subjectData.selectedGrades.length === 0) {
+            setError(t('select_at_least_one_grade') || "Please select at least one grade level for this subject.");
+            return;
+        }
+
         setLoading(true);
         
         try {
-            const formattedData = {
-                ...subjectData,
-                gradeLevel: formatGrade(subjectData.gradeLevel)
+            // Format payload to match Subject.js schema structure
+            const payload = {
+                name: subjectData.name.trim(),
+                code: subjectData.code.trim(),
+                gradeLevels: subjectData.selectedGrades.map(gradeId => ({
+                    gradeLevel: gradeId,
+                    sessionsPerWeek: Number(subjectData.sessionsPerWeek) || 3
+                }))
             };
 
-
-             await subjectService.createSubject(formattedData);
+            await subjectService.createSubject(payload);
             alert(t('success_save') || 'Subject created successfully!');
             navigate('/subjects');
         } catch (err) {
-            console.log(err);
-            setError(err.response?.data?.message);
+            console.error("Subject creation error:", err);
+            setError(err.response?.data?.message || t('error'));
+        } finally {
             setLoading(false);
         }
     };
@@ -103,19 +138,62 @@ const AddSubjectPage = () => {
                         />
                     </div>
 
-                    {/* Grade Level */}
+                    {/* Sessions Per Week */}
                     <div>
-                        <label htmlFor="gradeLevel" className={inputLabel}>{t('grade')}</label>
+                        <label htmlFor="sessionsPerWeek" className={inputLabel}>Sessions Per Week (Periods)</label>
                         <input 
-                            id="gradeLevel" 
-                            type="text" 
-                            name="gradeLevel" 
-                            value={subjectData.gradeLevel} 
+                            id="sessionsPerWeek" 
+                            type="number" 
+                            min="1" 
+                            max="10" 
+                            name="sessionsPerWeek" 
+                            value={subjectData.sessionsPerWeek} 
                             onChange={handleChange} 
                             className={textInput} 
-                            placeholder="e.g., Grade 4A" 
                             required 
                         />
+                    </div>
+
+                    {/* Grade Level Selection (Checkboxes) */}
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className={inputLabel}>{t('assigned_classes')}</label>
+                            <div className="space-x-2 text-xs">
+                                <button 
+                                    type="button" 
+                                    onClick={() => handleSelectAll(true)} 
+                                    className="text-pink-600 hover:underline font-bold"
+                                >
+                                    Select All
+                                </button>
+                                <span>|</span>
+                                <button 
+                                    type="button" 
+                                    onClick={() => handleSelectAll(false)} 
+                                    className="text-gray-500 hover:underline"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2 bg-gray-50">
+                            {availableGrades.length === 0 ? (
+                                <p className="text-xs text-gray-500">Loading grade levels...</p>
+                            ) : (
+                                availableGrades.map(g => (
+                                    <label key={g._id} className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-1 rounded">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={subjectData.selectedGrades.includes(g._id)} 
+                                            onChange={() => handleGradeToggle(g._id)} 
+                                            className="rounded text-pink-600 focus:ring-pink-500 h-4 w-4"
+                                        />
+                                        <span>{g.name}</span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
                 

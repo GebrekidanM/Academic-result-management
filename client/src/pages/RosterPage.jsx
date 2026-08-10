@@ -1,49 +1,109 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/RosterPage.js
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next'; 
 import rosterService from '@shared/services/rosterService';
+import studentService from '@shared/services/studentService';
 import authService from '@shared/services/authService';
 import { Link } from 'react-router-dom';
 
-function formatGrade(input) {
-  if (!input) return input;
+// Programmatic Ethiopian Calendar (E.C.) year calculator
+const getEthiopianYear = (gregorianDate = new Date()) => {
+    const year = gregorianDate.getFullYear();
+    const month = gregorianDate.getMonth();
+    const day = gregorianDate.getDate();
 
-  let formatted = input.trim().toLowerCase();
-  formatted = formatted.replace(/\b([a-z])/g, (match) => match.toUpperCase());
-  formatted = formatted.replace(/(\d)\s*([a-z])/gi, (match, num, letter) => {
-    return num + letter.toUpperCase();
-  });
-  return formatted;
-}
+    let ethiopianYear = year - 8;
+    if (month > 8 || (month === 8 && day >= 11)) {
+        ethiopianYear = year - 7;
+    }
+    return ethiopianYear;
+};
 
 const RosterPage = () => {
     const { t } = useTranslation(); 
     const [currentUser] = useState(authService.getCurrentUser());
-    const [gradeLevel, setGradeLevel] = useState(currentUser.homeroomGrade || ''); 
-    const [academicYear, setAcademicYear] = useState('2018');
+    
+    // Active Filter States
+    const [academicYear, setAcademicYear] = useState(getEthiopianYear().toString()); 
+    const [gradeLevel, setGradeLevel] = useState('');
+    
+    const [allStudents, setAllStudents] = useState([]);
     const [rosterData, setRosterData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [homeroomTeacher, setHomeroomTeacher] = useState('');
 
+    const availableYears = useMemo(() => {
+        const currentEC = getEthiopianYear();
+        return Array.from({ length: 5 }, (_, i) => (currentEC - 3 + i).toString()).sort((a, b) => b.localeCompare(a));
+    }, []);
+
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                const res = await studentService.getAllStudentsForRe();
+                setAllStudents(res.data?.data || res.data || []);
+            } catch (err) {
+                console.error("Failed to load students:", err);
+            }
+        };
+        loadInitialData();
+    }, []);
+
+    const availableGrades = useMemo(() => {
+        if (!academicYear || allStudents.length === 0) return [];
+        
+        const gradeMap = new Map();
+        
+        allStudents.forEach(student => {
+            if (String(student.year) === String(academicYear)) {
+                const gl = student.gradeLevel;
+                if (gl && gl._id) {
+                    gradeMap.set(gl._id.toString(), gl.name);
+                }
+            }
+            
+            if (Array.isArray(student.academicHistory)) {
+                student.academicHistory.forEach(history => {
+                    if (String(history.year) === String(academicYear)) {
+                        const gl = history.gradeAtThatTime;
+                        if (gl && gl._id) {
+                            gradeMap.set(gl._id.toString(), gl.name);
+                        }
+                    }
+                });
+            }
+        });
+
+        return Array.from(gradeMap.entries())
+            .map(([id, name]) => ({ _id: id, name }))
+            .sort((a, b) => 
+                a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+            );
+    }, [allStudents, academicYear]);
+
     useEffect(() => {
         if (currentUser.role === 'teacher' && currentUser.homeroomGrade) {
-            handleGenerateRoster();
+            const homeroomId = currentUser.homeroomGrade._id || currentUser.homeroomGrade;
+            setGradeLevel(homeroomId.toString());
+        } else if (gradeLevel && !availableGrades.some(g => g._id === gradeLevel)) {
+            setGradeLevel('');
+            setRosterData(null);
         }
-    }, [currentUser]);
+    }, [academicYear, availableGrades, gradeLevel, currentUser]);
 
-    const handleGenerateRoster = async (e) => {
+
+    const handleGenerateRoster = useCallback(async (e) => {
         if (e) e.preventDefault();
         
-        
         if (!gradeLevel) {
-            setError(t('error'));
+            setError(t('select_class_warning') || "Please select a grade level.");
             return;
         }
         setLoading(true); setError(null); setRosterData(null);
-        const trueGradeName = formatGrade(gradeLevel)
         
         try {
-            const response = await rosterService.getRoster({ gradeLevel:trueGradeName, academicYear });
+            const response = await rosterService.getRoster({ gradeLevel, academicYear });
             setRosterData(response.data);
             setHomeroomTeacher(response.data.homeroomTeacherName);
         } catch (err) { 
@@ -51,18 +111,26 @@ const RosterPage = () => {
         } finally { 
             setLoading(false); 
         }
-    };
+    }, [gradeLevel, academicYear, t]);
+
+
+    useEffect(() => {
+        if (currentUser.role === 'teacher' && gradeLevel && academicYear) {
+            handleGenerateRoster();
+        }
+    }, [gradeLevel, academicYear, currentUser.role, handleGenerateRoster]);
 
     const handlePrint = () => {
         const tableToPrint = document.getElementById('rosterTable');
         if (!tableToPrint) return;
 
+        const activeGradeName = availableGrades.find(g => g._id === gradeLevel)?.name || 'Class';
         const printWindow = window.open('', '', 'height=800,width=1200');
         
         const htmlContent = `
             <html>
                 <head>
-                    <title>${t('roster_for')} ${gradeLevel}</title>
+                    <title>${t('roster_for')} ${activeGradeName}</title>
                     <style>
                         @page { 
                             size: A4 landscape; 
@@ -91,7 +159,6 @@ const RosterPage = () => {
                             vertical-align: middle;
                         }
                         
-                        /* Colors matching your React Component */
                         .bg-blue-200 { background-color: #bfdbfe !important; }
                         .bg-blue-50 { background-color: #eff6ff !important; }
                         .bg-gray-50 { background-color: #f9fafb !important; }
@@ -102,26 +169,22 @@ const RosterPage = () => {
                         .bg-yellow-100 { background-color: #fef9c3 !important; }
                         .bg-yellow-200 { background-color: #fef08a !important; }
 
-                        /* Text Colors */
                         .text-blue-900 { color: #1e3a8a !important; }
                         .text-gray-500 { color: #6b7280 !important; }
                         .text-gray-900 { color: #111827 !important; }
                         
-                        /* Font Weights */
                         .font-bold { font-weight: bold; }
                         .font-black { font-weight: 900; }
                         .font-mono { font-family: monospace; }
                         
-                        /* Specific Column Alignment */
                         .text-left { text-align: left !important; padding-left: 5px; }
-
                         .footer { margin-top: 30px; display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; }
                     </style>
                 </head>
                 <body>
                     <div class="header">
                         <h1>${t('app_name')}</h1>
-                        <p>${t('roster_for')} ${gradeLevel} - ${academicYear}</p>
+                        <p>${t('roster_for')} ${activeGradeName} - ${academicYear} E.C.</p>
                         <p>${t('homeroom_teacher_label')}: ${homeroomTeacher}</p>
                     </div>
 
@@ -145,8 +208,7 @@ const RosterPage = () => {
         }, 1000);
     };
 
-    // --- Styles ---
-    const textInput = "shadow-sm border rounded-lg py-2 px-3 w-full focus:ring-blue-500 focus:border-blue-500";
+    const textInput = "shadow-sm border rounded-lg py-2 px-3 w-full bg-white font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
     const submitButton = `bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`;
     
     // Table Classes
@@ -162,22 +224,50 @@ const RosterPage = () => {
                 
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-6">
                     <form onSubmit={handleGenerateRoster} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div>
-                            <label htmlFor="gradeLevel" className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('grade_level')}</label>
-                            <input id="gradeLevel" type="text" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} className={textInput}/>
-                        </div>
+                        
+                        {/* Year Selector Dropdown (Must be selected first) */}
                         <div>
                             <label htmlFor="academicYear" className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('academic_year')}</label>
-                            <input id="academicYear" type="text" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} className={textInput} />
+                            <select 
+                                id="academicYear" 
+                                value={academicYear} 
+                                onChange={(e) => setAcademicYear(e.target.value)} 
+                                className={textInput}
+                                disabled={loading}
+                            >
+                                {availableYears.map(yr => (
+                                    <option key={yr} value={yr}>{yr} E.C.</option>
+                                ))}
+                            </select>
                         </div>
-                        <button type="submit" className={submitButton} disabled={loading}>
-                            {loading ? t('loading') : t('generate_roster')}
-                        </button>
-                        {rosterData && (
-                            <button type="button" onClick={handlePrint} className="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg">
-                                🖨️ {t('print_roster')}
+
+                        {/* Grade Level Selector (Dynamically filtered by academicYear using ObjectIDs) */}
+                        <div>
+                            <label htmlFor="gradeLevel" className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('grade_level')}</label>
+                            <select 
+                                id="gradeLevel" 
+                                value={gradeLevel} 
+                                onChange={(e) => setGradeLevel(e.target.value)} 
+                                className={textInput}
+                                disabled={loading || availableGrades.length === 0}
+                            >
+                                <option value="">-- Select Grade --</option>
+                                {availableGrades.map(g => (
+                                    <option key={g._id} value={g._id}>{g.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button type="submit" className={submitButton} disabled={loading || !gradeLevel}>
+                                {loading ? t('loading') : t('generate_roster')}
                             </button>
-                        )}
+                            {rosterData && (
+                                <button type="button" onClick={handlePrint} className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-lg">
+                                    🖨️ {t('print_roster')}
+                                </button>
+                            )}
+                        </div>
                     </form>
                 </div>
 

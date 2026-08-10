@@ -1,25 +1,44 @@
+// server/controllers/scheduleController.js
+const mongoose = require('mongoose');
 const Schedule = require('../models/Schedule');
 const User = require('../models/User');
 const Subject = require('../models/Subject');
-const mongoose = require('mongoose');
+const GradeLevel = require('../models/GradeLevel');
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
+
+// Helper to resolve GradeLevel ObjectId cleanly from either ObjectId or Name String
+const resolveGradeLevelId = async (gradeParam) => {
+    if (!gradeParam) return null;
+    if (mongoose.Types.ObjectId.isValid(gradeParam) && gradeParam.length === 24) {
+        return new mongoose.Types.ObjectId(gradeParam);
+    }
+    const gDoc = await GradeLevel.findOne({ name: gradeParam }).collation({ locale: 'en', strength: 2 });
+    return gDoc ? gDoc._id : null;
+};
 
 // @desc    Get Schedule for a specific Grade
 // @route   GET /api/schedule/:gradeLevel
 exports.getClassSchedule = async (req, res) => {
     try {
-        const { academicYear,gradeLevel } = req.query;
+        const { academicYear, gradeLevel } = req.query;
+        const targetGradeId = await resolveGradeLevelId(gradeLevel || req.params.gradeLevel);
 
-        const schedule = await Schedule.find({ gradeLevel, academicYear })
-            .populate('subject', 'name')
+        if (!targetGradeId) {
+            return res.status(404).json({ message: 'Grade Level not found.' });
+        }
+
+        const schedule = await Schedule.find({ gradeLevel: targetGradeId, academicYear })
+            .populate('subject', 'name code')
             .populate('teacher', 'fullName')
+            .populate('gradeLevel', 'name schoolLevel')
             .lean();
 
         res.json({ success: true, data: schedule });
     } catch (error) {
-        res.status(500).json({ message: 'Server Error' });
+        console.error("getClassSchedule error:", error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
 
@@ -28,24 +47,29 @@ exports.getClassSchedule = async (req, res) => {
 exports.getMasterSchedule = async (req, res) => {
     try {
         const { academicYear } = req.query;
+        if (!academicYear) {
+            return res.status(400).json({ message: 'Academic year is required.' });
+        }
         
-        // Fetch everything for this year
+        // Fetch all schedules for this year with populated GradeLevel names
         const allSchedules = await Schedule.find({ academicYear })
-            .populate('subject', 'name')
+            .populate('subject', 'name code')
             .populate('teacher', 'fullName')
+            .populate('gradeLevel', 'name schoolLevel')
             .lean();
 
-        // Group by Grade Level
+        // Group by Readable Grade Level Name
         const grouped = {};
         allSchedules.forEach(item => {
-            const grade = item.gradeLevel; // e.g. "Grade 4A"
-            if (!grouped[grade]) grouped[grade] = [];
-            grouped[grade].push(item);
+            const gradeName = item.gradeLevel?.name || 'Uncategorized';
+            if (!grouped[gradeName]) grouped[gradeName] = [];
+            grouped[gradeName].push(item);
         });
 
         res.json({ success: true, data: grouped });
     } catch (error) {
-        res.status(500).json({ message: 'Server Error' });
+        console.error("getMasterSchedule error:", error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
 
@@ -55,31 +79,39 @@ exports.assignSlot = async (req, res) => {
     const { gradeLevel, academicYear, dayOfWeek, period, subjectId, teacherId } = req.body;
 
     try {
-        // 1. Check if Teacher is busy elsewhere
+        const targetGradeId = await resolveGradeLevelId(gradeLevel);
+        if (!targetGradeId) {
+            return res.status(400).json({ message: "Invalid Grade Level provided." });
+        }
+
+        // 1. Check if Teacher is busy in another class at this exact time
         const teacherConflict = await Schedule.findOne({
             teacher: teacherId,
             dayOfWeek,
             period,
             academicYear,
-            gradeLevel: { $ne: gradeLevel } // Conflict if they are in another class
+            gradeLevel: { $ne: targetGradeId }
         });
 
         if (teacherConflict) {
             return res.status(400).json({ message: "Teacher is busy in another class at this time!" });
         }
 
-        // 2. Upsert (Update if exists, Insert if new)
+        // 2. Upsert slot using targetGradeId ObjectId
         const updatedSlot = await Schedule.findOneAndUpdate(
-            { gradeLevel, dayOfWeek, period, academicYear },
+            { gradeLevel: targetGradeId, dayOfWeek, period, academicYear },
             { subject: subjectId, teacher: teacherId },
-            { new: true, upsert: true }
-        ).populate('subject', 'name').populate('teacher', 'fullName');
+            { new: true, upsert: true, runValidators: true }
+        )
+        .populate('subject', 'name code')
+        .populate('teacher', 'fullName')
+        .populate('gradeLevel', 'name schoolLevel');
 
         res.json({ success: true, data: updatedSlot });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        console.error("assignSlot error:", error);
+        res.status(500).json({ message: error.message || 'Server Error' });
     }
 };
 
@@ -88,7 +120,8 @@ exports.assignSlot = async (req, res) => {
 exports.deleteSlot = async (req, res) => {
     const { gradeLevel, dayOfWeek, period, academicYear } = req.body;
     try {
-        await Schedule.findOneAndDelete({ gradeLevel, dayOfWeek, period, academicYear });
+        const targetGradeId = await resolveGradeLevelId(gradeLevel);
+        await Schedule.findOneAndDelete({ gradeLevel: targetGradeId, dayOfWeek, period, academicYear });
         res.json({ success: true, message: "Slot cleared" });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
@@ -105,9 +138,8 @@ const shuffle = (arr) => {
     return newArr;
 };
 
-const isKG = (gradeLevel) => /^(kg|nursery|pre)/i.test(String(gradeLevel || ''));
-
-
+// @desc    Auto-generate class schedules for KG or Primary/High School
+// @route   POST /api/schedule/generate
 exports.autoGenerateSchedule = async (req, res) => {
     const { academicYear, category } = req.body;
 
@@ -115,21 +147,18 @@ exports.autoGenerateSchedule = async (req, res) => {
         return res.status(400).json({ message: 'Academic Year and Category are required.' });
     }
 
-    // Start a MongoDB session for database transactions
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        // 1. Identify Target Grades
-        const allSubjects = await Subject.find({}).session(session);
-        const allGradeLevels =[...new Set(allSubjects.map(s => s.gradeLevel))];
+        // 1. Fetch Target GradeLevels directly from GradeLevel collection (New Architecture)
+        const allGradeLevels = await GradeLevel.find({}).session(session);
+        const isKgTarget = category.toLowerCase() === 'kg';
 
-        let targetGrades =[];
-        if (category === 'KG') {
-            targetGrades = allGradeLevels.filter(g => isKG(g));
-        } else {
-            targetGrades = allGradeLevels.filter(g => !isKG(g));
-        }
+        const targetGrades = allGradeLevels.filter(gl => {
+            const level = (gl.schoolLevel || '').toLowerCase();
+            return isKgTarget ? level === 'kg' : (level === 'primary' || level === 'high school');
+        });
 
         if (targetGrades.length === 0) {
             await session.abortTransaction();
@@ -137,10 +166,12 @@ exports.autoGenerateSchedule = async (req, res) => {
             return res.status(404).json({ message: `No classes found for category: ${category}` });
         }
 
-        // 2. Clear Old Schedule (Protected by transaction)
+        const targetGradeIds = targetGrades.map(g => g._id);
+
+        // 2. Clear Old Schedule for target grade levels in this year
         await Schedule.deleteMany({
             academicYear,
-            gradeLevel: { $in: targetGrades },
+            gradeLevel: { $in: targetGradeIds },
         }, { session });
 
         // 3. Initialize Trackers
@@ -153,72 +184,72 @@ exports.autoGenerateSchedule = async (req, res) => {
         }
 
         // 4. Fetch Teachers
-        const teacherFilter = { role: 'teacher' };
-        if (category === 'KG') {
-            teacherFilter.schoolLevel = { $in: ['kg', 'all'] };
-        } else {
-            teacherFilter.schoolLevel = { $in:[/primary/i, /high school/i, 'all'] };
-        }
+        const teachers = await User.find({ role: 'teacher' }).populate('subjectsTaught.subject').session(session);
+        const allSubjects = await Subject.find({}).session(session);
 
-        const teachers = await User.find(teacherFilter).populate('subjectsTaught.subject').session(session);
-        const newSchedule =[];
+        const newSchedule = [];
         const summary = {}; 
 
-        // 5. THE ALGORITHM
-        for (const grade of targetGrades) {
-            summary[grade] = 0;
-            classOccupied[grade] = classOccupied[grade] || {};
+        // 5. AUTO-SCHEDULING ALGORITHM
+        for (const gradeDoc of targetGrades) {
+            const gradeId = gradeDoc._id;
+            const gradeName = gradeDoc.name;
 
-            // Get Subjects & Shuffle them so Math isn't always first
-            let subjectsForGrade = allSubjects.filter(s => String(s.gradeLevel) === String(grade));
+            summary[gradeName] = 0;
+            classOccupied[gradeId.toString()] = {};
+
+            // Find Subjects assigned to this grade level via subject.gradeLevels array
+            let subjectsForGrade = allSubjects.filter(s => 
+                Array.isArray(s.gradeLevels) && s.gradeLevels.some(gl => gl.gradeLevel.equals(gradeId))
+            );
+
             subjectsForGrade = shuffle(subjectsForGrade);
 
             for (const subj of subjectsForGrade) {
                 if (!subj || !subj._id) continue;
 
-                // Find Teacher
+                // Find assigned Teacher for this subject + grade level combination
                 const assignedTeacher = teachers.find(t =>
                     Array.isArray(t.subjectsTaught) &&
                     t.subjectsTaught.some(st => {
-                        const subjId = st && st.subject && st.subject._id ? st.subject._id : st.subject;
-                        return subjId && String(subjId) === String(subj._id);
+                        const subjId = st.subject?._id || st.subject;
+                        const stGradeId = st.gradeLevel?._id || st.gradeLevel;
+                        return subjId && String(subjId) === String(subj._id) && stGradeId && String(stGradeId) === String(gradeId);
                     })
                 );
 
                 if (!assignedTeacher) continue;
 
-                // Determine Load
-                let sessionsNeeded = parseInt(subj.sessionsPerWeek || (category === 'KG' ? 3 : 4), 10);
+                // Extract required sessions per week for this grade level
+                const gradeConfig = subj.gradeLevels.find(gl => gl.gradeLevel.equals(gradeId));
+                let sessionsNeeded = gradeConfig ? parseInt(gradeConfig.sessionsPerWeek, 10) : 3;
+
                 const randomDays = shuffle([...DAYS]);
 
                 for (const day of randomDays) {
-                    // If we have finished assigning all sessions for this subject, STOP checking days
                     if (sessionsNeeded <= 0) break;
 
-                    classOccupied[grade][day] = classOccupied[grade][day] || {};
+                    classOccupied[gradeId.toString()][day] = classOccupied[gradeId.toString()][day] || {};
 
-                    // Rule: One Subject Per Day Check
+                    // Rule: Max 1 session per subject per day
                     const alreadyScheduledToday = newSchedule.some(s =>
-                        String(s.gradeLevel) === String(grade) && 
+                        String(s.gradeLevel) === String(gradeId) && 
                         s.dayOfWeek === day && 
                         String(s.subject) === String(subj._id)
                     );
                     
-                    if (alreadyScheduledToday) continue; // Skip this day completely
+                    if (alreadyScheduledToday) continue;
 
                     const randomPeriods = shuffle([...PERIODS]);
 
                     for (const period of randomPeriods) {
-                        // 1. Class Conflict
-                        if (classOccupied[grade][day][period]) continue;
-
-                        // 2. Teacher Conflict
+                        if (classOccupied[gradeId.toString()][day][period]) continue;
                         if (teacherOccupied[day][period].has(String(assignedTeacher._id))) continue;
 
-                        // --- ASSIGN SLOT ---
+                        // Assign Slot
                         const slot = {
                             academicYear,
-                            gradeLevel: grade,
+                            gradeLevel: gradeId,
                             dayOfWeek: day,
                             period,
                             subject: subj._id,
@@ -227,13 +258,11 @@ exports.autoGenerateSchedule = async (req, res) => {
 
                         newSchedule.push(slot);
                         
-                        // Update Trackers
-                        classOccupied[grade][day][period] = true;
+                        classOccupied[gradeId.toString()][day][period] = true;
                         teacherOccupied[day][period].add(String(assignedTeacher._id));
                         
                         sessionsNeeded--;
-                        summary[grade] += 1; // [FIXED]: Correctly updates the summary object
-                        
+                        summary[gradeName] += 1;
                         break;
                     }
                 }
@@ -242,10 +271,7 @@ exports.autoGenerateSchedule = async (req, res) => {
 
         // 6. Save
         if (newSchedule.length > 0) {
-            // Save to DB using the transaction session
             await Schedule.insertMany(newSchedule, { session });
-            
-            // Commit the transaction - effectively finalizing the deletion and insertion
             await session.commitTransaction();
             session.endSession();
 
@@ -256,17 +282,15 @@ exports.autoGenerateSchedule = async (req, res) => {
                 summary 
             });
         } else {
-            // Abort transaction - restores the old schedule since generation failed
             await session.abortTransaction();
             session.endSession();
 
             return res.status(400).json({
-                message: "Could not generate schedule. Ensure teachers are assigned to subjects."
+                message: "Could not generate schedule. Ensure teachers are assigned to subjects and grade levels in Settings."
             });
         }
 
     } catch (error) {
-        // Rollback transaction on unexpected errors
         await session.abortTransaction();
         session.endSession();
         
@@ -275,29 +299,37 @@ exports.autoGenerateSchedule = async (req, res) => {
     }
 };
 
-exports.getScheduleForTeacher = async(req,res)=>{
-    const user =  req.user
+// @desc    Get Schedule for a specific Teacher
+// @route   GET /api/schedule/teacher
+exports.getScheduleForTeacher = async (req, res) => {
     try {
-        const response = await Schedule.find({teacher:user._id})
-                        .populate('subject','name')
-                        .select('gradeLevel dayOfWeek period subject')
-                        .lean();
-        res.status(200).json(response)
-    } catch (error) {
-        res.status(500).json({message:"Server is not working"})
-    }
-}
+        const response = await Schedule.find({ teacher: req.user._id })
+            .populate('subject', 'name code')
+            .populate('gradeLevel', 'name schoolLevel')
+            .select('gradeLevel dayOfWeek period subject')
+            .lean();
 
-exports.getScheduleForClass = async(req,res)=>{
-    const gradeLevel =  req.params.gradeLevel
-    try {
-        const response = await Schedule.find({gradeLevel:gradeLevel})
-                        .populate('subject','name')
-                        .populate('teacher','fullName')
-                        .select('dayOfWeek period subject teacher') 
-                        .lean();
-        res.status(200).json(response)
+        res.status(200).json({ success: true, data: response });
     } catch (error) {
-        res.status(500).json({message:"Server is not working"})
+        res.status(500).json({ message: "Server error fetching teacher schedule" });
     }
-}
+};
+
+// @desc    Get Schedule for a specific Class
+// @route   GET /api/schedule/class/:gradeLevel
+exports.getScheduleForClass = async (req, res) => {
+    try {
+        const targetGradeId = await resolveGradeLevelId(req.params.gradeLevel);
+
+        const response = await Schedule.find({ gradeLevel: targetGradeId })
+            .populate('subject', 'name code')
+            .populate('teacher', 'fullName')
+            .populate('gradeLevel', 'name schoolLevel')
+            .select('dayOfWeek period subject teacher gradeLevel') 
+            .lean();
+
+        res.status(200).json({ success: true, data: response });
+    } catch (error) {
+        res.status(500).json({ message: "Server error fetching class schedule" });
+    }
+};

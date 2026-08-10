@@ -144,6 +144,8 @@ const Navbar = () => {
 
     if (user.role === 'admin') {
         return [
+            { to: '/admin/gradeLevel', label: t('add_grade_level') || 'Add Grade Level', desc: 'Create new grade levels', icon: LayoutDashboard },
+            {to: '/grade-levels', label: t('grade_levels') || 'Grade Levels', desc: 'Manage registered school classrooms and grade categories', icon: LayoutDashboard},
             { to: '/admin/payments', label: t('payment_registry') || 'Record Payments', desc: 'Manage student manual payments', icon: LayoutDashboard },
             { to: '/admin/payments/analytics', label: t('payment_analytics') || 'Payment Analytics', desc: 'Track collected revenue & defaulters', icon: BarChart3 }, // ⚠️ አዲስ የተጨመረ [2]
             { to: '/schedule', label: 'Schedule', desc: 'Manage timetable', icon: LayoutDashboard },

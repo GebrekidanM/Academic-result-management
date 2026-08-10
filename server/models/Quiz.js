@@ -15,13 +15,15 @@ const quizSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String },
     
-    // Links to your existing models
     subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
     teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    gradeLevel: [{ type: String, required: true }],
+    gradeLevel: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'GradeLevel',
+        required: true
+    }],
     academicYear: { type: String, required: true },
     
-    // Quiz Settings
     durationInMinutes: { type: Number, required: true, default: 30 },
     startDate: { type: Date },
     endDate: { type: Date },

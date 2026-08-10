@@ -5,32 +5,41 @@ const Subject = require('../models/Subject');
 const AuditLog = require('../models/AuditLog');
 const Attendance = require('../models/Attendance');
 
-// Self-healing school section classifier to handle any database typos/variations safely
-const getSchoolSection = (gradeLevel) => {
-    const grade = (gradeLevel || '').trim().toLowerCase();
-    
-    if (/^(kg|nursery|pre)/i.test(grade)) {
-        return 'kg';
+// Self-healing school section classifier (handles both populated objects and string names)
+const getSchoolSection = (gradeLevelDoc) => {
+    if (!gradeLevelDoc) return 'primary';
+
+    // 1. If gradeLevel is populated, use the stored schoolLevel field
+    if (typeof gradeLevelDoc === 'object') {
+        const category = (gradeLevelDoc.schoolLevel || '').toLowerCase().trim();
+        if (category === 'kg') return 'kg';
+        if (category === 'high school' || category === 'highschool') return 'highSchool';
+        if (category === 'primary') return 'primary';
+        
+        // Fallback to testing the class name string (e.g. "Kg 1B" or "Grade 10")
+        const gradeName = (gradeLevelDoc.name || '').trim().toLowerCase();
+        if (/^(kg|nursery|pre)/i.test(gradeName)) return 'kg';
+        
+        const match = gradeName.match(/\d+/);
+        if (match) {
+            const num = parseInt(match[0], 10);
+            if (num >= 1 && num <= 8) return 'primary';
+            if (num >= 9 && num <= 12) return 'highSchool';
+        }
+        return 'primary';
     }
+
+    // 2. If gradeLevel is a plain string name (e.g. "Grade 1A")
+    const grade = String(gradeLevelDoc).trim().toLowerCase();
+    if (/^(kg|nursery|pre)/i.test(grade)) return 'kg';
     
     const match = grade.match(/\d+/);
     if (match) {
         const num = parseInt(match[0], 10);
-        if (num >= 1 && num <= 8) {
-            return 'primary';
-        }
-        if (num >= 9 && num <= 12) {
-            return 'highSchool';
-        }
+        if (num >= 1 && num <= 8) return 'primary';
+        if (num >= 9 && num <= 12) return 'highSchool';
     }
-    
-    if (/grade|gtade/i.test(grade)) {
-        if (/(9|1[0-2])/.test(grade)) {
-            return 'highSchool';
-        }
-        return 'primary';
-    }
-    
+
     return 'primary'; 
 };
 
@@ -49,6 +58,7 @@ exports.getStats = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(6);
 
+        // TODAY'S ATTENDANCE CALCULATION
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const todayEnd = new Date();
@@ -73,7 +83,11 @@ exports.getStats = async (req, res) => {
             }
         }
 
-        const activeStudents = await Student.find({ status: 'Active' }).select('gender gradeLevel').lean();
+        // FIXED: Populate gradeLevel with 'name schoolLevel' to correctly categorize KG, Primary, and High School
+        const activeStudents = await Student.find({ status: 'Active' })
+            .populate('gradeLevel', 'name schoolLevel')
+            .select('gender gradeLevel')
+            .lean();
 
         let kgMale = 0, kgFemale = 0;
         let primaryMale = 0, primaryFemale = 0;
@@ -95,6 +109,7 @@ exports.getStats = async (req, res) => {
             }
         });
 
+        // MONTHLY ATTENDANCE TREND
         const monthlyStats = await Attendance.aggregate([
             {
                 $project: {
@@ -130,7 +145,6 @@ exports.getStats = async (req, res) => {
             }
         });
 
-
         // PROGRAMMATIC ENROLLMENT HISTORY COMPILATION
         const studentsDataForHistory = await Student.find({}, 'gender year academicHistory').lean();
         const yearlyGenderMap = {};
@@ -139,7 +153,6 @@ exports.getStats = async (req, res) => {
             const g = (student.gender || '').trim().toLowerCase();
             if (!g || !['male', 'female'].includes(g)) return;
 
-            // SAFE-GUARD: Use a Set to ensure this specific student is only counted ONCE per academic year
             const uniqueYearsForThisStudent = new Set();
 
             const currentYear = student.year;
@@ -156,7 +169,6 @@ exports.getStats = async (req, res) => {
                 });
             }
 
-            // Now, we only increment the gender count once per unique year for this student
             uniqueYearsForThisStudent.forEach(yr => {
                 if (!yearlyGenderMap[yr]) {
                     yearlyGenderMap[yr] = { male: 0, female: 0 };
@@ -173,8 +185,6 @@ exports.getStats = async (req, res) => {
                 male: yearlyGenderMap[yr].male,
                 female: yearlyGenderMap[yr].female
             }));
-        // ====================================================
-
 
         res.status(200).json({
             success: true,
@@ -192,6 +202,7 @@ exports.getStats = async (req, res) => {
             attendanceTrend: trendData
         });
     } catch (error) {
+        console.error("Error in getStats controller:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

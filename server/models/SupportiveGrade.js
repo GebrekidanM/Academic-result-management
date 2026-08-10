@@ -21,7 +21,7 @@ const supportiveGradeSchema = new mongoose.Schema({
         required: true
     },
     score: {
-        type: String, // Stores "A", "B", "VG", "E"
+        type: String,
         required: true
     }
 }, { timestamps: true });

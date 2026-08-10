@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// src/pages/SubjectListPage.jsx
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; 
 import subjectService from '@shared/services/subjectService';
@@ -17,11 +18,18 @@ const SubjectListPage = () => {
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [searchedGrade, setSearchedGrade] = useState('');
-    const [subjects, setSubjects] = useState([]);
+    const [allMasterSubjects, setAllMasterSubjects] = useState([]); // Master list of all subjects
+    const [subjects, setSubjects] = useState([]); // Filtered subjects for active class
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // Form State
+    // Mode State: 'existing' vs 'new'
+    const [addMode, setAddMode] = useState('existing'); 
+    
+    // Existing Subject Form State
+    const [selectedMasterSubjectId, setSelectedMasterSubjectId] = useState('');
+    
+    // New Subject Form State
     const [newSubjectName, setNewSubjectName] = useState('');
     const [newSubjectCode, setNewSubjectCode] = useState('');
     const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
@@ -32,15 +40,31 @@ const SubjectListPage = () => {
         setError(null);
         try {
             const response = await subjectService.getAllSubjects();
-            const allSubs = response.data.data || response.data;
+            const allSubs = response.data?.data || response.data || [];
+            setAllMasterSubjects(allSubs); // Store master list
             
-            const filtered = allSubs.filter(s => 
-                s.gradeLevel.trim().toLowerCase() === grade.trim().toLowerCase()
-            );
+            const targetGrade = (grade || '').trim().toLowerCase();
+
+            // Filter subjects assigned to searchedGrade
+            const filtered = allSubs.filter(s => {
+                if (Array.isArray(s.gradeLevels) && s.gradeLevels.length > 0) {
+                    return s.gradeLevels.some(g => {
+                        const name = typeof g.gradeLevel === 'object' ? g.gradeLevel?.name : g.gradeLevel;
+                        return (name || '').trim().toLowerCase() === targetGrade;
+                    });
+                }
+
+                if (s.gradeLevel) {
+                    const name = typeof s.gradeLevel === 'object' ? s.gradeLevel?.name : s.gradeLevel;
+                    return (name || '').trim().toLowerCase() === targetGrade;
+                }
+
+                return false;
+            });
             
             setSubjects(filtered);
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching subjects:", err);
             setError(t('error_fetching_subjects') || "Failed to load subjects.");
         } finally {
             setLoading(false);
@@ -60,27 +84,52 @@ const SubjectListPage = () => {
         setSearchedGrade(gradeToSearch);
         fetchSubjects(gradeToSearch);
     };
-    
-    const handleCreate = async (e) => {
+
+    // Assign existing subject or create new subject
+    const handleSaveSubject = async (e) => {
         e.preventDefault();
         if (!searchedGrade) return;
-        setError(null)
+        setError(null);
+
         try {
-            const newSubjectData = {
-                name: newSubjectName,
-                code: newSubjectCode,
+            let subjectNameToSend = '';
+            let subjectCodeToSend = '';
+
+            if (addMode === 'existing') {
+                if (!selectedMasterSubjectId) {
+                    setError("Please select a subject from the list.");
+                    return;
+                }
+                const chosen = allMasterSubjects.find(s => s._id === selectedMasterSubjectId);
+                if (chosen) {
+                    subjectNameToSend = chosen.name;
+                    subjectCodeToSend = chosen.code || '';
+                }
+            } else {
+                if (!newSubjectName.trim()) {
+                    setError("Please enter a subject name.");
+                    return;
+                }
+                subjectNameToSend = newSubjectName.trim();
+                subjectCodeToSend = newSubjectCode.trim();
+            }
+
+            const payload = {
+                name: subjectNameToSend,
+                code: subjectCodeToSend,
                 gradeLevel: formatGrade(searchedGrade),
-                sessionsPerWeek: sessionsPerWeek || 3 // Ensure value is sent
+                sessionsPerWeek: Number(sessionsPerWeek) || 3
             };
-            await subjectService.createSubject(newSubjectData);
+
+            await subjectService.createSubject(payload);
             
             // Reset Form
+            setSelectedMasterSubjectId('');
             setNewSubjectName('');
             setNewSubjectCode('');
             setSessionsPerWeek(3);
             
-            alert(t('success_subject_created') || "Subject created successfully!");
-            
+            alert(t('success_save') || "Subject assigned successfully!");
             fetchSubjects(searchedGrade);
 
         } catch (err) {
@@ -98,9 +147,20 @@ const SubjectListPage = () => {
             }
         }
     };
-    
+
+    // Filter master subjects that are NOT YET assigned to this active class
+    const unassignedMasterSubjects = React.useMemo(() => {
+        if (!searchedGrade || allMasterSubjects.length === 0) return [];
+        const currentAssignedNames = new Set(subjects.map(s => s.name.toLowerCase().trim()));
+        
+        return allMasterSubjects
+            .filter(sub => !currentAssignedNames.has(sub.name.toLowerCase().trim()))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [allMasterSubjects, subjects, searchedGrade]);
+
     // --- Styles ---
     const textInput = "shadow-sm border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
+    const selectInput = "shadow-sm border border-gray-300 rounded-lg w-full py-2 px-3 text-gray-700 leading-tight bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
     const buttonPrimary = "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-sm";
     const buttonSuccess = "bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm";
 
@@ -163,13 +223,13 @@ const SubjectListPage = () => {
             {searchedGrade && !loading && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     
-                    {/* LEFT: List of Subjects */}
+                    {/* LEFT: List of Assigned Subjects */}
                     <div className="lg:col-span-2">
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 className="text-xl font-bold text-gray-800">
                                 {t('subjects_for')} <span className="text-blue-600 bg-blue-50 px-2 rounded">"{searchedGrade}"</span>
                             </h3>
-                            <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{subjects.length} Found</span>
+                            <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{subjects.length} Assigned</span>
                         </div>
                         
                         {subjects.length > 0 ? (
@@ -179,9 +239,7 @@ const SubjectListPage = () => {
                                         <div>
                                             <h4 className="font-bold text-lg text-gray-800">{sub.name}</h4>
                                             
-                                            {/* --- UPDATED DISPLAY: Code + Load --- */}
                                             <div className="flex flex-wrap gap-2 mt-1">
-                                                {/* Code Badge */}
                                                 {sub.code ? (
                                                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-mono font-bold">
                                                         {sub.code}
@@ -190,7 +248,6 @@ const SubjectListPage = () => {
                                                     <span className="text-xs text-gray-400 italic">No Code</span>
                                                 )}
 
-                                                {/* Load Badge (New) */}
                                                 <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1" title="Sessions per week">
                                                     🕒 {sub.sessionsPerWeek || 3} / wk
                                                 </span>
@@ -219,41 +276,88 @@ const SubjectListPage = () => {
                         ) : (
                             <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 text-gray-400">
                                 <span className="text-4xl mb-2">📚</span>
-                                <p>{t('no_subjects_found') || "No subjects found for this grade."}</p>
-                                <p className="text-sm mt-1">Use the form on the right to add one.</p>
+                                <p>{t('no_subjects_found') || "No subjects assigned to this grade yet."}</p>
+                                <p className="text-sm mt-1">Use the panel on the right to assign or create one.</p>
                             </div>
                         )}
                     </div>
 
-                    {/* RIGHT: Add Form */}
+                    {/* RIGHT: Add/Assign Form */}
                     <div>
-                         <form onSubmit={handleCreate} className="bg-white p-6 rounded-xl border border-gray-200 shadow-md sticky top-6">
-                            <h4 className="font-bold text-lg text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
-                                <span className="bg-green-100 text-green-700 p-1 rounded text-xs">＋</span> {t('add_new_subject')}
-                            </h4>
+                         <form onSubmit={handleSaveSubject} className="bg-white p-6 rounded-xl border border-gray-200 shadow-md sticky top-6">
                             
+                            {/* Mode Toggle Tabs */}
+                            <div className="flex bg-gray-100 p-1 rounded-lg mb-4 text-xs font-bold">
+                                <button
+                                    type="button"
+                                    onClick={() => setAddMode('existing')}
+                                    className={`flex-1 py-1.5 rounded-md transition-all ${addMode === 'existing' ? 'bg-white text-blue-600 shadow' : 'text-gray-500 hover:text-gray-800'}`}
+                                >
+                                    📋 Select Existing
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setAddMode('new')}
+                                    className={`flex-1 py-1.5 rounded-md transition-all ${addMode === 'new' ? 'bg-white text-blue-600 shadow' : 'text-gray-500 hover:text-gray-800'}`}
+                                >
+                                    ＋ Create New
+                                </button>
+                            </div>
+
                             <div className="space-y-4">
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('subject_name')}</label>
-                                    <input 
-                                        type="text"
-                                        value={newSubjectName}
-                                        onChange={(e) => setNewSubjectName(e.target.value)}
-                                        placeholder={t('subject_name_placeholder') || "e.g. Mathematics"}
-                                        className={textInput}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('subject_code')} (Optional)</label>
-                                     <input 
-                                        type="text"
-                                        value={newSubjectCode}
-                                        onChange={(e) => setNewSubjectCode(e.target.value)}
-                                        placeholder={t('subject_code_placeholder') || "e.g. MATH-04"}
-                                        className={textInput}
-                                    />
-                                </div>
+                                {/* MODE A: SELECT FROM EXISTING MASTER SUBJECTS */}
+                                {addMode === 'existing' ? (
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">
+                                            Select Master Subject
+                                        </label>
+                                        <select
+                                            value={selectedMasterSubjectId}
+                                            onChange={(e) => setSelectedMasterSubjectId(e.target.value)}
+                                            className={selectInput}
+                                            required={addMode === 'existing'}
+                                        >
+                                            <option value="">-- Choose Existing Subject --</option>
+                                            {unassignedMasterSubjects.map(sub => (
+                                                <option key={sub._id} value={sub._id}>
+                                                    {sub.name} {sub.code ? `(${sub.code})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {unassignedMasterSubjects.length === 0 && (
+                                            <p className="text-xs text-gray-400 mt-1 italic">
+                                                All master subjects are already assigned to {searchedGrade}.
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* MODE B: CREATE NEW SUBJECT */
+                                    <>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('subject_name')}</label>
+                                            <input 
+                                                type="text"
+                                                value={newSubjectName}
+                                                onChange={(e) => setNewSubjectName(e.target.value)}
+                                                placeholder={t('subject_name_placeholder') || "e.g. Mathematics"}
+                                                className={textInput}
+                                                required={addMode === 'new'}
+                                            />
+                                        </div>
+                                        <div>
+                                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">{t('subject_code')} (Optional)</label>
+                                             <input 
+                                                type="text"
+                                                value={newSubjectCode}
+                                                onChange={(e) => setNewSubjectCode(e.target.value)}
+                                                placeholder={t('subject_code_placeholder') || "e.g. MATH-04"}
+                                                className={textInput}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Weekly Periods (Load) - Common to both modes */}
                                 <div>
                                     <label htmlFor="sessionsPerWeek" className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">
                                         Weekly Periods (Load)
@@ -270,16 +374,16 @@ const SubjectListPage = () => {
                                         required
                                     />
                                     <p className="text-xs text-gray-400 mt-1">
-                                        Used for auto-scheduling.
+                                        Used for schedule generation.
                                     </p>
                                 </div>
                                 
                                 <div className="pt-4 mt-2 border-t">
                                     <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
-                                        Adding to: <strong className="text-blue-600 bg-blue-50 px-1 rounded">{searchedGrade}</strong>
+                                        Assigning to: <strong className="text-blue-600 bg-blue-50 px-1 rounded">{searchedGrade}</strong>
                                     </p>
                                     <button type="submit" className={`w-full ${buttonSuccess} py-3 shadow-lg transform active:scale-95 transition-transform`}>
-                                        {t('save_subject')}
+                                        {addMode === 'existing' ? '➕ Assign to Class' : t('save_subject')}
                                     </button>
                                 </div>
                             </div>

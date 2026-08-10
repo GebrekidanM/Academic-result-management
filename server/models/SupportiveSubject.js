@@ -7,9 +7,10 @@ const supportiveSubjectSchema = new mongoose.Schema({
         trim: true
     },
     gradeLevel: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'GradeLevel',
         required: true
-    }
+    },
 }, { timestamps: true });
 
 supportiveSubjectSchema.index({ name: 1, gradeLevel: 1 }, { unique: true });
