@@ -16,7 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ... existing requires
 const {performBackup} = require('./utils/backup');
-const {runMigration} = require('./utils/migrateToGradeLevel');
+const {runMigrationmigrateSubjectsToNewSchema} = require('./utils/migrateSubjectSchema');
 // --- Routes ---
 app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
