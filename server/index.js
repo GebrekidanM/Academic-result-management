@@ -16,7 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ... existing requires
 const {performBackup} = require('./utils/backup');
-
+const {runMigration} = require('./utils/migrateToGradeLevel');
 // --- Routes ---
 app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
@@ -41,6 +41,7 @@ app.use('/api/assessment-names', require('./routes/assessmentNameRoutes'))
 app.use('/api/attendance', require("./routes/attendanceRoutes"));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/gradelevels', require('./routes/gradeLevelRoutes'));
+
 
 app.use((err, req, res, next) => {
     console.error("❌ Express Global Error Caught:", err);
