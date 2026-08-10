@@ -16,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ... existing requires
 const {performBackup} = require('./utils/backup');
+const {forceConvertGradeLevelsToObjectId} = require('./utils/migrateStudentGradeLevels');
 // --- Routes ---
 app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
